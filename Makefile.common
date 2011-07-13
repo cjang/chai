@@ -1,0 +1,27 @@
+GNU_CC = gcc
+GNU_CFLAGS = -std=c99 -O2 -g3
+
+GNU_CXX = g++
+GNU_CXXFLAGS = -O2 -g3
+
+AR = ar
+RANLIB = ranlib
+
+.cpp.o :
+	$(GNU_CXX) -c $(GNU_CXXFLAGS) $(USE_CFLAGS) $(GLOBAL_CFLAGS) $< -o $@
+
+# archive library
+$(LIBRARY_FILE) : $(LIBRARY_OBJECT_CODE)
+	$(AR) qc $@ $(LIBRARY_OBJECT_CODE)
+	$(RANLIB) $@
+
+INSTALL_DIR = ../install
+
+INTERNAL_HEADER_DIR = $(INSTALL_DIR)/.include
+INTERNAL_OBJECT_DIR = $(INSTALL_DIR)/.lib
+
+HEADER_DIR = $(INSTALL_DIR)/include
+LIB_DIR = $(INSTALL_DIR)/lib
+
+GLOBAL_CFLAGS = -I$(INTERNAL_HEADER_DIR) -I$(HEADER_DIR) -fopenmp
+GLOBAL_LDFLAGS = -L$(LIB_DIR) -fopenmp

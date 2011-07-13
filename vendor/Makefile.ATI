@@ -1,0 +1,27 @@
+ATI_SDK = $(ATISTREAMSDKROOT)
+
+USE_CFLAGS = -I$(ATI_SDK)/include $(GLOBAL_CFLAGS)
+USE_LDFLAGS = -L$(ATI_SDK)/lib/x86_64 -lOpenCL
+
+LIBRARY_FILE = libchaiATI.a
+
+LIBRARY_OBJECT_CODE = \
+	OCLdevice.o \
+	OCLinit.o
+
+LIBRARY_HEADER_FILES = \
+	$(LIBRARY_OBJECT_CODE:.o=.hpp)
+
+include ../Makefile.common
+
+BUILD_OUTPUT = \
+	$(LIBRARY_FILE)
+
+all : $(BUILD_OUTPUT)
+
+install : all
+	install --mode=644 $(LIBRARY_HEADER_FILES) $(INTERNAL_HEADER_DIR)
+	install $(LIBRARY_FILE) $(LIB_DIR)
+
+clean :
+	rm -f *.o $(BUILD_OUTPUT)
