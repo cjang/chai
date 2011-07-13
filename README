@@ -1,0 +1,37 @@
+This project is copyright 2011 by Chris Jang (fastkor@gmail.com).
+
+All source code is licensed under _The Artistic License 2.0_ of _The Perl
+Foundation_ except for the sample code (under /sample). Some of that code has
+been taken from PeakStream whitepapers and presentations. This is indicated
+in source code files as appropriate.
+
+What is this?
+
+It's a clean-room implementation of the PeakStream (TM) managed platform for
+GPGPU.
+
+This was an array programming language embedded as a domain specific language
+in C++ with a virtual machine and JIT that could target and schedule across
+heterogeneous devices (CPUs, GPUs and accelerators). It was still in a
+developmental state when the company was acquired in 2007 and the product line
+discontinued.
+
+Why recreate it?
+
+PeakStream (TM) had a very practical approach to the GPGPU problem. It was a
+solution that minimized software development costs. It struck a good balance
+between GPGPU as managed platform without forcing applications to adopt
+completely different technology (which drives up development and training
+costs).
+
+I believe it is the most cost-effective solution to GPGPU for non-specialist
+engineers and scientists.
+
+Historical comments below:
+
+July 12th 2011 - pre alpha, development code checkpoint
+This code is not in a working state. The interpreter works. I believe memory
+management works. That includes (primitive but hopefully correct) management
+of host arrays and compute device memory buffers and images. Everything JIT
+comes next: 1) tracing JIT for glue; 2) auto-tuned high arithmetic intensity
+library kernels.
