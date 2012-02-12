@@ -10,10 +10,10 @@
 
 #include "AstVariable.hpp"
 #include "BackMem.hpp"
-#include "BC.hpp"
 #include "BCStmt.hpp"
+#include "chai/BC.hpp"
+#include "chai/Stak.hpp"
 #include "FrontMem.hpp"
-#include "Stak.hpp"
 #include "VectorNut.hpp"
 #include "VectorTrace.hpp"
 

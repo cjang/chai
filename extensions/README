@@ -1,0 +1,10 @@
+This project is copyright 2012 by Chris Jang (fastkor@gmail.com).
+
+===============================================================================
+What are extensions?
+
+There is primitive support for dynamically extending the language in the
+virtual machine. This is not something I view as very useful right now. Too
+much work is required to add new operations.
+
+For this reason, the module is not included in the default build.

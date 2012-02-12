@@ -1,19 +1,29 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
-#include <iostream>
+#include <sstream>
 #include <sys/time.h>
 
 #include "Executor.hpp"
+#include "Logger.hpp"
 
 using namespace std;
 
 namespace chai_internal {
 
-Executor::Executor(void)
+Executor::Executor(istream& configSpec)
     : _oclInit(),
-      _deviceMap(_oclInit),
+      _deviceMap(_oclInit, configSpec),
       DEVICE_FAILURE(-1),
       TIMER_FAILURE(-10) { }
+
+void Executor::extendLanguage(const uint32_t opCode,
+                              const BaseInterp& interpHandler,
+                              const BaseTrans& jitHandler)
+{
+    _deviceMap.extendLanguage(opCode,
+                              interpHandler,
+                              jitHandler);
+}
 
 const set< size_t >& Executor::deviceCodes(void) const
 {
@@ -28,13 +38,13 @@ double Executor::dispatch(const size_t deviceCode,
     if (0 != gettimeofday(&tvStart, NULL))
     {
         // this really shouldn't happen
-        cerr << "ERROR: gettimeofday(&tvStart, NULL) in executor" << endl;
+        LOGGER("gettimeofday(&tvStart, NULL) error in executor")
 
         // failure - if this keeps happening, then nothing will be dispatched
         return TIMER_FAILURE;
     }
 
-    // FIXME - The executor times the JIT as well as kernel execution.
+    // The executor times the JIT as well as kernel execution.
     // This will almost always lose to the interpreter. Once the JIT
     // leaves a good solution in the kernel cache, then it's ok. But
     // as the JIT is always included, the compute device using it will
@@ -52,7 +62,7 @@ double Executor::dispatch(const size_t deviceCode,
     if (0 != gettimeofday(&tvStop, NULL))
     {
         // this really shouldn't happen
-        cerr << "ERROR: gettimeofday(&tvStop, NULL) in executor" << endl;
+        LOGGER("gettimeofday(&tvStop, NULL) error in executor")
 
         // device has already computed the trace but the timer failed
         return TIMER_FAILURE;
@@ -68,13 +78,15 @@ double Executor::dispatch(const size_t deviceCode,
     double goodnessTime = elapsed_usecs;
     goodnessTime /= vt.numTraces();
 
-// FIXME
-cerr << "goodnessTime: " << goodnessTime << endl;
+#ifdef __LOGGING_ENABLED__
+    stringstream ss;
+    ss << "goodnessTime: " << goodnessTime;
+    LOGGER(ss.str())
+#endif
 
     // The number of traces will vary and are a consequence of auto-tuning.
-    // Just as indicated in the PeakStream architectural diagram, the
-    // executor feeds into profiling. That's where the auto-tuning should
-    // reside. (FIXME - have to do this later)
+    // The executor feeds into profiling. That's where the auto-tuning should
+    // reside.
 
     return goodnessTime;
 }

@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "XStmtCreateData.hpp"
 
@@ -9,8 +9,10 @@ namespace chai_internal {
 ////////////////////////////////////////
 // create array memory on compute device
 
-XStmtCreateData::XStmtCreateData(AstVariable* lhs)
-    : _initializeData(false),
+XStmtCreateData::XStmtCreateData(AstVariable* lhs,
+                                 const bool lexScope)
+    : _outerLexicalScope(lexScope),
+      _initializeData(false),
       _floatValue(0),
       _doubleValue(0)
 {
@@ -19,6 +21,11 @@ XStmtCreateData::XStmtCreateData(AstVariable* lhs)
 
     // array memory creation rises to the top
     buoyancyRise();
+}
+
+bool XStmtCreateData::outerLexicalScope(void) const
+{
+    return _outerLexicalScope;
 }
 
 bool XStmtCreateData::initializeData(void) const

@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_SINGLE_TRACE_HPP_
 #define _CHAI_SINGLE_TRACE_HPP_
@@ -9,11 +9,11 @@
 #include <set>
 #include <vector>
 
-#include "BC.hpp"
+#include "chai/BC.hpp"
+#include "chai/Stak.hpp"
 #include "ClientTrace.hpp"
 #include "FrontMem.hpp"
 #include "SingleNut.hpp"
-#include "Stak.hpp"
 
 namespace chai_internal {
 
@@ -46,12 +46,21 @@ class SingleTrace : public RefObj
     // for storing stream values with variables
     std::map< uint32_t, SingleNut* > _variableNuts;
 
+    // need back reference to origin client trace for sticky continuation
+    ClientTrace&                     _origin;
+
     uint64_t computeHash(ClientTrace&);
 
 public:
     SingleTrace(ClientTrace&);
 
     uint64_t hashCode(void) const;
+    const std::vector< uint64_t >& hashCodeHistory(void) const;
+
+    size_t stickyDevice(void) const;
+    bool stickyDevice(const size_t deviceCode);
+    void unstickyDevice(void);
+    bool stickyMovement(void) const;
 };
 
 }; // namespace chai_internal

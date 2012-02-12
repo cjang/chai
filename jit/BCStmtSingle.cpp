@@ -1,6 +1,5 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
-#include "ByteCodes.hpp"
 #include "HashJIT.hpp"
 #include "BCStmtSingle.hpp"
 #include "PrintBC.hpp"
@@ -136,7 +135,7 @@ AstVariable* BCStmtSingle::getAst(void)
 void BCStmtSingle::setAst(AstVariable* obj)
 {
     // assign to LHS
-    _vectorNuts[_lhsVariable]->setNut(_lhsVersion, obj);
+    _vectorNuts[_lhsVariable]->setNutVar(_lhsVersion, obj);
 }
 
 void BCStmtSingle::debug(ostream& os)

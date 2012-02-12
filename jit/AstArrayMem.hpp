@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_AST_ARRAY_MEM_HPP_
 #define _CHAI_AST_ARRAY_MEM_HPP_
@@ -22,6 +22,8 @@ class AstArrayMem : public BaseAst
     std::vector< FrontMem* > _frontMem;
     BackMem*                 _backMem;
 
+    const bool _sameDataAcrossTraces;
+
 public:
     AstArrayMem(const std::vector< FrontMem* >& frontMem,
                 BackMem* backMem,
@@ -30,6 +32,8 @@ public:
 
     const std::vector< FrontMem* >& frontMem(void) const;
     BackMem* backMem(void) const;
+
+    bool sameDataAcrossTraces(void) const;
 
     uint32_t variable(void) const;
     uint32_t version(void) const;

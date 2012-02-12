@@ -6,7 +6,7 @@
 #include <ostream>
 #include <string>
 
-#include "BC.hpp"
+#include "chai/BC.hpp"
 
 namespace chai_internal {
 

@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "InterpCond.hpp"
 #include "UtilFuns.hpp"
@@ -12,6 +12,10 @@ namespace chai_internal {
 
 void InterpCond::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
+    swizzle(0);
+    swizzle(1);
+    swizzle(2);
+
     // first allocate backing memory
     const size_t maxW = max<size_t>(W(1), W(2));
     const size_t maxH = max<size_t>(H(1), H(2));

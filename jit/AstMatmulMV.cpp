@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "AstMatmulMV.hpp"
 
@@ -7,40 +7,16 @@ using namespace std;
 namespace chai_internal {
 
 ////////////////////////////////////////////////
-// mean, sum
+// matrix vector multiply
 
 AstMatmulMV::AstMatmulMV(BaseAst* bargLeft,
                          BaseAst* bargRight)
-    : BaseAst(bargLeft->H(),
-              1,
-              bargLeft->isDouble() || bargRight->isDouble()),
-      _leftW(bargLeft->W()),
-      _leftH(bargLeft->H()),
-      _rightW(bargRight->W()),
-      _rightH(bargRight->H())
+    : AstMatmulBase(bargLeft->H(),
+                    1,
+                    bargLeft->isDouble() || bargRight->isDouble(),
+                    bargLeft,
+                    bargRight)
 {
-    pushArg(bargLeft);
-    pushArg(bargRight);
-}
-
-size_t AstMatmulMV::leftW(void) const
-{
-    return _leftW;
-}
-
-size_t AstMatmulMV::leftH(void) const
-{
-    return _leftH;
-}
-
-size_t AstMatmulMV::rightW(void) const
-{
-    return _rightW;
-}
-
-size_t AstMatmulMV::rightH(void) const
-{
-    return _rightH;
 }
 
 void AstMatmulMV::accept(VisitAst& v)

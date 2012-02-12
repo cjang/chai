@@ -1,6 +1,8 @@
+#include <chai/chai.h>
+#include <chai/ParseArgs.hpp>
 #include <iostream>
 #include <math.h>
-#include <peakstream.h>
+#include <stdlib.h>
 
 using namespace chai;
 using namespace std;
@@ -51,14 +53,29 @@ float MonteCarloAntithetic(float price,
 
 int main(int argc, char *argv[])
 {
-    init();
+    /////////////////////////////////////
+    // boilerplate: start virtual machine
+
+    ParseArgs pargs(argc, argv);
+    if (! pargs.initVM()) // initialize virtual machine
+    {
+        cerr << "usage: " << argv[0] << " -f configspec" << endl;
+        exit(1);
+    }
+
+    /////////////////////////////////////
+    // computational work
 
     float price = 1, strike = 1, vol = 1, rate = 1, div = 1, T = 1;
+
     cout << "mean is "
          << MonteCarloAntithetic(price, strike, vol, rate, div, T)
          << endl;
 
+    /////////////////////////////////////
+    // boilerplate: stop virtual machine
+
     shutdown();
 
-    return 0;
+    exit(0);
 }

@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "XStmt.hpp"
 
@@ -12,7 +12,13 @@ namespace chai_internal {
 XStmt::XStmt(void)
     : _lhsVariable(NULL),
       _rhsVariable(),
-      _buoyancy(NEUTRAL) { }
+      _underlyingVars(),
+      _transposeTraceVars(),
+      _transposeSplitVars(),
+      _gatherTraceVars(),
+      _gatherSplitVars(),
+      _buoyancy(NEUTRAL),
+      _surfaceBuoyancy(false) { }
 
 XStmt::~XStmt(void) { }
 
@@ -48,6 +54,12 @@ void XStmt::rhsVariable(AstVariable* v)
     }
 }
 
+void XStmt::buoyancySurface(void)
+{
+    _buoyancy = RISE;
+    _surfaceBuoyancy = true;
+}
+
 void XStmt::buoyancyRise(void)
 {
     _buoyancy = RISE;
@@ -73,6 +85,11 @@ int XStmt::getBuoyancy(void) const
     return _buoyancy;
 }
 
+bool XStmt::surfaceBuoyancy(void) const
+{
+    return _surfaceBuoyancy;
+}
+
 AstVariable* XStmt::lhsVariable(void) const
 {
     return _lhsVariable;
@@ -81,6 +98,55 @@ AstVariable* XStmt::lhsVariable(void) const
 const set< AstVariable* >& XStmt::rhsVariable(void) const
 {
     return _rhsVariable;
+}
+
+const set< AstVariable* >& XStmt::underlyingVars(void) const
+{
+    return _underlyingVars;
+}
+
+void XStmt::underlyingVars(const set< AstVariable* >& underlyingVars)
+{
+    _underlyingVars = underlyingVars;
+}
+
+const set< uint32_t >& XStmt::transposeTraceVars(void) const
+{
+    return _transposeTraceVars;
+}
+
+const set< AstVariable* >& XStmt::transposeSplitVars(void) const
+{
+    return _transposeSplitVars;
+}
+
+void XStmt::transposeVars(const set< uint32_t >& traceNums,
+                          const set< AstVariable* >& splitPtrs)
+{
+    _transposeTraceVars = traceNums;
+    _transposeSplitVars = splitPtrs;
+}
+
+const set< uint32_t >& XStmt::gatherTraceVars(void) const
+{
+    return _gatherTraceVars;
+}
+
+const set< AstVariable* >& XStmt::gatherSplitVars(void) const
+{
+    return _gatherSplitVars;
+}
+
+void XStmt::gatherVars(const set< uint32_t >& traceNums,
+                       const set< AstVariable* >& splitPtrs)
+{
+    _gatherTraceVars = traceNums;
+    _gatherSplitVars = splitPtrs;
+}
+
+bool XStmt::trackLHS(void) const
+{
+    return true;
 }
 
 bool XStmt::swappable(const XStmt& other) const

@@ -1,37 +1,195 @@
+#include <chai/chai.h>
+#include <chai/ParseArgs.hpp>
 #include <iostream>
-#include <peakstream.h>
+#include <omp.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <vector>
 
 using namespace chai;
 using namespace std;
 
-int main(int argc, char *argv[])
+///////////////////////////////////////////
+// data
+
+const size_t NUMBER_PARALLEL = 10;        // number iterations or concurrency
+
+const size_t ARRAY_SIZE = 100;            // array dimensions
+
+float cpuA[NUMBER_PARALLEL][ARRAY_SIZE],  // buffers on CPU
+      cpuB[NUMBER_PARALLEL][ARRAY_SIZE];
+
+float result[NUMBER_PARALLEL];            // output
+
+///////////////////////////////////////////
+// serial example, one thread in a loop
+
+#ifdef _SAMPLE_USE_ONETHREAD_
+float managedCode(const size_t i)
 {
-    init(); // initialize virtual machine
-
-    // buffers on CPU
-    double cpuA[100], cpuB[100];
-    for (size_t i = 0; i < 100; i++) { cpuA[i] = i; cpuB[i] = 99 - i; }
-
-    double c;
-
-    { // force array destructors before shutdown
-
-    Arrayf64 C;
+    Arrayf32 C;
     {
-        // eagerly create buffers/images on compute device
-        Arrayf64 A = make1(100, cpuA);
-        Arrayf64 B = make1(100, cpuB);
+        Arrayf32 A = make1(ARRAY_SIZE, cpuA[i]);
+        Arrayf32 B = make1(ARRAY_SIZE, cpuB[i]);
 
-        // lazy boxed calculation
         C = sum(A + B);
     }
-    c = C.read_scalar(); // force evaluation, read back
+    return C.read_scalar();
+}
 
-    } // force array destructors before shutdown
+void body(void)
+{
+    for (size_t i = 0; i < NUMBER_PARALLEL; i++)
+        result[i] = managedCode(i);
+}
+#endif
+
+///////////////////////////////////////////
+// data parallel using vectors
+
+#ifdef _SAMPLE_USE_VECTOR_
+vector< float > managedCode(const vector< float* >& dataA,
+                            const vector< float* >& dataB)
+{
+    Arrayf32 C;
+    {
+        Arrayf32 A = make1(ARRAY_SIZE, dataA);
+        Arrayf32 B = make1(ARRAY_SIZE, dataB);
+
+        C = sum(A + B);
+    }
+    return C.read_scalar(NUMBER_PARALLEL);
+}
+
+void body(void)
+{
+    vector< float* > dataA, dataB;
+    for (size_t i = 0; i < NUMBER_PARALLEL; i++)
+    {
+        dataA.push_back(cpuA[i]);
+        dataB.push_back(cpuB[i]);
+    }
+
+    const vector< float > resultvec = managedCode(dataA, dataB);
+
+    for (size_t i = 0; i < NUMBER_PARALLEL; i++)
+        result[i] = resultvec[i];
+}
+#endif
+
+///////////////////////////////////////////
+// concurrent/parallel using OpenMP
+
+#ifdef _SAMPLE_USE_OPENMP_
+float managedCode(const size_t i)
+{
+    Arrayf32 C;
+    {
+        Arrayf32 A = make1(ARRAY_SIZE, cpuA[i]);
+        Arrayf32 B = make1(ARRAY_SIZE, cpuB[i]);
+
+        C = sum(A + B);
+    }
+    return C.read_scalar();
+}
+
+void body(void)
+{
+    // override OpenMP default of threads matching number of cores
+    omp_set_num_threads(NUMBER_PARALLEL);
+
+    // launch threads
+    #pragma omp parallel for
+    for (size_t i = 0; i < NUMBER_PARALLEL; i++)
+        result[i] = managedCode(i);
+}
+#endif
+
+///////////////////////////////////////////
+// concurrent/parallel using PThreads
+
+#ifdef _SAMPLE_USE_PTHREADS_
+float managedCode(const size_t i)
+{
+    Arrayf32 C;
+    {
+        Arrayf32 A = make1(ARRAY_SIZE, cpuA[i]);
+        Arrayf32 B = make1(ARRAY_SIZE, cpuB[i]);
+
+        C = sum(A + B);
+    }
+    return C.read_scalar();
+}
+
+void* pthWrapper(void* ctx)
+{
+    const size_t i = reinterpret_cast< size_t >(ctx);
+
+    result[i] = managedCode(i);
+
+    return NULL;
+}
+
+void body(void)
+{
+    // launch threads
+    pthread_t pth[NUMBER_PARALLEL];
+    for (size_t i = 0; i < NUMBER_PARALLEL; i++)
+        pthread_create(&pth[i],
+                       NULL,
+                       pthWrapper,
+                       reinterpret_cast< void* >(i));
+
+    // wait for threads
+    void* status;
+    for (size_t i = 0; i < NUMBER_PARALLEL; i++)
+        pthread_join(pth[i],
+                     &status);
+}
+#endif
+
+///////////////////////////////////////////
+// main
+
+int main(int argc, char *argv[])
+{
+    /////////////////////////////////////
+    // initialize input data
+
+    for (size_t i = 0; i < NUMBER_PARALLEL; i++)
+    {
+        for (size_t j = 0; j < ARRAY_SIZE; j++)
+        {
+            cpuA[i][j] = j + i;
+            cpuB[i][j] = ARRAY_SIZE - j;
+        }
+    }
+
+    /////////////////////////////////////
+    // boilerplate: start virtual machine
+
+    ParseArgs pargs(argc, argv);
+    if (! pargs.initVM()) // initialize virtual machine
+    {
+        cerr << "usage: " << argv[0] << " -f configspec" << endl;
+        exit(1);
+    }
+
+    /////////////////////////////////////
+    // computational work
+
+    body();
+
+    /////////////////////////////////////
+    // boilerplate: stop virtual machine
 
     shutdown(); // shutdown virtual machine
 
-    cout << "result is " << c << endl; // result should be 9900
+    /////////////////////////////////////
+    // print output result
 
-    return 0;
+    for (size_t i = 0; i < NUMBER_PARALLEL; i++)
+        cout << "result[" << i << "] is " << result[i] << endl;
+
+    exit(0);
 }

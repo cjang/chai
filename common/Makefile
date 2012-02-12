@@ -1,9 +1,11 @@
+include ../Makefile.config
 include ../Makefile.common
+
+USE_CFLAGS=$(SHARED_CFLAGS)
 
 LIBRARY_OBJECT_CODE = \
 	BackMem.o \
 	ClientTrace.o \
-	DeviceMem.o \
 	FrontMem.o \
 	MemManager.o \
 	SingleNut.o \
@@ -11,14 +13,13 @@ LIBRARY_OBJECT_CODE = \
 	VectorNut.o \
 	VectorTrace.o
 
-LIBRARY_HEADER_FILES = \
-	$(LIBRARY_OBJECT_CODE:.o=.hpp) \
-	VisitAst.hpp
+INTERNAL_HEADER_FILES = \
+	$(LIBRARY_OBJECT_CODE:.o=.hpp)
 
 all : $(LIBRARY_OBJECT_CODE)
 
 install : all
-	install --mode=644 $(LIBRARY_HEADER_FILES) $(INTERNAL_HEADER_DIR)
+	install --mode=644 $(INTERNAL_HEADER_FILES) $(INTERNAL_HEADER_DIR)
 	install $(LIBRARY_OBJECT_CODE) $(INTERNAL_OBJECT_DIR)
 
 clean :

@@ -1,0 +1,97 @@
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+
+#include <sstream>
+
+#include "CodeImageSample.hpp"
+
+using namespace std;
+
+namespace chai_internal {
+
+////////////////////////////////////////
+// images and texture sampling
+
+// SamplerVar
+string SamplerVar::name(void) const
+{
+    return "sampler";
+}
+
+string SamplerVar::declaredName(void) const
+{
+    return "const sampler_t sampler";
+}
+
+// ImageSampler
+string ImageSampler::name(void) const
+{
+    return "CLK_FILTER_NEAREST | "
+           "CLK_NORMALIZED_COORDS_FALSE | "
+           "CLK_ADDRESS_NONE";
+}
+
+// ReadImage
+ReadImage::ReadImage(const GlobalVar& image,
+                     const SamplerVar& sampler,
+                     const IValue& x,
+                     const IValue& y)
+    : _image(image),
+      _sampler(sampler),
+      _x(x),
+      _y(y) { }
+
+string ReadImage::name(void) const
+{
+    stringstream ss;
+
+    if (_image.singlePrecision())
+    {
+        ss << "read_imagef(";
+    }
+    else if (_image.doublePrecision())
+    {
+        ss << "read_imageui(";
+    }
+
+    ss << _image.name()
+       << ", "
+       << _sampler.name()
+       << ", (int2)(" << _x.name() << ", " << _y.name() << "))";
+
+    return ss.str();
+}
+
+// WriteImage
+WriteImage::WriteImage(const GlobalVar& image,
+                       const IValue& x,
+                       const IValue& y,
+                       const IValue& value,
+                       Indent& indent)
+    : IPrintable(indent),
+      _image(image),
+      _x(x),
+      _y(y),
+      _value(value) { }
+
+ostream& WriteImage::print(ostream& os) const
+{
+    os << _indent;
+
+    if (_image.singlePrecision())
+    {
+        os << "write_imagef(";
+    }
+    else if (_image.doublePrecision())
+    {
+        os << "write_imageui(";
+    }
+
+    os << _image.name() << ", (int2)("
+       << _x.name() << ", "
+       << _y.name() << "), "
+       << _value.name() << ")";
+
+    return endline(os);
+}
+
+}; // namespace chai_internal

@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "HashBC.hpp"
 #include "SingleTrace.hpp"
@@ -28,8 +28,10 @@ uint64_t SingleTrace::computeHash(ClientTrace& origin)
 }
 
 SingleTrace::SingleTrace(ClientTrace& origin)
-    : _liveVariables(origin._liveVariables),
-      _variableNuts(origin._variableNuts)
+    : RefObj(),
+      _liveVariables(origin._liveVariables),
+      _variableNuts(origin._variableNuts),
+      _origin(origin)
 {
     // copy trace statements from last checkpoint
     for (size_t i = origin.getScheduleCheckpoint();
@@ -61,11 +63,39 @@ SingleTrace::SingleTrace(ClientTrace& origin)
 
     // compute hash code
     _hashCode = computeHash(origin);
+
+    // save hash code in client object as it persists for the trace lifetime
+    origin.pushHashCode(_hashCode);
 }
 
 uint64_t SingleTrace::hashCode(void) const
 {
     return _hashCode;
+}
+
+const vector< uint64_t >& SingleTrace::hashCodeHistory(void) const
+{
+    return _origin.hashCodeHistory();
+}
+
+size_t SingleTrace::stickyDevice(void) const
+{
+    return _origin.stickyDevice();
+}
+
+bool SingleTrace::stickyDevice(const size_t deviceCode)
+{
+    return _origin.stickyDevice(deviceCode);
+}
+
+void SingleTrace::unstickyDevice(void)
+{
+    _origin.unstickyDevice();
+}
+
+bool SingleTrace::stickyMovement(void) const
+{
+    return _origin.stickyMovement();
 }
 
 }; // namespace chai_internal

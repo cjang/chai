@@ -1,6 +1,8 @@
+#include <chai/chai.h>
+#include <chai/ParseArgs.hpp>
 #include <iostream>
 #include <stdio.h>
-#include <peakstream.h>
+#include <stdlib.h>
 
 using namespace chai;
 using namespace std;
@@ -27,7 +29,18 @@ compute_pi(void)
 
 int main(int argc, char *argv[])
 {
-    init();
+    /////////////////////////////////////
+    // boilerplate: start virtual machine
+
+    ParseArgs pargs(argc, argv);
+    if (! pargs.initVM()) // initialize virtual machine
+    {
+        cerr << "usage: " << argv[0] << " -f configspec" << endl;
+        exit(1);
+    }
+
+    /////////////////////////////////////
+    // computational work
 
     { // force array destructors before shutdown
 
@@ -37,7 +50,10 @@ int main(int argc, char *argv[])
 
     } // force array destructors before shutdown
 
+    /////////////////////////////////////
+    // boilerplate: stop virtual machine
+
     shutdown();
 
-    return 0;
+    exit(0);
 }

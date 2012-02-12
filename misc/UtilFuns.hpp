@@ -17,6 +17,14 @@ X max(const Y a, const Z b)
     return (a > b) ? a : b;
 }
 
+template <typename X, typename Y, typename Z, typename A>
+X max(const Y a, const Z b, const A c)
+{
+    return ((a > b) ? a : b) > c
+               ? ((a > b) ? a : b)
+               : c;
+}
+
 }; // namespace chai_internal
 
 #endif

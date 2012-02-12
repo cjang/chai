@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-#include "Stak.hpp"
+#include "chai/Stak.hpp"
 
 namespace chai_internal {
 

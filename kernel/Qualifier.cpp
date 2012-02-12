@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "Qualifier.hpp"
 
@@ -17,6 +17,13 @@ Qualifier::~Qualifier(void) { }
 string Qualifier::str(void) const
 {
     return _str;
+}
+
+ostream& operator<< (ostream& os, const Qualifier& q)
+{
+    os << q.str();
+
+    return os;
 }
 
 ////////////////////////////////////////

@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "Visit.hpp"
+#include "chai/Visit.hpp"
 
 namespace chai_internal {
 

@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "OCLinit.hpp"
 
@@ -84,6 +84,25 @@ void OCLdevices::insertDevice(const cl_device_id deviceID,
                                       NULL)
         ? value
         : 0);
+
+    cl_device_type devtype;
+
+    if (CL_SUCCESS == clGetDeviceInfo(deviceID,
+                                      CL_DEVICE_TYPE,
+                                      sizeof(cl_device_type),
+                                      &devtype,
+                                      NULL))
+    {
+        _isCPU.push_back(CL_DEVICE_TYPE_CPU & devtype);
+        _isGPU.push_back(CL_DEVICE_TYPE_GPU & devtype);
+        _isACC.push_back(CL_DEVICE_TYPE_ACCELERATOR & devtype);
+    }
+    else
+    {
+        _isCPU.push_back(false);
+        _isGPU.push_back(false);
+        _isACC.push_back(false);
+    }
 }
 
 OCLdevices::OCLdevices(const OCLplatforms& platforms)
@@ -144,6 +163,21 @@ string OCLdevices::vendor(const size_t i) const
 size_t OCLdevices::maxWorkGroupSize(const size_t i) const
 {
     return _maxWorkGroupSize[i];
+}
+
+bool OCLdevices::isCPU(const size_t i) const
+{
+    return _isCPU[i];
+}
+
+bool OCLdevices::isGPU(const size_t i) const
+{
+    return _isGPU[i];
+}
+
+bool OCLdevices::isACC(const size_t i) const
+{
+    return _isACC[i];
 }
 
 ////////////////////////////////////////
@@ -258,5 +292,38 @@ const OCLcontexts& OCLinit::contexts(void) const { return _contexts; }
 
 OCLqueues& OCLinit::queues(void) { return _queues; }
 const OCLqueues& OCLinit::queues(void) const { return _queues; }
+
+set< size_t > OCLinit::cpuIndexes(void) const
+{
+    set< size_t > s;
+
+    for (size_t i = 0; i < _devices.size(); i++)
+        if (_devices.isCPU(i))
+            s.insert(i);
+
+    return s;
+}
+
+set< size_t > OCLinit::gpuIndexes(void) const
+{
+    set< size_t > s;
+
+    for (size_t i = 0; i < _devices.size(); i++)
+        if (_devices.isGPU(i))
+            s.insert(i);
+
+    return s;
+}
+
+set< size_t > OCLinit::accIndexes(void) const
+{
+    set< size_t > s;
+
+    for (size_t i = 0; i < _devices.size(); i++)
+        if (_devices.isACC(i))
+            s.insert(i);
+
+    return s;
+}
 
 }; // namespace chai_internal

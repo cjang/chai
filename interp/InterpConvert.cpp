@@ -21,6 +21,8 @@ void InterpConvert::sub_eval(stack< vector< FrontMem* > >& outStack)
 
     // must change precision
 
+    swizzle(0);
+
     // first allocate backing memory
     BackMem* backMem = allocBackMem(W(0), H(0), ! isDouble(0));
 

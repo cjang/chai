@@ -1,6 +1,7 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "AstArrayMem.hpp"
+#include "MemManager.hpp"
 
 using namespace std;
 
@@ -16,10 +17,13 @@ AstArrayMem::AstArrayMem(const vector< FrontMem* >& frontMem,
     : BaseAst(frontMem.front()->W(),
               frontMem.front()->H(),
               frontMem.front()->isDouble()),
+      _variable(variable),
+      _version(version),
       _frontMem(frontMem),
       _backMem(backMem),
-      _variable(variable),
-      _version(version) { }
+      _sameDataAcrossTraces(MemManager::checkSameDataAcrossTraces(_frontMem))
+{
+}
 
 const vector< FrontMem* >& AstArrayMem::frontMem(void) const
 {
@@ -29,6 +33,11 @@ const vector< FrontMem* >& AstArrayMem::frontMem(void) const
 BackMem* AstArrayMem::backMem(void) const
 {
     return _backMem;
+}
+
+bool AstArrayMem::sameDataAcrossTraces(void) const
+{
+    return _sameDataAcrossTraces;
 }
 
 uint32_t AstArrayMem::variable(void) const

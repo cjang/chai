@@ -1,8 +1,9 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_QUALIFIER_HPP_
 #define _CHAI_QUALIFIER_HPP_
 
+#include <ostream>
 #include <string>
 
 namespace chai_internal {
@@ -22,6 +23,8 @@ public:
 
     std::string str(void) const;
 };
+
+std::ostream& operator<< (std::ostream&, const Qualifier&);
 
 ////////////////////////////////////////
 // address space qualifier

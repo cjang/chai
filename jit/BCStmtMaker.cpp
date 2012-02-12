@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "AstVariable.hpp"
 #include "BCStmtMaker.hpp"
@@ -18,7 +18,6 @@ BCStmtMaker::BCStmtMaker(DispatchTrans& opDisp)
 
     _opDisp.setContext(_outStack);
 }
-
 
 void BCStmtMaker::visit(BCStmtCompound& s)
 {
@@ -60,7 +59,9 @@ void BCStmtMaker::visit(BCStmtSingle& s)
             new AstVariable(_outStack.top(),
                             s.lhsVariable(),
                             s.lhsVersion(),
-                            s.lhsVariableIsLive()) );
+                            s.lhsVariableIsLive(),
+                            s.frontMem()) ); // statement memory
+                                             // assigned to variable
     }
 }
 

@@ -1,14 +1,16 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "AstAccum.hpp"
 #include "AstArrayMem.hpp"
-#include "AstBinop.hpp"
 #include "AstCond.hpp"
 #include "AstConvert.hpp"
 #include "AstDotprod.hpp"
+#include "AstExtension.hpp"
+#include "AstFun1.hpp"
+#include "AstFun2.hpp"
+#include "AstFun3.hpp"
 #include "AstGather.hpp"
 #include "AstIdxdata.hpp"
-#include "AstIsomorph.hpp"
 #include "AstLitdata.hpp"
 #include "AstMakedata.hpp"
 #include "AstMatmulMM.hpp"
@@ -19,7 +21,9 @@
 #include "AstRNGnormal.hpp"
 #include "AstRNGuniform.hpp"
 #include "AstScalar.hpp"
+#include "AstTranspose.hpp"
 #include "AstVariable.hpp"
+#include "BaseAst.hpp"
 #include "XStmtMatmul.hpp"
 
 using namespace std;
@@ -41,7 +45,8 @@ void XStmtMatmul::descendAst(BaseAst& v)
 XStmtMatmul::XStmtMatmul(AstVariable* lhs,
                          AstMatmulMM* rhs,
                          const bool convert)
-    : _rhsMatmulMM(rhs),
+    : XStmtMatmulBase(lhs, rhs),
+      _rhsMatmulMM(rhs),
       _rhsMatmulMV(NULL),
       _rhsMatmulVM(NULL),
       _isConvert(convert)
@@ -57,7 +62,8 @@ XStmtMatmul::XStmtMatmul(AstVariable* lhs,
 XStmtMatmul::XStmtMatmul(AstVariable* lhs,
                          AstMatmulMV* rhs,
                          const bool convert)
-    : _rhsMatmulMM(NULL),
+    : XStmtMatmulBase(lhs, rhs),
+      _rhsMatmulMM(NULL),
       _rhsMatmulMV(rhs),
       _rhsMatmulVM(NULL),
       _isConvert(convert)
@@ -73,7 +79,8 @@ XStmtMatmul::XStmtMatmul(AstVariable* lhs,
 XStmtMatmul::XStmtMatmul(AstVariable* lhs,
                          AstMatmulVM* rhs,
                          const bool convert)
-    : _rhsMatmulMM(NULL),
+    : XStmtMatmulBase(lhs, rhs),
+      _rhsMatmulMM(NULL),
       _rhsMatmulMV(NULL),
       _rhsMatmulVM(rhs),
       _isConvert(convert)
@@ -84,11 +91,6 @@ XStmtMatmul::XStmtMatmul(AstVariable* lhs,
     // other statements move around GEMM
     buoyancyNeutral();
     descendAst(*lhs);
-}
-
-bool XStmtMatmul::swappable(const XStmt& other) const
-{
-    return XStmt::swappable(other);
 }
 
 void XStmtMatmul::accept(VisitXStmt& v)
@@ -128,11 +130,6 @@ void XStmtMatmul::visit(AstArrayMem& v)
 {
 }
 
-void XStmtMatmul::visit(AstBinop& v)
-{
-    descendAst(v);
-}
-
 void XStmtMatmul::visit(AstCond& v)
 {
     descendAst(v);
@@ -148,6 +145,26 @@ void XStmtMatmul::visit(AstDotprod& v)
     descendAst(v);
 }
 
+void XStmtMatmul::visit(AstExtension& v)
+{
+    descendAst(v);
+}
+
+void XStmtMatmul::visit(AstFun1& v)
+{
+    descendAst(v);
+}
+
+void XStmtMatmul::visit(AstFun2& v)
+{
+    descendAst(v);
+}
+
+void XStmtMatmul::visit(AstFun3& v)
+{
+    descendAst(v);
+}
+
 void XStmtMatmul::visit(AstGather& v)
 {
     descendAst(v);
@@ -155,11 +172,6 @@ void XStmtMatmul::visit(AstGather& v)
 
 void XStmtMatmul::visit(AstIdxdata& v)
 {
-}
-
-void XStmtMatmul::visit(AstIsomorph& v)
-{
-    descendAst(v);
 }
 
 void XStmtMatmul::visit(AstLitdata& v)
@@ -204,6 +216,11 @@ void XStmtMatmul::visit(AstRNGuniform& v)
 
 void XStmtMatmul::visit(AstScalar& v)
 {
+}
+
+void XStmtMatmul::visit(AstTranspose& v)
+{
+    descendAst(v);
 }
 
 void XStmtMatmul::visit(AstVariable& v)

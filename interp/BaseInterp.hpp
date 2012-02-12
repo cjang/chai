@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_BASE_INTERP_HPP_
 #define _CHAI_BASE_INTERP_HPP_
@@ -7,10 +7,10 @@
 #include <vector>
 
 #include "BackMem.hpp"
-#include "BC.hpp"
+#include "chai/BC.hpp"
 #include "FrontMem.hpp"
 #include "MemManager.hpp"
-#include "Stak.hpp"
+#include "chai/Stak.hpp"
 #include "FrontMem.hpp"
 #include "VectorTrace.hpp"
 
@@ -22,6 +22,9 @@ namespace chai_internal {
 
 class BaseInterp : public Visit<BC>
 {
+    // set from the interpeter
+    size_t _uniqueSwizzleKey;
+
 protected:
     // number of array memory (pointer) and scalar arguments
     const size_t _inCount;
@@ -60,6 +63,8 @@ protected:
     // checkout all vector elements
     void checkout(const size_t argStackIndex) const;
 
+    void swizzle(const size_t argStackIndex) const;
+
     // access vector arguments with modulo index arithmetic
     float* floatPtr(const size_t argStackIndex,
                     const size_t vecIndex) const;
@@ -77,12 +82,14 @@ protected:
                             const size_t vecIndex) const;
 
     BaseInterp(const size_t inCount,
-           const size_t outCount);
+               const size_t outCount);
 
 public:
     virtual ~BaseInterp(void);
 
-    void setContext(VectorTrace& vt);
+    virtual BaseInterp* clone(void) const;
+
+    void setContext(VectorTrace& vt, const size_t uniqueSwizzleKey);
     void setContext(MemManager& mm);
 
     void eval(Stak<BC>& inStak,

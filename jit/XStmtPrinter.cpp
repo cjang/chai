@@ -1,34 +1,17 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <vector>
 
-#include "AstAccum.hpp"
-#include "AstArrayMem.hpp"
-#include "AstBinop.hpp"
-#include "AstCond.hpp"
-#include "AstConvert.hpp"
-#include "AstDotprod.hpp"
-#include "AstGather.hpp"
-#include "AstIdxdata.hpp"
-#include "AstIsomorph.hpp"
-#include "AstLitdata.hpp"
-#include "AstMakedata.hpp"
-#include "AstMatmulMM.hpp"
-#include "AstMatmulMV.hpp"
-#include "AstMatmulVM.hpp"
-#include "AstMatmulVV.hpp"
-#include "AstReadout.hpp"
-#include "AstRNGnormal.hpp"
-#include "AstRNGuniform.hpp"
-#include "AstScalar.hpp"
-#include "AstVariable.hpp"
+#include "XStmtBarrier.hpp"
 #include "XStmtCompound.hpp"
 #include "XStmtCreateData.hpp"
-#include "XStmtGather.hpp"
+#include "XStmtExtension.hpp"
+#include "XStmtExtensionAuto.hpp"
 #include "XStmtIdSpace.hpp"
 #include "XStmtIndex.hpp"
 #include "XStmtLiteral.hpp"
 #include "XStmtMatmul.hpp"
+#include "XStmtMatmulAuto.hpp"
 #include "XStmtPrinter.hpp"
 #include "XStmtReadData.hpp"
 #include "XStmtReduce.hpp"
@@ -45,28 +28,19 @@ namespace chai_internal {
 ////////////////////////////////////////
 // print converted trace
 
-ostream& XStmtPrinter::indent(void)
-{
-    for (size_t i = 0; i < _indent; i++)
-        _os << "  ";
-
-    return _os;
-}
-
-void XStmtPrinter::descendAst(const size_t idx, BaseAst& v)
-{
-    v.getArg(idx)->accept( *this );
-}
-
 XStmtPrinter::XStmtPrinter(ostream& os,
                            const bool descendIdSpace)
-    : _descendIdSpace(descendIdSpace),
-      _os(os),
-      _indent(0),
+    : BasePrinter(os),
+      _descendIdSpace(descendIdSpace),
       _repeatIndex(0) { }
 
 ////////////////////////////////////////
 // VisitXStmt
+
+void XStmtPrinter::visit(XStmtBarrier& barStmt)
+{
+    indent() << "BARRIER" << endl;
+}
 
 void XStmtPrinter::visit(XStmtCompound& comStmt)
 {
@@ -95,28 +69,19 @@ void XStmtPrinter::visit(XStmtCreateData& creStmt)
     _os << endl;
 }
 
-void XStmtPrinter::visit(XStmtGather& gatStmt)
+void XStmtPrinter::visit(XStmtExtension& extStmt)
 {
-    indent() << "GATHER ";
+    indent() << "EXTENSION " << extStmt.extensionName() << endl;
+}
 
-    visit(*gatStmt.gatherPtr());
-
-    _os << " TO ";
-
-    _os << gatStmt.lhsVariable()->W()
-        << "x"
-        << gatStmt.lhsVariable()->H()
-        << " ";
-
-    _descendVar = false;
-    visit(*gatStmt.lhsVariable());
-
-    _os << endl;
+void XStmtPrinter::visit(XStmtExtensionAuto& extStmt)
+{
+    indent() << "EXTENSIONAUTO " << extStmt.extensionName() << endl;
 }
 
 void XStmtPrinter::visit(XStmtIdSpace& idsStmt)
 {
-    if ( 0 == idsStmt.indexW() && 0 == idsStmt.indexH() )
+    if ( 0 == idsStmt.streamW() && 0 == idsStmt.streamH() )
     {
         indent() << "DATA FOR "
                  << idsStmt.numTraces()
@@ -126,9 +91,9 @@ void XStmtPrinter::visit(XStmtIdSpace& idsStmt)
     else
     {
         indent() << "INDEX SPACE "
-                 << idsStmt.indexW()
+                 << idsStmt.streamW()
                  << " x " 
-                 << idsStmt.indexH()
+                 << idsStmt.streamH()
                  << " FOR "
                  << idsStmt.numTraces()
                  << " TRACES"
@@ -208,6 +173,24 @@ void XStmtPrinter::visit(XStmtMatmul& matStmt)
     visit(*matStmt.lhsVariable());
 
     _os << endl;
+}
+
+void XStmtPrinter::visit(XStmtMatmulAuto& mmaStmt)
+{
+    indent() << "MMAUTO "
+             << mmaStmt.widthC() << "x" << mmaStmt.heightC() << "f"
+             << (sizeof(double) == mmaStmt.precisionC() ? 64 : 32)
+             << " = matmul"
+             << (mmaStmt.isTransposeA() ? "T" : "N")
+             << (mmaStmt.isTransposeB() ? "T" : "N")
+             << "("
+             << mmaStmt.widthA() << "x" << mmaStmt.heightA() << "f"
+             << (sizeof(double) == mmaStmt.precisionA() ? 64 : 32)
+             << ", "
+             << mmaStmt.widthB() << "x" << mmaStmt.heightB() << "f"
+             << (sizeof(double) == mmaStmt.precisionB() ? 64 : 32)
+             << ")"
+             << endl;
 }
 
 void XStmtPrinter::visit(XStmtReadData& datStmt)
@@ -355,239 +338,27 @@ void XStmtPrinter::visit(XStmtSingle& sinStmt)
 ////////////////////////////////////////
 // VisitAst
 
-void XStmtPrinter::visit(AstAccum& v)
-{
-    _os << (v.takeAvg() ? "mean(" : "sum(");
-    descendAst(0, v);
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstArrayMem& v)
-{
-    for (vector< FrontMem* >::const_iterator
-         it = v.frontMem().begin();
-         it != v.frontMem().end();
-         it++)
-    {
-        _os << "PTR(" << (*it)->ptrMem() << ")";
-    }
-
-    _os << " FROM " << v.variable() << "." << v.version();
-}
-
-void XStmtPrinter::visit(AstBinop& v)
-{
-    const string funStr = v.fun().str();
-
-    if ("fmax" == funStr || "fmin" == funStr)
-    {
-        _os << funStr << "(";
-        descendAst(0, v);
-        _os << ", ";
-        descendAst(1, v);
-        _os << ")";
-    }
-    else
-    {
-        _os << "(";
-        descendAst(0, v);
-        _os << " " << funStr << " ";
-        descendAst(1, v);
-        _os << ")";
-    }
-}
-
-void XStmtPrinter::visit(AstCond& v)
-{
-    _os << "cond(";
-    descendAst(0, v);
-    _os << ", ";
-    descendAst(1, v);
-    _os << ", ";
-    descendAst(2, v);
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstConvert& v)
-{
-    if (! v.isNOP()) _os << "convert_" << (v.isDouble() ? "f64" : "f32") << "(";
-    descendAst(0, v);
-    if (! v.isNOP()) _os << ")";
-}
-
-void XStmtPrinter::visit(AstDotprod& v)
-{
-    _os << "dot_product(";
-    descendAst(0, v);
-    _os << ", ";
-    descendAst(1, v);
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstGather& v)
-{
-    _os << "gather" << v.N() << "_floor(";
-    descendAst(0, v);
-    _os << ", ";
-    descendAst(1, v);
-    if (2 == v.N())
-    {
-        _os << ", ";
-        descendAst(2, v);
-    }
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstIdxdata& v)
-{
-    _os << "indexX_" << (v.isDouble() ? "f64" : "f32") << "("
-        << v.index() << ", " << v.W() << ", " << v.H() << ")";
-}
-
-void XStmtPrinter::visit(AstIsomorph& v)
-{
-    _os << v.fun().str() << "(";
-    descendAst(0, v);
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstLitdata& v)
-{
-    if (v.isDouble())
-        _os << (0 == v.doubleValue() ? "zeros" : "ones");
-    else
-        _os << (0 == v.floatValue() ? "zeros" : "ones");
-
-    _os << "X_" << (v.isDouble() ? "f64" : "f32") << "("
-        << v.W() << ", " << v.H() << ")";
-}
-
-void XStmtPrinter::visit(AstMakedata& v)
-{
-    _os << "makeX_" << (v.isDouble() ? "f64" : "f32") << "("
-        << v.W() << ", " << v.H() << ", ";
-
-    for (vector< FrontMem* >::const_iterator
-         it = v.frontMem().begin();
-         it != v.frontMem().end();
-         it++)
-    {
-        _os << "PTR(" << (*it)->ptrMem() << ")";
-    }
-
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstMatmulMM& v)
-{
-    _os << "matmulMM(";
-    descendAst(0, v);
-    _os << ", ";
-    descendAst(1, v);
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstMatmulMV& v)
-{
-    _os << "matmulMV(";
-    descendAst(0, v);
-    _os << ", ";
-    descendAst(1, v);
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstMatmulVM& v)
-{
-    _os << "matmulVM(";
-    descendAst(0, v);
-    _os << ", ";
-    descendAst(1, v);
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstMatmulVV& v)
-{
-    _os << "matmulVV(";
-    descendAst(0, v);
-    _os << ", ";
-    descendAst(1, v);
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstReadout& v)
-{
-    _os << "readout(";
-
-    for (vector< FrontMem* >::const_iterator
-         it = v.frontMem().begin();
-         it != v.frontMem().end();
-         it++)
-    {
-        _os << "PTR(" << (*it)->ptrMem() << ")";
-    }
-
-    _os << ", ";
-
-    descendAst(0, v);
-
-    _os << ")";
-}
-
-void XStmtPrinter::visit(AstRNGnormal& v)
-{
-    _os << "rng_normal_make_" << (v.isDouble() ? "f64" : "f32") << "("
-        << v.W()
-        << ")";
-}
-
-void XStmtPrinter::visit(AstRNGuniform& v)
-{
-    _os << "rng_uniform_make_" << (v.isDouble() ? "f64" : "f32") << "("
-        << v.W() << ", "
-        << v.step() << ", "
-        << v.minlimit() << ", "
-        << v.maxlimit()
-        << ")";
-}
-
-void XStmtPrinter::visit(AstScalar& v)
-{
-    if (v.isDouble())
-        _os << v.doubleValue();
-    else
-        _os << v.floatValue();
-}
-
-void XStmtPrinter::visit(AstVariable& v)
-{
-    if (_descendVar)
-    {
-        // RHS
-
-        _descendVar = false;
-        descendAst(0, v);
-    }
-    else
-    {
-        // LHS
-
-        const string prefix = v.isLiveVariable() ? "VAR" : "var";
-
-        const size_t precision = v.precision() * 8; // bytes to bits
-
-        _os << prefix << precision << "(";
-
-        if (v.isTraceVariable())
-        {
-            _os << v.variable() << "." << v.version();
-        }
-        else
-        {
-            _os << &v;
-        }
-
-        _os << ")";
-    }
-}
+void XStmtPrinter::visit(AstAccum& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstArrayMem& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstCond& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstConvert& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstDotprod& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstFun1& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstFun2& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstFun3& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstGather& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstIdxdata& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstLitdata& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstMakedata& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstMatmulMM& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstMatmulMV& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstMatmulVM& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstMatmulVV& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstReadout& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstRNGnormal& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstRNGuniform& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstScalar& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstTranspose& v) { BasePrinter::visit(v); }
+void XStmtPrinter::visit(AstVariable& v) { BasePrinter::visit(v); }
 
 }; // namespace chai_internal

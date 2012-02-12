@@ -1,6 +1,7 @@
+#include <chai/chai.h>
+#include <chai/ParseArgs.hpp>
 #include <iostream>
-#include <math.h>
-#include <peakstream.h>
+#include <stdlib.h>
 
 using namespace chai;
 using namespace std;
@@ -16,8 +17,7 @@ const float LX = 100;
 const float LT = 100;
 const float velhalf = 1;
 
-void
-KirchhoffMigration(int NT, int N, float *datagpu, float *modlgpu)
+void KirchhoffMigration(int NT, int N, float *datagpu, float *modlgpu)
 {
     int NTN = NT * N;
     float dx = LX / float(N);
@@ -59,14 +59,28 @@ KirchhoffMigration(int NT, int N, float *datagpu, float *modlgpu)
 
 int main(int argc, char *argv[])
 {
-    init();
+    /////////////////////////////////////
+    // boilerplate: start virtual machine
+
+    ParseArgs pargs(argc, argv);
+    if (! pargs.initVM()) // initialize virtual machine
+    {
+        cerr << "usage: " << argv[0] << " -f configspec" << endl;
+        exit(1);
+    }
+
+    /////////////////////////////////////
+    // computational work
 
     int NT = 100, N = 100;
     float datagpu[NT * N], modlgpu[NT * N];
 
     KirchhoffMigration(NT, N, datagpu, modlgpu);
 
-    shutdown();
+    /////////////////////////////////////
+    // boilerplate: stop virtual machine
 
-    return 0;
+    shutdown(); // shutdown virtual machine
+
+    exit(0);
 }

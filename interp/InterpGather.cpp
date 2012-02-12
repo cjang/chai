@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "InterpGather.hpp"
 
@@ -11,6 +11,10 @@ namespace chai_internal {
 
 void InterpGather::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
+    swizzle(0);
+    swizzle(1);
+    if (2 == _N) swizzle(2);
+
     // first allocate backing memory
     BackMem* backMem = allocBackMem(W(0), H(0), isDouble(0));
 

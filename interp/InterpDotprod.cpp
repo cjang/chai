@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "InterpDotprod.hpp"
 #include "UtilFuns.hpp"
@@ -12,6 +12,9 @@ namespace chai_internal {
 
 void InterpDotprod::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
+    swizzle(0);
+    swizzle(1);
+
     // first allocate backing memory
     BackMem* backMem = allocBackMem(1, 1, isDouble(0) || isDouble(1));
 

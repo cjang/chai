@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_CLIENT_TRACE_HPP_
 #define _CHAI_CLIENT_TRACE_HPP_
@@ -8,11 +8,11 @@
 #include <stdint.h>
 #include <vector>
 
-#include "BC.hpp"
+#include "chai/BC.hpp"
+#include "chai/RefCnt.hpp"
+#include "chai/Stak.hpp"
 #include "FrontMem.hpp"
-#include "RefCnt.hpp"
 #include "SingleNut.hpp"
-#include "Stak.hpp"
 
 namespace chai_internal {
 
@@ -49,11 +49,25 @@ class ClientTrace
     // evaluate statements from checkpoint to the end
     size_t                           _scheduleCheckpoint;
 
+    // hash codes from single traces created from this client object
+    std::vector< uint64_t >          _hashCodeHistory;
+
+    // history of sticky continuation
+    std::vector< size_t >            _stickyDeviceCode;
+
 public:
     ClientTrace(void);
 
     size_t getScheduleCheckpoint(void);
     void setScheduleCheckpoint(void);
+
+    void pushHashCode(const uint64_t);
+    const std::vector< uint64_t >& hashCodeHistory(void) const;
+
+    size_t stickyDevice(void) const;
+    bool stickyDevice(const size_t deviceCode);
+    void unstickyDevice(void);
+    bool stickyMovement(void) const;
 
     // start the trace over completely from nothing
     void clear(void);
@@ -70,12 +84,33 @@ public:
     FrontMem* memalloc(const uint32_t variable,
                        const size_t W,
                        const size_t H,
+                       const size_t precision);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
+                       const size_t precision,
+                       const size_t slots);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
                        float* defPtr);
 
     FrontMem* memalloc(const uint32_t variable,
                        const size_t W,
                        const size_t H,
                        double* defPtr);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
+                       const std::vector< float* >& defPtr);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
+                       const std::vector< double* >& defPtr);
 
     size_t frontMem(FrontMem*);
 };

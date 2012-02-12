@@ -1,6 +1,7 @@
+#include <chai/chai.h>
+#include <chai/ParseArgs.hpp>
 #include <iostream>
 #include <stdlib.h>
-#include <peakstream.h>
 
 using namespace chai;
 using namespace std;
@@ -8,7 +9,6 @@ using namespace std;
 //
 // Sample code from a presentation given by Matthew Papakipos at Stanford in
 // 2007 (page 13 of "Public Google PeakStream.ppt")
-//
 // http://www.stanford.edu/class/ee380/Abstracts/070926-PeakStream.pdf
 //
 
@@ -39,8 +39,6 @@ int Conj_Grad_GPU_PS(int N, float *cpuA, float *cpux, float *cpub)
             residuals = newResiduals;
 
             float oldRRcpu = oldRR.read_scalar();
-static size_t counter = 0;
-cerr << "[" << counter++ << "] oldRRcpu " << oldRRcpu << endl;
             if (oldRRcpu <= TOLERANCE) {
                 break;
             }
@@ -54,13 +52,26 @@ cerr << "[" << counter++ << "] oldRRcpu " << oldRRcpu << endl;
 
 int main(int argc, char *argv[])
 {
-    init();
+    /////////////////////////////////////
+    // boilerplate: start virtual machine
+
+    ParseArgs pargs(argc, argv);
+    if (! pargs.initVM()) // initialize virtual machine
+    {
+        cerr << "usage: " << argv[0] << " -f configspec" << endl;
+        exit(1);
+    }
+
+    /////////////////////////////////////
+    // computational work
 
     const int N = 20;
     float cpuA[N * N], cpux[N], cpub[N];
 
-    for (size_t i = 0; i < N; i++) {
-        for (size_t j = i; j < N; j++) {
+    for (size_t i = 0; i < N; i++)
+    {
+        for (size_t j = i; j < N; j++)
+        {
             float v = random();
             v /= RAND_MAX;
             cpuA[i + j * N] = v;
@@ -68,7 +79,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    for (size_t i = 0; i < N; i++) {
+    for (size_t i = 0; i < N; i++)
+    {
         float v = random();
         v /= RAND_MAX;
         cpub[i] = v;
@@ -78,7 +90,10 @@ int main(int argc, char *argv[])
          << Conj_Grad_GPU_PS(N, cpuA, cpux, cpub)
          << endl;
 
-    shutdown();
+    /////////////////////////////////////
+    // boilerplate: stop virtual machine
 
-    return 0;
+    shutdown(); // shutdown virtual machine
+
+    exit(0);
 }

@@ -1,7 +1,9 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
+#include <sstream>
 #include <string.h>
 
+#include "Logger.hpp"
 #include "OCLdevice.hpp"
 
 using namespace std;
@@ -58,7 +60,8 @@ int OCLHeapOfMemoryBuffers::create(const size_t size,
 
     int index = -1;
 
-    if (CL_SUCCESS == status) {
+    if (CL_SUCCESS == status)
+    {
         index = _ptrs.size();
         _ptrs.push_back(ptr);
         _freePtr.push_back(freePtr);
@@ -67,8 +70,11 @@ int OCLHeapOfMemoryBuffers::create(const size_t size,
         _pinned.push_back(pinned);
         _size.push_back(size);
         _refcnt.push_back(0);
-    } else {
-        if (freePtr) free(ptr);
+    }
+    else
+    {
+        if (freePtr)
+            free(ptr);
     }
 
     return index;
@@ -83,7 +89,9 @@ int OCLHeapOfMemoryBuffers::create(const size_t size,
     if (pinned)
         ptr = NULL;
     else
-        if (0 != posix_memalign(static_cast<void**>(&ptr), alignment, size))
+        if (0 != posix_memalign(static_cast<void**>(&ptr),
+                                alignment,
+                                size))
             return -1;
 
     return create(size, mode, pinned, ptr, true);
@@ -92,78 +100,85 @@ int OCLHeapOfMemoryBuffers::create(const size_t size,
 OCLHeapOfMemoryBuffers::OCLHeapOfMemoryBuffers(const cl_context context,
                                                const cl_command_queue queue)
     : _context(context),
-      _queue(queue)
-{ }
+      _queue(queue) { }
 
 OCLHeapOfMemoryBuffers::~OCLHeapOfMemoryBuffers(void)
 {
     waitWrite();
     waitRead();
-    for (size_t i = 0; i < _handles.size(); i++) {
+
+    for (size_t i = 0; i < _handles.size(); i++)
+    {
         clReleaseMemObject(_handles[i]);
-        if (_freePtr[i]) free(_ptrs[i]);
+        if (_freePtr[i])
+            free(_ptrs[i]);
     }
 }
 
 size_t OCLHeapOfMemoryBuffers::scavenge(void)
 {
-    Type<void*>::aligned_vector  newPtrs;
-    vector<bool>                 newFreePtr;
-    Type<cl_mem>::aligned_vector newHandles;
-    vector<const OCLBufferMode*> newAccess;
-    vector<bool>                 newPinned;
-    vector<size_t>               newSize;
-    vector<size_t>               newRefcnt;
+    size_t totalCount = 0;
 
-    size_t releaseCount = 0;
+    for (vector< size_t >::const_iterator
+         it = _refcnt.begin();
+         it != _refcnt.end();
+         it++)
+    {
+        totalCount += *it;
+    }
 
-    for (size_t i = 0; i < _refcnt.size(); i++)
-        if (0 == _refcnt[i]) {
+    if (0 == totalCount)
+    {
+        for (size_t i = 0; i < _refcnt.size(); i++)
+        {
             clReleaseMemObject(_handles[i]);
-            if (_freePtr[i]) free(_ptrs[i]);
-            releaseCount++;
-        } else {
-            newPtrs.push_back(_ptrs[i]);
-            newFreePtr.push_back(_freePtr[i]);
-            newHandles.push_back(_handles[i]);
-            newAccess.push_back(_access[i]);
-            newPinned.push_back(_pinned[i]);
-            newSize.push_back(_size[i]);
-            newRefcnt.push_back(_refcnt[i]);
+            if (_freePtr[i])
+                free(_ptrs[i]);
         }
 
-    _ptrs = newPtrs;
-    _freePtr = newFreePtr;
-    _handles = newHandles;
-    _access = newAccess;
-    _pinned = newPinned;
-    _size = newSize;
-    _refcnt = newRefcnt;
+        _ptrs.clear();
+        _freePtr.clear();
+        _handles.clear();
+        _access.clear();
+        _pinned.clear();
+        _size.clear();
+        _refcnt.clear();
+    }
 
-    return releaseCount;
+    return totalCount;
 }
 
 bool OCLHeapOfMemoryBuffers::waitWrite(void)
 {
-    if (0 == _writeEvents.size()) return true;
+    if (0 == _writeEvents.size())
+        return true;
+
     bool isOK = CL_SUCCESS == clWaitForEvents(_writeEvents.size(),
                                               &_writeEvents[0]);
+
     for (size_t i = 0; i < _writeEvents.size(); i++)
         if (CL_SUCCESS != clReleaseEvent(_writeEvents[i]))
             isOK = false;
+
     _writeEvents.clear();
+
     return isOK;
 }
 
 bool OCLHeapOfMemoryBuffers::waitRead(void)
 {
-    if (0 == _readEvents.size()) return true;
+    if (0 == _readEvents.size())
+        return true;
+
     bool isOK = CL_SUCCESS == clWaitForEvents(_readEvents.size(),
                                               &_readEvents[0]);
+
     for (size_t i = 0; i < _readEvents.size(); i++)
         if (CL_SUCCESS != clReleaseEvent(_readEvents[i]))
             isOK = false;
+
     _readEvents.clear();
+
     return isOK;
 }
 
@@ -174,7 +189,8 @@ void OCLHeapOfMemoryBuffers::checkout(const size_t index)
 
 void OCLHeapOfMemoryBuffers::release(const size_t index)
 {
-    if (_refcnt[index]) _refcnt[index]--;
+    if (_refcnt[index])
+        _refcnt[index]--;
 }
 
 void* OCLHeapOfMemoryBuffers::ptr(const size_t index)
@@ -185,6 +201,11 @@ void* OCLHeapOfMemoryBuffers::ptr(const size_t index)
 const void* OCLHeapOfMemoryBuffers::ptr(const size_t index) const
 {
     return _ptrs[index];
+}
+
+void OCLHeapOfMemoryBuffers::ownPtr(const size_t index)
+{
+    _freePtr[index] = true;
 }
 
 cl_mem& OCLHeapOfMemoryBuffers::handle(const size_t index)
@@ -225,7 +246,8 @@ int OCLHeapOfImages::create(const size_t width,
 
     int index = -1;
 
-    if (CL_SUCCESS == status) {
+    if (CL_SUCCESS == status)
+    {
         index = _ptrs.size();
         _ptrs.push_back(ptr);
         _freePtr.push_back(freePtr);
@@ -235,8 +257,11 @@ int OCLHeapOfImages::create(const size_t width,
         _width.push_back(width);
         _height.push_back(height);
         _refcnt.push_back(0);
-    } else {
-        if (freePtr) free(ptr);
+    }
+    else
+    {
+        if (freePtr)
+            free(ptr);
     }
 
     return index;
@@ -254,7 +279,9 @@ int OCLHeapOfImages::create(const size_t width,
     if (pinned)
         ptr = NULL;
     else
-        if (0 != posix_memalign(static_cast<void**>(&ptr), alignment, size))
+        if (0 != posix_memalign(static_cast<void**>(&ptr),
+                                alignment,
+                                size))
             return -1;
 
     return create(width, height, mode, pinned, ptr, true);
@@ -270,51 +297,47 @@ OCLHeapOfImages::~OCLHeapOfImages(void)
 {
     waitWrite();
     waitRead();
-    for (size_t i = 0; i < _handles.size(); i++) {
+
+    for (size_t i = 0; i < _handles.size(); i++)
+    {
         clReleaseMemObject(_handles[i]);
-        if (_freePtr[i]) free(_ptrs[i]);
+        if (_freePtr[i])
+            free(_ptrs[i]);
     }
 }
 
 size_t OCLHeapOfImages::scavenge(void)
 {
-    Type<void*>::aligned_vector  newPtrs;
-    vector<bool>                 newFreePtr;
-    Type<cl_mem>::aligned_vector newHandles;
-    vector<const OCLImageMode*>  newAccess;
-    vector<bool>                 newPinned;
-    vector<size_t>               newWidth;
-    vector<size_t>               newHeight;
-    vector<size_t>               newRefcnt;
+    size_t totalCount = 0;
 
-    size_t releaseCount = 0;
+    for (vector< size_t >::const_iterator
+         it = _refcnt.begin();
+         it != _refcnt.end();
+         it++)
+    {
+        totalCount += *it;
+    }
 
-    for (size_t i = 0; i < _refcnt.size(); i++)
-        if (0 == _refcnt[i]) {
+    if (0 == totalCount)
+    {
+        for (size_t i = 0; i < _refcnt.size(); i++)
+        {
             clReleaseMemObject(_handles[i]);
-            if (_freePtr[i]) free(_ptrs[i]);
-            releaseCount++;
-        } else {
-            newPtrs.push_back(_ptrs[i]);
-            newFreePtr.push_back(_freePtr[i]);
-            newHandles.push_back(_handles[i]);
-            newAccess.push_back(_access[i]);
-            newPinned.push_back(_pinned[i]);
-            newWidth.push_back(_width[i]);
-            newHeight.push_back(_height[i]);
-            newRefcnt.push_back(_refcnt[i]);
+            if (_freePtr[i])
+                free(_ptrs[i]);
         }
 
-    _ptrs = newPtrs;
-    _freePtr = newFreePtr;
-    _handles = newHandles;
-    _access = newAccess;
-    _pinned = newPinned;
-    _width = newWidth;
-    _height = newHeight;
-    _refcnt = newRefcnt;
+        _ptrs.clear();
+        _freePtr.clear();
+        _handles.clear();
+        _access.clear();
+        _pinned.clear();
+        _width.clear();
+        _height.clear();
+        _refcnt.clear();
+    }
 
-    return releaseCount;
+    return totalCount;
 }
 
 int OCLHeapOfImages::createWithPointer(const size_t width,  // texel dimensions
@@ -335,25 +358,35 @@ int OCLHeapOfImages::createWithPointer(const size_t width,  // texel dimensions
 
 bool OCLHeapOfImages::waitWrite(void)
 {
-    if (0 == _writeEvents.size()) return true;
+    if (0 == _writeEvents.size())
+        return true;
+
     bool isOK = CL_SUCCESS == clWaitForEvents(_writeEvents.size(),
                                               &_writeEvents[0]);
+
     for (size_t i = 0; i < _writeEvents.size(); i++)
         if (CL_SUCCESS != clReleaseEvent(_writeEvents[i]))
             isOK = false;
+
     _writeEvents.clear();
+
     return isOK;
 }
 
 bool OCLHeapOfImages::waitRead(void)
 {
-    if (0 == _readEvents.size()) return true;
+    if (0 == _readEvents.size())
+        return true;
+
     bool isOK = CL_SUCCESS == clWaitForEvents(_readEvents.size(),
                                               &_readEvents[0]);
+
     for (size_t i = 0; i < _readEvents.size(); i++)
         if (CL_SUCCESS != clReleaseEvent(_readEvents[i]))
             isOK = false;
+
     _readEvents.clear();
+
     return isOK;
 }
 
@@ -364,7 +397,8 @@ void OCLHeapOfImages::checkout(const size_t index)
 
 void OCLHeapOfImages::release(const size_t index)
 {
-    if (_refcnt[index]) _refcnt[index]--;
+    if (_refcnt[index])
+        _refcnt[index]--;
 }
 
 void* OCLHeapOfImages::ptr(const size_t index)
@@ -375,6 +409,11 @@ void* OCLHeapOfImages::ptr(const size_t index)
 const void* OCLHeapOfImages::ptr(const size_t index) const
 {
     return _ptrs[index];
+}
+
+void OCLHeapOfImages::ownPtr(const size_t index)
+{
+    _freePtr[index] = true;
 }
 
 cl_mem& OCLHeapOfImages::handle(const size_t index)
@@ -390,9 +429,9 @@ const cl_mem& OCLHeapOfImages::handle(const size_t index) const
 ////////////////////////////////////////
 // HeapOfKernels
 
-int OCLHeapOfKernels::create(const vector<string>& source,
-                             const string& options,
-                             const string& kernelName)
+int OCLHeapOfKernels::create( const vector<string>& source,
+                              const string& options,
+                              const string& kernelName )
 {
     const char *src[source.size()];
     for (size_t i = 0; i < source.size(); i++)
@@ -400,53 +439,96 @@ int OCLHeapOfKernels::create(const vector<string>& source,
 
     cl_int status;
 
-    const cl_program program = clCreateProgramWithSource(_context,
-                                                         source.size(),
-                                                         src,
-                                                         NULL,
-                                                         &status);
-    if (CL_SUCCESS != status) return -1;
+    const cl_program program = clCreateProgramWithSource(
+                                   _context,
+                                   source.size(),
+                                   src,
+                                   NULL,
+                                   &status );
 
-    if (CL_SUCCESS != clBuildProgram(program,
-                                     1,
-                                     &_device,
-                                     options.c_str(),
-                                     NULL,
-                                     NULL)) {
+    if (CL_SUCCESS != status)
+        return -1;
+
+    if (CL_SUCCESS != clBuildProgram(
+                          program,
+                          1,
+                          &_device,
+                          options.c_str(),
+                          NULL,
+                          NULL ))
+    {
         size_t msgsize = 0;
+
         char msgbuf[10240];
         memset(msgbuf, 0, sizeof(msgbuf));
-        if (CL_SUCCESS == clGetProgramBuildInfo(program,
-                                                _device,
-                                                CL_PROGRAM_BUILD_LOG,
-                                                sizeof(msgbuf),
-                                                msgbuf,
-                                                &msgsize))
-            cerr << msgbuf << endl;
+
+        if (CL_SUCCESS == clGetProgramBuildInfo(
+                              program,
+                              _device,
+                              CL_PROGRAM_BUILD_LOG,
+                              sizeof(msgbuf),
+                              msgbuf,
+                              &msgsize ))
+        {
+            LOGGER(msgbuf)
+        }
+
+        clReleaseProgram(program);
+
+        return -1;
+    }
+
+    const cl_kernel kernel = clCreateKernel(
+                                 program,
+                                 kernelName.c_str(),
+                                 &status );
+
+    if (CL_SUCCESS != status)
+    {
         clReleaseProgram(program);
         return -1;
     }
 
-    const cl_kernel kernel = clCreateKernel(program,
-                                            kernelName.c_str(),
-                                            &status);
-    if (CL_SUCCESS != status) {
-        clReleaseProgram(program);
-        return -1;
-    }
+    const size_t progIdx = _programHandle.size();
+    const int krnlIdx = _kernelHandle.size();
 
-    const int index = _programs.size();
-    _programs.push_back(program);
-    _kernels.push_back(kernel);
-    _source.push_back(source);
-    _kernelName.push_back(kernelName);
-    _refcnt.push_back(0);
-    return index;
+    _programHandle.push_back(program);
+    _programSource.push_back(source);
+
+    _kernelHandle.push_back(kernel);
+    _programIndex.push_back(progIdx);
+    _kernelRefcnt.push_back(0);
+    _kernelMap[kernelName].insert(krnlIdx);
+
+    return krnlIdx;
 }
 
-OCLHeapOfKernels::OCLHeapOfKernels(const cl_device_id device,
-                                   const cl_context context,
-                                   const cl_command_queue queue)
+int OCLHeapOfKernels::create( const size_t progIdx,
+                              const string& kernelName )
+{
+    cl_int status;
+
+    const cl_kernel kernel = clCreateKernel(
+                                 _programHandle[progIdx],
+                                 kernelName.c_str(),
+                                 &status );
+
+    if (CL_SUCCESS != status)
+        return -1;
+
+    const int krnlIdx = _kernelHandle.size();
+
+    _kernelHandle.push_back(kernel);
+    _programIndex.push_back(progIdx);
+    _kernelRefcnt.push_back(0);
+    _kernelMap[kernelName].insert(krnlIdx);
+
+    return krnlIdx;
+}
+
+OCLHeapOfKernels::OCLHeapOfKernels( const cl_device_id device,
+                                    const cl_context context,
+                                    const cl_command_queue queue )
     : _device(device),
       _context(context),
       _queue(queue)
@@ -454,41 +536,97 @@ OCLHeapOfKernels::OCLHeapOfKernels(const cl_device_id device,
 
 OCLHeapOfKernels::~OCLHeapOfKernels(void)
 {
-    for (size_t i = 0; i < _kernels.size(); i++)
-        clReleaseKernel(_kernels[i]);
+    for (size_t i = 0; i < _kernelHandle.size(); i++)
+        clReleaseKernel(_kernelHandle[i]);
 
-    for (size_t i = 0; i < _programs.size(); i++)
-        clReleaseProgram(_programs[i]);
+    for (size_t i = 0; i < _programHandle.size(); i++)
+        clReleaseProgram(_programHandle[i]);
 }
 
 size_t OCLHeapOfKernels::scavenge(void)
 {
-    Type<cl_program>::aligned_vector newPrograms;
-    Type<cl_kernel>::aligned_vector  newKernels;
-    vector< vector<string> >         newSource;
-    vector<string>                   newKernelName;
-    vector<size_t>                   newRefcnt;
+    Type< cl_program >::aligned_vector newProgramHandle;
+    vector< vector< string > >         newProgramSource;
+
+    Type< cl_kernel >::aligned_vector  newKernelHandle;
+    vector< size_t >                   newProgramIndex;
+    vector< size_t >                   newKernelRefcnt;
+    map< string, set< size_t > >       newKernelMap;
 
     size_t releaseCount = 0;
 
-    for (size_t i = 0; i < _refcnt.size(); i++)
-        if (0 == _refcnt[i]) {
-            clReleaseKernel(_kernels[i]);
-            clReleaseProgram(_programs[i]);
-            releaseCount++;
-        } else {
-            newPrograms.push_back(_programs[i]);
-            newKernels.push_back(_kernels[i]);
-            newSource.push_back(_source[i]);
-            newKernelName.push_back(_kernelName[i]);
-            newRefcnt.push_back(_refcnt[i]);
-        }
+    vector< size_t > progRefcnt;
+    for (size_t i = 0; i < _programHandle.size(); i++)
+        progRefcnt.push_back(0);
 
-    _programs = newPrograms;
-    _kernels = newKernels;
-    _source = newSource;
-    _kernelName = newKernelName;
-    _refcnt = newRefcnt;
+    vector< size_t > newKrnlIdx;
+    for (size_t i = 0; i < _kernelHandle.size(); i++)
+    {
+        newKrnlIdx.push_back(newKernelHandle.size());
+
+        const size_t kernelCount = _kernelRefcnt[i];
+
+        progRefcnt[ _programIndex[i] ] += kernelCount;
+
+        if (0 == kernelCount)
+        {
+            clReleaseKernel(_kernelHandle[i]);
+            releaseCount++;
+        }
+        else
+        {
+            newKernelHandle.push_back(_kernelHandle[i]);
+            newProgramIndex.push_back(_programIndex[i]);
+            newKernelRefcnt.push_back(kernelCount);
+        }
+    }
+
+    vector< size_t > newProgIdx;
+    for (size_t i = 0; i < _programHandle.size(); i++)
+    {
+        newProgIdx.push_back(newProgramHandle.size());
+
+        if (0 == progRefcnt[i])
+        {
+            clReleaseProgram(_programHandle[i]);
+            releaseCount++;
+        }
+        else
+        {
+            newProgramHandle.push_back(_programHandle[i]);
+            newProgramSource.push_back(_programSource[i]);
+        }
+    }
+
+    for (size_t i = 0; i < newProgramIndex.size(); i++)
+    {
+        const size_t idx = newProgIdx[ newProgramIndex[i] ];
+        newProgramIndex[i] = idx;
+    }
+
+    for (map< string, set< size_t > >::const_iterator
+         it = _kernelMap.begin();
+         it != _kernelMap.end();
+         it++)
+    {
+        const string kernelName = (*it).first;
+
+        for (set< size_t >::const_iterator
+             jt = (*it).second.begin();
+             jt != (*it).second.end();
+             jt++)
+        {
+            newKernelMap[ kernelName ].insert( newKrnlIdx[*jt] );
+        }
+    } 
+
+    _programHandle = newProgramHandle;
+    _programSource = newProgramSource;
+
+    _kernelHandle = newKernelHandle;
+    _programIndex = newProgramIndex;
+    _kernelRefcnt = newKernelRefcnt;
+    _kernelMap = newKernelMap;
 
     return releaseCount;
 }
@@ -496,74 +634,133 @@ size_t OCLHeapOfKernels::scavenge(void)
 int OCLHeapOfKernels::create(const string& source,
                              const string& kernelName)
 {
-    vector<string> src;
+    vector< string > src;
     src.push_back(source);
     return create(src, kernelName);
 }
 
-int OCLHeapOfKernels::create(const vector<string>& source,
-                             const string& kernelName)
+int OCLHeapOfKernels::create( const vector< string >& source,
+                              const string& kernelName )
 {
-    for (size_t i = 0; i < _refcnt.size(); i++)
-        if (0 == _refcnt[i]
-            && source == _source[i]
-            && kernelName == _kernelName[i])
-            return i;
-    return create(source, "", kernelName);
+    int retIdx = -1;
+
+    if (_kernelMap.count(kernelName))
+    {
+        size_t matchProgIdx = -1;
+
+        for (set< size_t >::const_iterator
+             it = _kernelMap[kernelName].begin();
+             it != _kernelMap[kernelName].end();
+             it++)
+        {
+            const bool available = (0 == _kernelRefcnt[*it]);
+            const size_t progIdx = _programIndex[*it];
+            const bool krnlMatch = (source == _programSource[progIdx]);
+
+            if (krnlMatch)
+            {
+                if (available)
+                {
+                    return *it;
+                }
+                else
+                {
+                    matchProgIdx = progIdx;
+                }
+            }
+        }
+
+        retIdx = ( -1 == matchProgIdx
+                       ? create(source, "", kernelName)
+                       : create(matchProgIdx, kernelName) );
+    }
+    else
+    {
+        retIdx = create(source, "", kernelName);
+    }
+
+    if (-1 != retIdx)
+        _kernelMap[kernelName].insert(retIdx);
+
+    return retIdx;
 }
 
-bool OCLHeapOfKernels::enqueue(const size_t index,
-                               const vector<size_t>& global,
-                               const vector<size_t>& local)
+bool OCLHeapOfKernels::enqueue( const size_t index,
+                                const vector< size_t >& global,
+                                const vector< size_t >& local )
 {
     const size_t dim = global.size();
-    if (dim != local.size()) return false;
 
-    cl_event event;
-    if (CL_SUCCESS != clEnqueueNDRangeKernel(_queue,
-                                             _kernels[index],
-                                             dim,
-                                             NULL,
-                                             &global[0],
-                                             &local[0],
-                                             0,
-                                             NULL,
-                                             &event))
+    if (dim != local.size())
         return false;
 
-    _events.push_back(event);
-    return true;
+    cl_event event;
+
+    if (CL_SUCCESS == clEnqueueNDRangeKernel(
+                          _queue,
+                          _kernelHandle[index],
+                          dim,
+                          NULL,
+                          &global[0],
+                          &local[0],
+                          0,
+                          NULL,
+                          &event ))
+    {
+        _events.push_back(event);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 bool OCLHeapOfKernels::wait(void)
 {
-    if (0 == _events.size()) return true;
-    bool isOK = CL_SUCCESS == clWaitForEvents(_events.size(), &_events[0]);
+    if (0 == _events.size())
+        return true;
+
+    bool isOK = CL_SUCCESS == clWaitForEvents(
+                                  _events.size(),
+                                  &_events[0] );
+
     for (size_t i = 0; i < _events.size(); i++)
+    {
         if (CL_SUCCESS != clReleaseEvent(_events[i]))
             isOK = false;
+    }
+
     _events.clear();
+
     return isOK;
 }
 
-bool OCLHeapOfKernels::setArg(const size_t index,
-                              const size_t argIndex,
-                              const cl_mem object)
+bool OCLHeapOfKernels::setArgGlobal( const size_t index,
+                                     const size_t argIndex,
+                                     const cl_mem object )
 {
-    return CL_SUCCESS == clSetKernelArg(_kernels[index],
-                                        argIndex,
-                                        sizeof(cl_mem),
-                                        &object);
+    return CL_SUCCESS == clSetKernelArg(
+                             _kernelHandle[index],
+                             argIndex,
+                             sizeof(cl_mem),
+                             &object );
 }
 
 void OCLHeapOfKernels::checkout(const size_t index)
 {
-    if (-1 != index) _refcnt[index]++;
+    if (-1 != index)
+    {
+        _kernelRefcnt[index]++;
+    }
 }
 
 void OCLHeapOfKernels::release(const size_t index)
 {
-    if (-1 != index && _refcnt[index]) _refcnt[index]--;
+    if (-1 != index && _kernelRefcnt[index])
+    {
+        _kernelRefcnt[index]--;
+    }
 }
 
 ////////////////////////////////////////
@@ -575,7 +772,8 @@ OCLdevice::OCLdevice(OCLinit& base,
       _deviceIndex(deviceIndex),
       _bufHeap(context(), queue()),
       _imgHeap(context(), queue()),
-      _krnlHeap(device(), context(), queue())
+      _krnlHeap(device(), context(), queue()),
+      _statusOp(false)
 { }
 
 cl_platform_id& OCLdevice::platform(void)
@@ -633,15 +831,31 @@ OCLHeapOfKernels& OCLdevice::kernels(void)
     return _krnlHeap;
 }
 
+size_t OCLdevice::maxWorkGroupSize(void) const
+{
+    return _base.devices().maxWorkGroupSize(_deviceIndex);
+}
+
+bool OCLdevice::statusOp(void) const
+{
+    return _statusOp;
+}
+
+void OCLdevice::statusOp(const bool flag)
+{
+    _statusOp = flag;
+}
+
 void OCLdevice::scavenge(void)
 {
     const size_t bufcnt = buffers().scavenge();
     const size_t imgcnt = images().scavenge();
     const size_t krnlcnt = kernels().scavenge();
-    cerr << "scavenged membufs=" << bufcnt
-              << " imgbufs=" << imgcnt
-              << " kernels=" << krnlcnt
-              << endl;
+}
+
+size_t OCLdevice::deviceIndex(void) const
+{
+    return _deviceIndex;
 }
 
 ////////////////////////////////////////
@@ -652,7 +866,8 @@ OCLkernel::OCLkernel(OCLdevice& cdev)
       _index(-1),
       _global(),
       _local(),
-      _argIndex(0)
+      _argIndex(0),
+      _statusOp(false)
 { }
 
 OCLkernel::OCLkernel(OCLdevice& cdev,
@@ -662,7 +877,8 @@ OCLkernel::OCLkernel(OCLdevice& cdev,
       _index(_heap.create(source, kernelName)),
       _global(),
       _local(),
-      _argIndex(0)
+      _argIndex(0),
+      _statusOp(false)
 {
     _heap.checkout(_index);
 }
@@ -674,7 +890,8 @@ OCLkernel::OCLkernel(OCLdevice& cdev,
       _index(_heap.create(source, kernelName)),
       _global(),
       _local(),
-      _argIndex(0)
+      _argIndex(0),
+      _statusOp(false)
 {
     _heap.checkout(_index);
 }
@@ -703,6 +920,11 @@ size_t OCLkernel::index(void) const
     return _index;
 }
 
+bool OCLkernel::isOk(void) const
+{
+    return -1 != _index;
+}
+
 const vector<size_t>& OCLkernel::global(void) const
 {
     return _global;
@@ -713,7 +935,8 @@ const vector<size_t>& OCLkernel::local(void) const
     return _local;
 }
 
-void OCLkernel::workDim(const size_t globalDim, const size_t localDim)
+void OCLkernel::workDim(const size_t globalDim,
+                        const size_t localDim)
 {
     _global.push_back(globalDim);
     _local.push_back(localDim);
@@ -730,6 +953,16 @@ void OCLkernel::clearArgIndex(void)
     _argIndex = 0;
 }
 
+bool OCLkernel::statusOp(void) const
+{
+    return _statusOp;
+}
+
+void OCLkernel::statusOp(const bool flag)
+{
+    _statusOp = flag;
+}
+
 ////////////////////////////////////////
 // more utility
 
@@ -737,40 +970,43 @@ void OCLkernel::clearArgIndex(void)
 
 OCLFlush::OCLFlush(void) { }
 
-OCLdevice& operator << (OCLdevice& cdev, const OCLFlush&)
+OCLdevice& operator << (OCLdevice& cdev,
+                        const OCLFlush&)
 {
-    if (!cdev.buffers().waitWrite())
-        cerr << "wait on write buffers failed" << endl;
-    if (!cdev.images().waitWrite())
-        cerr << "wait on write images failed" << endl;
-    if (!cdev.kernels().wait())
-        cerr << "wait on kernels failed" << endl;
+    const bool s0 = cdev.buffers().waitWrite();
+    const bool s1 = cdev.images().waitWrite();
+    const bool s2 = cdev.kernels().wait();
+    cdev.statusOp(s0 && s1 && s2);
     return cdev;
 }
 
-OCLdevice& operator >> (OCLdevice& cdev, const OCLFlush&)
+OCLdevice& operator >> (OCLdevice& cdev,
+                        const OCLFlush&)
 {
-    if (!cdev.buffers().waitRead())
-        cerr << "wait on read buffers failed" << endl;
-    if (!cdev.images().waitRead())
-        cerr << "wait on read images failed" << endl;
+    const bool s0 = cdev.buffers().waitRead();
+    const bool s1 = cdev.images().waitRead();
+    cdev.statusOp(s0 && s1);
     return cdev;
 }
 
 // kernel execution ////////////////////
 
-OCLdevice& operator << (OCLdevice& cdev, OCLkernel& krnl)
+OCLdevice& operator << (OCLdevice& cdev,
+                        OCLkernel& ckernel)
 {
-    if (!cdev.kernels().enqueue(krnl.index(), krnl.global(), krnl.local()))
-        cerr << "enqueue kernel failed" << endl;
-    krnl.clearDim();
-    krnl.clearArgIndex();
+    cdev.statusOp(cdev.kernels()
+                      .enqueue(ckernel.index(),
+                               ckernel.global(),
+                               ckernel.local()));
+    ckernel.clearDim();
+    ckernel.clearArgIndex();
     return cdev;
 }
 
-OCLWorkIndex::OCLWorkIndex(const size_t global, const size_t local)
-    : _global(global), _local(local) 
-{ }
+OCLWorkIndex::OCLWorkIndex(const size_t global,
+                           const size_t local)
+    : _global(global),
+      _local(local) { }
 
 size_t OCLWorkIndex::global(void) const
 {
@@ -782,10 +1018,12 @@ size_t OCLWorkIndex::local(void) const
     return _local;
 }
 
-OCLkernel& operator << (OCLkernel& krnl, const OCLWorkIndex& dims)
+OCLkernel& operator << (OCLkernel& ckernel,
+                        const OCLWorkIndex& dims)
 {
-    krnl.workDim(dims.global(), dims.local());
-    return krnl;
+    ckernel.workDim(dims.global(),
+                    dims.local());
+    return ckernel;
 }
 
 }; // namespace chai_internal

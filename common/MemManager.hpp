@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_MEM_MANAGER_HPP_
 #define _CHAI_MEM_MANAGER_HPP_
@@ -10,9 +10,11 @@
 #include <stdint.h>
 #include <vector>
 
+#include "ArrayBuf.hpp"
 #include "BackMem.hpp"
-#include "DeviceMem.hpp"
 #include "FrontMem.hpp"
+#include "Function.hpp"
+#include "KernelCache.hpp"
 #include "OCLdevice.hpp"
 #include "OCLinit.hpp"
 #include "VectorTrace.hpp"
@@ -26,34 +28,97 @@ class AstVariable;
 
 class MemManager
 {
-    const size_t _deviceCode;
-    OCLinit*     _oclInit;
-    OCLdevice*   _oclDevice;
-
-    // keep track of compute device memory for live variables
-    pthread_mutex_t                  _memMutex;
-    std::map< BackMem*, DeviceMem* > _backDev;
-    std::map< DeviceMem*, BackMem* > _devBack;
-
 public:
     // base device codes
     static const size_t CPU_INTERP = 100;
     static const size_t GPU_OPENCL = 1000;
 
+    enum AccessMode { READ = 0, WRITE = 1, READWRITE = 2 };
+
+private:
+    const size_t _deviceCode;
+    const size_t _deviceIndex;
+    const bool   _deviceIsCPU;
+    OCLinit*     _oclInit;
+    OCLdevice*   _oclDevice;
+
+    // kernel object and source text cache
+    KernelCache* _cache;
+
+    // keep track of compute device memory for live variable BackMem callback
+    pthread_mutex_t                 _memMutex;
+    std::map< BackMem*, ArrayBuf* > _backArray; // MT
+    std::map< ArrayBuf*, BackMem* > _arrayBack; // MT
+    std::map< ArrayBuf*, size_t >   _arrayCount; // MT
+
+    // keep track of compute device memory by trace hash code
+    std::map< uint64_t, std::map< uint32_t, ArrayBuf* > > _liveArray; // MT
+    std::map< uint64_t, std::map< uint32_t, ArrayBuf* > > _deadArray;
+    std::map< uint64_t, std::map< const AstVariable*, ArrayBuf* > > _splitArray;
+
+    ArrayBuf* createArrayBuf(const AccessMode mode,
+                             const size_t packing,
+                             const size_t W,
+                             const size_t H,
+                             const size_t precision,
+                             const size_t vectorLength);
+
+    ArrayBuf* createArrayBuf(const AccessMode mode,
+                             const size_t packing,
+                             const size_t W,
+                             const size_t H,
+                             const size_t vectorLength,
+                             float* ptr);
+
+    ArrayBuf* createArrayBuf(const AccessMode mode,
+                             const size_t packing,
+                             const size_t W,
+                             const size_t H,
+                             const size_t vectorLength,
+                             double* ptr);
+
+    bool createArrayInternal(const uint32_t varNum,
+                             const AccessMode mode,
+                             const size_t packing,
+                             const size_t W,
+                             const size_t H,
+                             const size_t precision,
+                             const size_t vectorLength,
+                             VectorTrace& vt,
+                             const bool initBackMem,
+                             const float val32,
+                             const double val64);
+
+    bool createArrayInternal(const AstVariable* varPtr,
+                             const AccessMode mode,
+                             const size_t packing,
+                             const size_t W,
+                             const size_t H,
+                             const size_t precision,
+                             const size_t vectorLength,
+                             VectorTrace& vt,
+                             const bool initBackMem,
+                             const float val32,
+                             const double val64);
+
+public:
     // interpreter does not have any OpenCL-ness
     MemManager(const size_t deviceCode);
 
     // translator/JIT uses OpenCL
     MemManager(const size_t deviceCode,
+               const size_t deviceIndex, // from OCLinit
                OCLinit&,
                OCLdevice&);
 
     ~MemManager(void);
 
     size_t getDeviceCode(void) const;
+    size_t getDeviceIndex(void) const;
+    OCLdevice& getComputeDevice(void);
 
     // used by scheduler (allocate backing parent memory)
-    void memalloc(VectorTrace& vt);                    // before kernel
+    bool memalloc(VectorTrace& vt);                    // before kernel
     void memfree(VectorTrace& vt, const bool freeMem); // after kernel
 
     // data movement from compute device back to CPU
@@ -63,51 +128,77 @@ public:
     void untrackMem(BackMem*);
 
     // used by JIT dispatching
-    BackMem* unifyBackMem(const uint32_t variable,
-                          const uint32_t version,
-                          std::vector< FrontMem* >&);
+    static bool checkSameDataAcrossTraces(
+                    const std::vector< FrontMem* >& frontMem );
+    BackMem* unifyBackMem( const uint32_t variable,
+                           const uint32_t version,
+                           std::vector< FrontMem* >& frontMem );
+
+    // direct access to array buffer objects needed for matmul set arguments
+    ArrayBuf* getArrayBuf(const uint32_t traceVar, VectorTrace&);
+    ArrayBuf* getArrayBuf(const AstVariable* splitVar, VectorTrace&);
 
     // create memory on compute device (trace variable)
-    bool createDevMem(VectorTrace& vt,
-                      const uint32_t variableOnDevice,
-                      BackMem* backMem,
-                      const bool isReadTexture);
-    bool createDevMem(VectorTrace& vt,
-                      const uint32_t variableOnDevice,
-                      const size_t W,
-                      const size_t H,
-                      const bool isDP);
-    bool createDevMem(VectorTrace& vt,
-                      const uint32_t variableOnDevice,
-                      const size_t W,
-                      const size_t H,
-                      const float value);
-    bool createDevMem(VectorTrace& vt,
-                      const uint32_t variableOnDevice,
-                      const size_t W,
-                      const size_t H,
-                      const double value);
+    bool createArraySendData(const uint32_t varNum,
+                             const AccessMode mode,
+                             const size_t vectorLength,
+                             VectorTrace& vt,
+                             BackMem* backMem);
+    bool createArrayTemp(const uint32_t varNum,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t precision,
+                         const size_t vectorLength,
+                         VectorTrace& vt);
+    bool createArrayTemp(const uint32_t varNum,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t vectorLength,
+                         VectorTrace& vt,
+                         const float val32);
+    bool createArrayTemp(const uint32_t varNum,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t vectorLength,
+                         VectorTrace& vt,
+                         const double val64);
 
     // create memory on compute device (split variable)
-    bool createDevMem(VectorTrace& vt,
-                      AstVariable* variableOnDevice,
-                      BackMem* backMem,
-                      const bool isReadTexture);
-    bool createDevMem(VectorTrace& vt,
-                      AstVariable* variableOnDevice,
-                      const size_t W,
-                      const size_t H,
-                      const bool isDP);
-    bool createDevMem(VectorTrace& vt,
-                      AstVariable* variableOnDevice,
-                      const size_t W,
-                      const size_t H,
-                      const float value);
-    bool createDevMem(VectorTrace& vt,
-                      AstVariable* variableOnDevice,
-                      const size_t W,
-                      const size_t H,
-                      const double value);
+    bool createArraySendData(const AstVariable* varPtr,
+                             const AccessMode mode,
+                             const size_t vectorLength,
+                             VectorTrace& vt,
+                             BackMem* backMem);
+    bool createArrayTemp(const AstVariable* varPtr,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t precision,
+                         const size_t vectorLength,
+                         VectorTrace& vt);
+    bool createArrayTemp(const AstVariable* varPtr,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t vectorLength,
+                         VectorTrace& vt,
+                         const float val32);
+    bool createArrayTemp(const AstVariable* varPtr,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t vectorLength,
+                         VectorTrace& vt,
+                         const double val64);
 
     // used by interpreter during operation dispatch
     BackMem* allocBackMem(const size_t W,
@@ -119,6 +210,12 @@ public:
                             const bool isDP,
                             BackMem* parent,
                             const size_t vecIndex) const;
+
+    // enqueue kernel
+    bool enqueueKernel(VectorTrace& vt,
+                       Function& func,
+                       const size_t globalWidth,
+                       const size_t globalHeight = 0);
 };
 
 }; // namespace chai_internal

@@ -1,0 +1,39 @@
+include ../Makefile.config
+
+USE_CFLAGS = -D_VENDOR_IS_INTEL_ -I$(INTEL_SDK)/usr/include \
+	$(SHARED_CFLAGS) $(GLOBAL_CFLAGS)
+
+USE_LDFLAGS = $(SHARED_LDFLAGS) -L$(INTEL_SDK)/$(LIB_ARCH_DIR) -lOpenCL
+
+STATIC_ARCHIVE_LIBRARY = libchaiINTEL.a
+SHARED_OBJECT_LIBRARY = libchaiINTEL.so
+
+LIBRARY_OBJECT_CODE = \
+	OCLdevice.o \
+	OCLhacks.o \
+	OCLinit.o
+
+INTERNAL_HEADER_FILES = \
+	$(LIBRARY_OBJECT_CODE:.o=.hpp)
+
+include ../Makefile.common
+
+all :
+	@if [ $(SHARED_LDFLAGS) ]; \
+	then \
+	  make -f Makefile.INTEL $(SHARED_OBJECT_LIBRARY); \
+	else \
+	  make -f Makefile.INTEL $(STATIC_ARCHIVE_LIBRARY); \
+	fi
+
+install : all
+	install --mode=644 $(INTERNAL_HEADER_FILES) $(INTERNAL_HEADER_DIR)
+	@if [ $(SHARED_LDFLAGS) ]; \
+	then \
+	  install $(SHARED_OBJECT_LIBRARY) $(LIB_DIR); \
+	else \
+	  install $(STATIC_ARCHIVE_LIBRARY) $(LIB_DIR); \
+	fi
+
+clean :
+	rm -f *.o $(STATIC_ARCHIVE_LIBRARY) $(SHARED_OBJECT_LIBRARY)

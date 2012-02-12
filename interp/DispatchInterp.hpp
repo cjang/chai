@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_INTERP_DISPATCH_HPP_
 #define _CHAI_INTERP_DISPATCH_HPP_
@@ -8,11 +8,11 @@
 #include <stdint.h>
 #include <vector>
 
-#include "BC.hpp"
+#include "BaseInterp.hpp"
+#include "chai/BC.hpp"
+#include "chai/Stak.hpp"
 #include "FrontMem.hpp"
 #include "MemManager.hpp"
-#include "BaseInterp.hpp"
-#include "Stak.hpp"
 
 namespace chai_internal {
 
@@ -41,10 +41,13 @@ public:
     DispatchInterp(void);
     ~DispatchInterp(void);
 
-    void addOp(const uint32_t opCode, BaseInterp* op);
+    bool containsOp(const uint32_t opCode) const;
+    void eraseOp(const uint32_t opCode);
+    void deleteOp(const uint32_t opCode);
+    void addOp(const uint32_t opCode, BaseInterp* opHandler);
 
     void setContext(std::stack< std::vector< FrontMem* > >& outStack);
-    void setContext(VectorTrace& vt);
+    void setContext(VectorTrace& vt, const size_t uniqueSwizzleKey);
     void setContext(MemManager& mm);
 
     void visit(const uint32_t variable, const uint32_t version);

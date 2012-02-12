@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "InterpAccum.hpp"
 
@@ -11,6 +11,8 @@ namespace chai_internal {
 
 void InterpAccum::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
+    swizzle(0);
+
     // first allocate backing memory
     BackMem* backMem = allocBackMem(1, 1, isDouble(0));
 

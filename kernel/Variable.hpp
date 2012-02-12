@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_VARIABLE_HPP_
 #define _CHAI_VARIABLE_HPP_
@@ -9,6 +9,8 @@
 #include "Qualifier.hpp"
 
 namespace chai_internal {
+
+class Function;
 
 ////////////////////////////////////////
 // variable in a device kernel
@@ -23,13 +25,20 @@ namespace chai_internal {
 
 ////////////////////////////////////////
 // abstract base class for variables
-struct Variable
+class Variable
 {
+    Function* _func;
+
+public:
+    Variable(void);
     virtual ~Variable(void);
+
+    void setFunction(Function*);
 
     void identifierName(std::ostream&) const;
 
     virtual void declareType(std::ostream&) const = 0;
+    virtual void convertType(std::ostream&) const = 0;
 };
 
 ////////////////////////////////////////
@@ -40,6 +49,7 @@ public:
     Sampler(void);
 
     void declareType(std::ostream&) const;
+    void convertType(std::ostream&) const;
 };
 
 ////////////////////////////////////////
@@ -52,6 +62,7 @@ public:
     Image2D(const ImageAccess& rw);
 
     void declareType(std::ostream&) const;
+    void convertType(std::ostream&) const;
 };
 
 ////////////////////////////////////////
@@ -99,7 +110,10 @@ public:
             const ConstPointerVariableDecl& varDecl,
             const AddressSpace& qualifier = DEFAULT);
 
+    bool fp64(void) const;
+
     void declareType(std::ostream&) const;
+    void convertType(std::ostream&) const;
 };
 
 ////////////////////////////////////////
@@ -118,6 +132,7 @@ public:
             const AddressSpace& qualifier = DEFAULT);
 
     void declareType(std::ostream&) const;
+    void convertType(std::ostream&) const;
 };
 
 }; // namespace chai_internal

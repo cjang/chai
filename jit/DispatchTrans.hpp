@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_DISPATCH_TRANS_HPP_
 #define _CHAI_DISPATCH_TRANS_HPP_
@@ -11,10 +11,10 @@
 
 #include "BaseAst.hpp"
 #include "BaseTrans.hpp"
-#include "BC.hpp"
+#include "chai/BC.hpp"
+#include "chai/Stak.hpp"
+#include "chai/Visit.hpp"
 #include "MemManager.hpp"
-#include "Stak.hpp"
-#include "Visit.hpp"
 
 namespace chai_internal {
 
@@ -43,7 +43,10 @@ public:
     DispatchTrans(void);
     ~DispatchTrans(void);
 
-    void addOp(const uint32_t opCode, BaseTrans* op);
+    bool containsOp(const uint32_t opCode) const;
+    void eraseOp(const uint32_t opCode);
+    void deleteOp(const uint32_t opCode);
+    void addOp(const uint32_t opCode, BaseTrans* opHandler);
 
     void setContext(std::stack< BaseAst* >& outStack);
     void setContext(VectorTrace& vt);

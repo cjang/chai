@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "AstReadout.hpp"
 
@@ -11,12 +11,19 @@ namespace chai_internal {
 
 AstReadout::AstReadout(const vector< FrontMem* >& frontMem,
                        BackMem* backMem,
-                       BaseAst* barg)
+                       BaseAst* barg,
+                       const size_t readVarDim)
     : BaseAst(barg->W(), barg->H(), barg->isDouble()),
       _frontMem(frontMem),
-      _backMem(backMem)
+      _backMem(backMem),
+      _readVarDim(readVarDim)
 {
     pushArg(barg);
+}
+
+size_t AstReadout::readVarDim(void) const
+{
+    return _readVarDim;
 }
 
 const vector< FrontMem* >& AstReadout::frontMem(void) const

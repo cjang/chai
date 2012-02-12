@@ -1,8 +1,7 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "XStmtIdSpace.hpp"
 #include "XStmtMaker.hpp"
-#include "XStmtTogether.hpp"
 #include "XStmtTrace.hpp"
 
 using namespace std;
@@ -15,8 +14,14 @@ namespace chai_internal {
 XStmtTrace::XStmtTrace(BCStmtTrace& trace)
     : _vt(trace.getVectorTrace())
 {
-    XStmtMaker v(_stmts);
+    XStmtMaker v(_stmts, _vt);
+
     trace.traverse(v);
+
+    _traceReadoutDim = v.traceReadoutDim();
+
+    if (v.reductionInsideLoop())
+        _together.reductionIsSpecial(false);
 }
 
 XStmtTrace::~XStmtTrace(void)
@@ -87,30 +92,70 @@ void XStmtTrace::reorder(void)
             }
         }
     }
+
+    // autotuning rises to the surface
+    vector< XStmt* > newStmts;
+    for (vector< XStmt* >::const_iterator
+         it = _stmts.begin();
+         it != _stmts.end();
+         it++)
+    {
+        if ((*it)->surfaceBuoyancy())
+        {
+            newStmts.push_back(*it);
+        }
+    }
+
+    // everything else is below the surface
+    for (vector< XStmt* >::const_iterator
+         it = _stmts.begin();
+         it != _stmts.end();
+         it++)
+    {
+        if (! (*it)->surfaceBuoyancy())
+        {
+            newStmts.push_back(*it);
+        }
+    }
+
+    _stmts = newStmts;
 }
 
 void XStmtTrace::together(void)
 {
     vector< XStmt* > newStmts;
 
-    XStmtTogether together;
+    size_t kernelNumber = 0;
 
     for (vector< XStmt* >::const_iterator
          it = _stmts.begin();
          it != _stmts.end();
          it++)
     {
-        if (! together.isPush(*it))
+        if (! _together.isPush(*it))
         {
-            newStmts.push_back(new XStmtIdSpace(together, _vt));
-            together.clear();
-            together.isPush(*it);
+
+            XStmtIdSpace* xid = new XStmtIdSpace(_together,
+                                                 kernelNumber++,
+                                                 _vt);
+            xid->setReadoutDim(_traceReadoutDim);
+
+            newStmts.push_back(xid);
+
+            _together.clear();
+            _together.isPush(*it);
         }
     }
 
-    if (! together.stuffInside().empty())
+    if (! _together.stuffInside().empty())
     {
-        newStmts.push_back(new XStmtIdSpace(together, _vt));
+
+        XStmtIdSpace* xid = new XStmtIdSpace(_together,
+                                             kernelNumber++,
+                                             _vt);
+        xid->setReadoutDim(_traceReadoutDim);
+
+        newStmts.push_back(xid);
     }
 
     _stmts = newStmts;

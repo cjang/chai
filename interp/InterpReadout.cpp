@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <string.h>
 
@@ -13,6 +13,8 @@ namespace chai_internal {
 
 void InterpReadout::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
+    swizzle(0);
+
     if (isDouble(0))
     {
         for (size_t i = 0; i < numTraces(); i++)

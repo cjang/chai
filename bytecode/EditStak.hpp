@@ -6,9 +6,9 @@
 #include <map>
 #include <utility>
 
-#include "BC.hpp"
-#include "Stak.hpp"
-#include "Visit.hpp"
+#include "chai/BC.hpp"
+#include "chai/Stak.hpp"
+#include "chai/Visit.hpp"
 
 namespace chai_internal {
 

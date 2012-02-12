@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+
+# Retry wrapper for the auto-tuning tools ATmatmul and ATmatvec
+#
+# The vendor OpenCL compilers can fail ungracefully. Sometimes, the shader
+# compiler hangs. If this happens, the watchdog in the auto-tuning application
+# times out and exits the process. The shader compiler can also segfault
+# directly and kill the running process.
+#
+# No work is lost as the auto-tuning application reads the journal file and
+# resumes the statistical optimization from the point just after it died.
+#
+# When the auto-tuning application is finished, it outputs the keyword string
+# "***FINISH***" to indicate it is done. This is the exit condition for the
+# retry loop.
+#
+# For example, if the following keeps exiting due to hangs or segfaults:
+#
+#   ./ATmatmul.amd -f myspec.cfg -m 320
+#
+# then it may be run using the retry wrapper as follows:
+#
+#   ./retry ./ATmatmul.amd -f myspec.cfg -m 320
+#
+# This is no different from manually re-running the same command-line until
+# the keyword string "***FINISH***" is printed.
+
+OUTFILE=$USER$RANDOM
+
+cp /dev/null $OUTFILE
+
+while [ `grep '***FINISH***' $OUTFILE | wc -l` -ne 1 ]; do
+  $@ 2>&1 | tee $OUTFILE
+done
+
+rm $OUTFILE

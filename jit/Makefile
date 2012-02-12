@@ -1,17 +1,23 @@
+include ../Makefile.config
 include ../Makefile.common
+
+USE_CFLAGS=$(SHARED_CFLAGS)
 
 LIBRARY_OBJECT_CODE = \
 	AstAccum.o \
 	AstArrayMem.o \
-	AstBinop.o \
 	AstCond.o \
 	AstConvert.o \
 	AstDotprod.o \
+	AstExtension.o \
+	AstFun1.o \
+	AstFun2.o \
+	AstFun3.o \
 	AstGather.o \
 	AstIdxdata.o \
-	AstIsomorph.o \
 	AstLitdata.o \
 	AstMakedata.o \
+	AstMatmulBase.o \
 	AstMatmulMM.o \
 	AstMatmulMV.o \
 	AstMatmulVM.o \
@@ -20,8 +26,10 @@ LIBRARY_OBJECT_CODE = \
 	AstRNGnormal.o \
 	AstRNGuniform.o \
 	AstScalar.o \
+	AstTranspose.o \
 	AstVariable.o \
 	BaseAst.o \
+	BasePrinter.o \
 	BaseTrans.o \
 	BCStmt.o \
 	BCStmtCompound.o \
@@ -31,33 +39,41 @@ LIBRARY_OBJECT_CODE = \
 	BCStmtSingle.o \
 	BCStmtTrace.o \
 	DispatchTrans.o \
+	JustInTimeMemo.o \
 	TransAccum.o \
-	TransBinop.o \
 	TransCond.o \
 	TransConvert.o \
 	TransDotprod.o \
+	TransFun1.o \
+	TransFun2.o \
+	TransFun3.o \
 	TransGather.o \
 	TransIdxdata.o \
-	TransIsomorph.o \
 	TransLitdata.o \
 	TransMakedata.o \
 	TransMatmul.o \
+	TransMatmulG.o \
 	TransReadout.o \
 	TransRNGnormal.o \
 	TransRNGuniform.o \
 	TransScalar.o \
+	TransTranspose.o \
 	VisitBCStmt.o \
 	VisitXStmt.o \
 	XStmt.o \
+	XStmtBarrier.o \
 	XStmtCompound.o \
 	XStmtCreateData.o \
 	XStmtEnqueue.o \
-	XStmtGather.o \
+	XStmtExtension.o \
+	XStmtExtensionAuto.o \
 	XStmtIdSpace.o \
 	XStmtIndex.o \
 	XStmtLiteral.o \
 	XStmtMaker.o \
 	XStmtMatmul.o \
+	XStmtMatmulAuto.o \
+	XStmtMatmulBase.o \
 	XStmtPrinter.o \
 	XStmtReadData.o \
 	XStmtReduce.o \
@@ -69,13 +85,14 @@ LIBRARY_OBJECT_CODE = \
 	XStmtTogether.o \
 	XStmtTrace.o
 
-LIBRARY_HEADER_FILES = \
-	$(LIBRARY_OBJECT_CODE:.o=.hpp)
+INTERNAL_HEADER_FILES = \
+	$(LIBRARY_OBJECT_CODE:.o=.hpp) \
+	VisitAst.hpp
 
 all : $(LIBRARY_OBJECT_CODE)
 
 install : all
-	install --mode=644 $(LIBRARY_HEADER_FILES) $(INTERNAL_HEADER_DIR)
+	install --mode=644 $(INTERNAL_HEADER_FILES) $(INTERNAL_HEADER_DIR)
 	install $(LIBRARY_OBJECT_CODE) $(INTERNAL_OBJECT_DIR)
 
 clean :

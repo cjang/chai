@@ -1,10 +1,11 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_OCL_DEVICE_HPP_
 #define _CHAI_OCL_DEVICE_HPP_
 
 #include <CL/cl.h>
-#include <iostream>
+#include <map>
+#include <set>
 #include <string>
 
 #include "OCLinit.hpp"
@@ -86,7 +87,8 @@ public:
     template <typename SCALAR>
     int createWithPointer(const size_t length,
                           const OCLBufferMode& mode,
-                          SCALAR* ptr) {
+                          SCALAR* ptr)
+    {
         const size_t size = length * sizeof(SCALAR);
         return create(size, &mode, false, ptr, false);
     }
@@ -94,27 +96,35 @@ public:
     template <typename SCALAR>
     int createWithPointer(const size_t length,
                           const OCLBufferMode& mode,
-                          const SCALAR* ptr) {
+                          const SCALAR* ptr)
+    {
         const size_t size = length * sizeof(SCALAR);
         return create(size, &mode, false, const_cast<SCALAR*>(ptr), false);
     }
 
     template <typename SCALAR>
     int createAllocate(const size_t length,
-                       const OCLBufferMode& mode) {
+                       const OCLBufferMode& mode,
+                       const size_t alignMult)
+    {
         const size_t size = length * sizeof(SCALAR);
         for (size_t i = 0; i < _refcnt.size(); i++)
             if (0 == _refcnt[i]
                 && size == _size[i]
                 && mode.flags() == _access[i]->flags())
                 return i;
-        return create(size, &mode, false, MEMORY_ALIGNMENT);
+        return create(size,
+                      &mode,
+                      false,
+                      alignMult * MEMORY_ALIGNMENT);
     }
 
     template <typename SCALAR>
     int createAllocate(const size_t length,
                        const OCLBufferMode& mode,
-                       const bool pinned) {
+                       const bool pinned,
+                       const size_t alignMult)
+    {
         const size_t size = length * sizeof(SCALAR);
         for (size_t i = 0; i < _refcnt.size(); i++)
             if (0 == _refcnt[i]
@@ -122,13 +132,17 @@ public:
                 && mode.flags() == _access[i]->flags()
                 && pinned == _pinned[i])
                 return i;
-        return create(size, &mode, pinned, MEMORY_ALIGNMENT);
+        return create(size,
+                      &mode,
+                      pinned,
+                      alignMult * MEMORY_ALIGNMENT);
     }
 
     template <typename SCALAR>
     bool enqueueWrite(const size_t index,
                       const size_t offset,
-                      const size_t length) {
+                      const size_t length)
+    {
         cl_event event;
         if (CL_SUCCESS != clEnqueueWriteBuffer(_queue,
                                                _handles[index],
@@ -147,7 +161,8 @@ public:
     template <typename SCALAR>
     bool enqueueRead(const size_t index,
                      const size_t offset,
-                     const size_t length) {
+                     const size_t length)
+    {
         cl_event event;
         if (CL_SUCCESS != clEnqueueReadBuffer(_queue,
                                               _handles[index],
@@ -171,6 +186,8 @@ public:
 
     void* ptr(const size_t index);
     const void* ptr(const size_t index) const;
+
+    void ownPtr(const size_t index);
 
     cl_mem& handle(const size_t index);
     const cl_mem& handle(const size_t index) const;
@@ -235,18 +252,20 @@ public:
     int createAllocate(const size_t width,  // texel dimensions
                                             //     (x4 or x2 for matrix)
                        const size_t height, // texel dimensions
-                       const OCLImageMode& mode) {
+                       const OCLImageMode& mode,
+                       const size_t alignMult)
+    {
         for (size_t i = 0; i < _refcnt.size(); i++)
             if (0 == _refcnt[i]
-                && width = _width[i]
-                && height = _height[i]
+                && width == _width[i]
+                && height == _height[i]
                 && mode.flags() == _access[i]->flags())
                 return i;
         return create(width,
                       height,
                       &mode,
                       false,
-                      imgveclen<SCALAR>() * MEMORY_ALIGNMENT);
+                      alignMult * imgveclen<SCALAR>() * MEMORY_ALIGNMENT);
     }
 
     template <typename SCALAR>
@@ -254,11 +273,13 @@ public:
                                             //     (x4 or x2 for matrix)
                        const size_t height, // texel dimensions
                        const OCLImageMode& mode,
-                       const bool pinned) {
+                       const bool pinned,
+                       const size_t alignMult)
+    {
         for (size_t i = 0; i < _refcnt.size(); i++)
             if (0 == _refcnt[i]
-                && width = _width[i]
-                && height = _height[i]
+                && width == _width[i]
+                && height == _height[i]
                 && mode.flags() == _access[i]->flags()
                 && pinned == _pinned[i])
                 return i;
@@ -266,7 +287,7 @@ public:
                       height,
                       &mode,
                       pinned,
-                      imgveclen<SCALAR>() * MEMORY_ALIGNMENT);
+                      alignMult * imgveclen<SCALAR>() * MEMORY_ALIGNMENT);
     }
 
     template <typename SCALAR>
@@ -274,14 +295,15 @@ public:
                       const size_t originWidth,
                       const size_t originHeight,
                       const size_t regionWidth,
-                      const size_t regionHeight) {
+                      const size_t regionHeight)
+    {
         size_t origin[3], region[3];
         origin[0] = originWidth;
         origin[1] = originHeight;
         origin[2] = 0;
         region[0] = regionWidth;
         region[1] = regionHeight;
-        region[2] = 0;
+        region[2] = 1;
         cl_event event;
         if (CL_SUCCESS != clEnqueueWriteImage(_queue,
                                               _handles[index],
@@ -304,14 +326,15 @@ public:
                      const size_t originWidth,
                      const size_t originHeight,
                      const size_t regionWidth,
-                     const size_t regionHeight) {
+                     const size_t regionHeight)
+    {
         size_t origin[3], region[3];
         origin[0] = originWidth;
         origin[1] = originHeight;
         origin[2] = 0;
         region[0] = regionWidth;
         region[1] = regionHeight;
-        region[2] = 0;
+        region[2] = 1;
         cl_event event;
         if (CL_SUCCESS != clEnqueueReadImage(_queue,
                                              _handles[index],
@@ -338,6 +361,8 @@ public:
     void* ptr(const size_t index);
     const void* ptr(const size_t index) const;
 
+    void ownPtr(const size_t index);
+
     cl_mem& handle(const size_t index);
     const cl_mem& handle(const size_t index) const;
 };
@@ -349,20 +374,27 @@ class OCLHeapOfKernels
 {
     friend class OCLdevice;
 
-    const cl_device_id                      _device;
-    const cl_context                        _context;
-    const cl_command_queue                  _queue;
+    const cl_device_id                          _device;
+    const cl_context                            _context;
+    const cl_command_queue                      _queue;
 
-    Type<cl_program>::aligned_vector        _programs;
-    Type<cl_kernel>::aligned_vector         _kernels;
-    std::vector< std::vector<std::string> > _source;
-    std::vector< std::string >              _kernelName;
-    std::vector<size_t>                     _refcnt;
+    // programs
+    Type< cl_program >::aligned_vector          _programHandle;
+    std::vector< std::vector< std::string > >   _programSource;
 
-    Type<cl_event>::aligned_vector          _events;
+    // kernels
+    Type< cl_kernel >::aligned_vector           _kernelHandle;
+    std::vector< size_t >                       _programIndex;
+    std::vector< size_t >                       _kernelRefcnt;
+    std::map< std::string, std::set< size_t > > _kernelMap;
+
+    Type< cl_event >::aligned_vector            _events;
 
     int create(const std::vector<std::string>& source,
                const std::string& options,
+               const std::string& kernelName);
+
+    int create(const size_t programIndex,
                const std::string& kernelName);
 
     OCLHeapOfKernels(const cl_device_id device,
@@ -387,29 +419,33 @@ public:
     bool wait(void);
 
     // global memory or image
-    bool setArg(const size_t index,
-                const size_t argIndex,
-                const cl_mem object);
+    bool setArgGlobal(const size_t index,
+                      const size_t argIndex,
+                      const cl_mem object);
 
     // local memory
     template <typename SCALAR>
     bool setArgLocal(const size_t index,
                      const size_t argIndex,
-                     const size_t length) {
-        return CL_SUCCESS == clSetKernelArg(_kernels[index],
-                                            argIndex,
-                                            length * sizeof(SCALAR),
-                                            NULL);
+                     const size_t length)
+    {
+        return CL_SUCCESS == clSetKernelArg(
+                                 _kernelHandle[index],
+                                 argIndex,
+                                 length * sizeof(SCALAR),
+                                 NULL );
     }
 
     template <typename SCALAR>
     bool setArgValue(const size_t index,
                      const size_t argIndex,
-                     const SCALAR value) {
-        return CL_SUCCESS == clSetKernelArg(_kernels[index],
-                                            argIndex,
-                                            sizeof(SCALAR),
-                                            &value);
+                     const SCALAR value)
+    {
+        return CL_SUCCESS == clSetKernelArg(
+                                 _kernelHandle[index],
+                                 argIndex,
+                                 sizeof(SCALAR),
+                                 &value );
     }
 
     void checkout(const size_t index);
@@ -427,6 +463,8 @@ class OCLdevice
     OCLHeapOfMemoryBuffers _bufHeap;
     OCLHeapOfImages        _imgHeap;
     OCLHeapOfKernels       _krnlHeap;
+
+    bool                   _statusOp;
 
 public:
     OCLdevice(OCLinit& base,
@@ -448,7 +486,14 @@ public:
     OCLHeapOfImages& images(void);
     OCLHeapOfKernels& kernels(void);
 
+    size_t maxWorkGroupSize(void) const;
+
+    bool statusOp(void) const;
+    void statusOp(const bool);
+
     void scavenge(void);
+
+    size_t deviceIndex(void) const;
 };
 
 ////////////////////////////////////////
@@ -485,9 +530,12 @@ public:
 
     OCLmembuf(OCLdevice& cdev,
               const size_t length,
-              const OCLBufferMode& accessMode)
+              const OCLBufferMode& accessMode,
+              const size_t alignMult = 1)
         : _heap(cdev.buffers()),
-          _index(_heap.createAllocate<SCALAR>(length, accessMode)),
+          _index(_heap.createAllocate<SCALAR>(length,
+                                              accessMode,
+                                              alignMult)),
           _length(length)
     {
         if (-1 != _index) _heap.checkout(_index);
@@ -496,9 +544,13 @@ public:
     OCLmembuf(OCLdevice& cdev,
               const size_t length,
               const OCLBufferMode& accessMode,
-              const bool pinned)
+              const bool pinned,
+              const size_t alignMult = 1)
         : _heap(cdev.buffers()),
-          _index(_heap.createAllocate<SCALAR>(length, accessMode, pinned)),
+          _index(_heap.createAllocate<SCALAR>(length,
+                                              accessMode,
+                                              pinned,
+                                              alignMult)),
           _length(length)
     {
         if (-1 != _index) _heap.checkout(_index);
@@ -534,6 +586,10 @@ public:
 
     const SCALAR& operator[] (const size_t i) const {
         return static_cast<const SCALAR*>(*this)[i];
+    }
+
+    void ownPtr(void) {
+        _heap.ownPtr(_index);
     }
 
     cl_mem& handle(void) {
@@ -591,11 +647,13 @@ public:
     OCLimgbuf(OCLdevice& cdev,
               const size_t width,  // matrix dimensions
               const size_t height, // matrix dimensions
-              const OCLImageMode& accessMode)
+              const OCLImageMode& accessMode,
+              const size_t alignMult = 1)
         : _heap(cdev.images()),
           _index(_heap.createAllocate<SCALAR>(width / imgveclen<SCALAR>(),
                                               height,
-                                              accessMode)),
+                                              accessMode,
+                                              alignMult)),
           _width(width),
           _height(height)
     {
@@ -606,12 +664,14 @@ public:
            const size_t width,  // matrix dimensions
            const size_t height, // matrix dimensions
            const OCLImageMode& accessMode,
-           const bool pinned)
+           const bool pinned,
+           const size_t alignMult = 1)
         : _heap(cdev.images()),
           _index(_heap.createAllocate<SCALAR>(width / imgveclen<SCALAR>(),
                                               height,
                                               accessMode,
-                                              pinned)),
+                                              pinned,
+                                              alignMult)),
           _width(width),
           _height(height)
     {
@@ -646,6 +706,18 @@ public:
         return reinterpret_cast<const SCALAR*>(_heap.ptr(_index));
     }
 
+    SCALAR& operator[] (const size_t i) {
+        return static_cast<SCALAR*>(*this)[i];
+    }
+
+    const SCALAR& operator[] (const size_t i) const {
+        return static_cast<const SCALAR*>(*this)[i];
+    }
+
+    void ownPtr(void) {
+        _heap.ownPtr(_index);
+    }
+
     cl_mem& handle(void) {
         return _heap.handle(_index);
     }
@@ -668,6 +740,8 @@ class OCLkernel
 
     size_t              _argIndex;
 
+    bool                _statusOp;
+
 public:
     OCLkernel(OCLdevice& cdev);
     OCLkernel(OCLdevice& cdev,
@@ -685,6 +759,8 @@ public:
 
     size_t index(void) const;
 
+    bool isOk(void) const;
+
     const std::vector<size_t>& global(void) const;
     const std::vector<size_t>& local(void) const;
     void workDim(const size_t globalDim, const size_t localDim);
@@ -693,13 +769,13 @@ public:
     void clearArgIndex(void);
 
     template <typename SCALAR>
-    bool setArg(const OCLmembuf<SCALAR>& mb, const bool lazy = false) {
-        return _heap.setArg(_index, _argIndex++, mb.handle());
+    bool setArgGlobal(const OCLmembuf<SCALAR>& mb, const bool lazy = false) {
+        return _heap.setArgGlobal(_index, _argIndex++, mb.handle());
     }
 
     template <typename SCALAR>
-    bool setArg(const OCLimgbuf<SCALAR>& ib) {
-        return _heap.setArg(_index, _argIndex++, ib.handle());
+    bool setArgGlobal(const OCLimgbuf<SCALAR>& ib) {
+        return _heap.setArgGlobal(_index, _argIndex++, ib.handle());
     }
 
     template <typename SCALAR>
@@ -711,6 +787,9 @@ public:
     bool setArgValue(const SCALAR value) {
         return _heap.setArgValue<SCALAR>(_index, _argIndex++, value);
     }
+
+    bool statusOp(void) const;
+    void statusOp(const bool);
 };
 
 ////////////////////////////////////////
@@ -727,38 +806,50 @@ OCLdevice& operator >> (OCLdevice& cdev, const OCLFlush&);
 // PCIe bus data transfer //////////////
 
 template <typename SCALAR>
-OCLdevice& operator << (OCLdevice& cdev, OCLmembuf<SCALAR>& mb) {
-    if (!cdev.buffers().enqueueWrite<SCALAR>(mb.index(), 0, mb.length()))
-        std::cerr << "enqueue write buffer failed" << std::endl;
+OCLdevice& operator << (OCLdevice& cdev,
+                        OCLmembuf<SCALAR>& mb)
+{
+    cdev.statusOp(cdev.buffers()
+                      .enqueueWrite<SCALAR>(mb.index(),
+                                            0,
+                                            mb.length()));
     return cdev;
 }
 
 template <typename SCALAR>
-OCLdevice& operator >> (OCLdevice& cdev, OCLmembuf<SCALAR>& mb) {
-    if (!cdev.buffers().enqueueRead<SCALAR>(mb.index(), 0, mb.length()))
-        std::cerr << "enqueue read buffer failed" << std::endl;
+OCLdevice& operator >> (OCLdevice& cdev,
+                        OCLmembuf<SCALAR>& mb)
+{
+    cdev.statusOp(cdev.buffers()
+                      .enqueueRead<SCALAR>(mb.index(),
+                                           0,
+                                           mb.length()));
     return cdev;
 }
 
 template <typename SCALAR>
-OCLdevice& operator << (OCLdevice& cdev, OCLimgbuf<SCALAR>& ib) {
-    if (!cdev.images().enqueueWrite<SCALAR>(ib.index(),
+OCLdevice& operator << (OCLdevice& cdev,
+                        OCLimgbuf<SCALAR>& ib)
+{
+    cdev.statusOp(cdev.images()
+                      .enqueueWrite<SCALAR>(ib.index(),
                                             0,
                                             0,
                                             ib.width() / imgveclen<SCALAR>(),
-                                            ib.height()))
-        std::cerr << "enqueue write image failed" << std::endl;
+                                            ib.height()));
     return cdev;
 }
 
 template <typename SCALAR>
-OCLdevice& operator >> (OCLdevice& cdev, OCLimgbuf<SCALAR>& ib) {
-    if (!cdev.images().enqueueRead<SCALAR>(ib.index(),
+OCLdevice& operator >> (OCLdevice& cdev,
+                        OCLimgbuf<SCALAR>& ib)
+{
+    cdev.statusOp(cdev.images()
+                      .enqueueRead<SCALAR>(ib.index(),
                                            0,
                                            0,
                                            ib.width() / imgveclen<SCALAR>(),
-                                           ib.height()))
-        std::cerr << "enqueue read image failed" << std::endl;
+                                           ib.height()));
     return cdev;
 }
 
@@ -766,11 +857,15 @@ OCLdevice& operator >> (OCLdevice& cdev, OCLimgbuf<SCALAR>& ib) {
 
 OCLdevice& operator << (OCLdevice& cdev, OCLkernel& krnl);
 
-class OCLWorkIndex {
+class OCLWorkIndex
+{
     const size_t _global;
     const size_t _local;
+
 public:
-    OCLWorkIndex(const size_t global, const size_t local);
+    OCLWorkIndex(const size_t global,
+                 const size_t local);
+
     size_t global(void) const;
     size_t local(void) const;
 };
@@ -780,39 +875,47 @@ OCLkernel& operator << (OCLkernel& krnl, const OCLWorkIndex& dims);
 // set kernel arguments ////////////////
 
 template <typename SCALAR>
-OCLkernel& operator << (OCLkernel& krnl, OCLmembuf<SCALAR>& mb) {
-    if (!krnl.setArg(mb))
-        std::cerr << "set memory buffer argument failed" << std::endl;
-    return krnl;
+OCLkernel& operator << (OCLkernel& ckernel,
+                        OCLmembuf<SCALAR>& mb)
+{
+    ckernel.statusOp(ckernel.setArgGlobal(mb));
+    return ckernel;
 }
 
 template <typename SCALAR>
-OCLkernel& operator << (OCLkernel& krnl, OCLimgbuf<SCALAR>& ib) {
-    if (!krnl.setArg(ib))
-        std::cerr << "set image argument failed" << std::endl;
-    return krnl;
+OCLkernel& operator << (OCLkernel& ckernel,
+                        OCLimgbuf<SCALAR>& ib)
+{
+    ckernel.statusOp(ckernel.setArgGlobal(ib));
+    return ckernel;
 }
 
 template <typename SCALAR>
-class OCLLocalbuf {
+class OCLLocalbuf
+{
     const size_t _length;
+
 public:
-    OCLLocalbuf(const size_t length) : _length(length) { }
+    OCLLocalbuf(const size_t length)
+        : _length(length) { }
+
     size_t length(void) const { return _length; }
 };
 
 template <typename SCALAR>
-OCLkernel& operator << (OCLkernel& krnl, OCLLocalbuf<SCALAR>& lb) {
-    if (!krnl.setArgLocal<SCALAR>(lb.length()))
-        std::cerr << "set local memory argument failed" << std::endl;
-    return krnl;
+OCLkernel& operator << (OCLkernel& ckernel,
+                        OCLLocalbuf<SCALAR>& lb)
+{
+    ckernel.statusOp(ckernel.setArgLocal<SCALAR>(lb.length()));
+    return ckernel;
 }
 
 template <typename SCALAR>
-OCLkernel& operator << (OCLkernel& krnl, const SCALAR value) {
-    if (!krnl.setArgValue<SCALAR>(value))
-        std::cerr << "set argument value failed" << std::endl;
-    return krnl;
+OCLkernel& operator << (OCLkernel& ckernel,
+                        const SCALAR value)
+{
+    ckernel.statusOp(ckernel.setArgValue<SCALAR>(value));
+    return ckernel;
 }
 
 }; // namespace chai_internal

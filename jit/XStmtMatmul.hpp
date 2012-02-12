@@ -1,14 +1,10 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_X_STMT_MATMUL_HPP_
 #define _CHAI_X_STMT_MATMUL_HPP_
 
-#include "AstMatmulMM.hpp"
-#include "AstMatmulMV.hpp"
-#include "AstMatmulVM.hpp"
-#include "AstVariable.hpp"
 #include "VisitAst.hpp"
-#include "XStmt.hpp"
+#include "XStmtMatmulBase.hpp"
 
 namespace chai_internal {
 
@@ -16,7 +12,7 @@ namespace chai_internal {
 // matrix multiplication
 // (all cases except outer product)
 
-class XStmtMatmul : public XStmt,
+class XStmtMatmul : public XStmtMatmulBase,
                     public VisitAst
 {
     // RHS
@@ -35,8 +31,6 @@ public:
     XStmtMatmul(AstVariable* lhs, AstMatmulMV* rhs, const bool convert);
     XStmtMatmul(AstVariable* lhs, AstMatmulVM* rhs, const bool convert);
 
-    bool swappable(const XStmt&) const;
-
     void accept(VisitXStmt&);
 
     AstMatmulMM* matmulPtr(void) const;
@@ -46,13 +40,15 @@ public:
 
     void visit(AstAccum&);
     void visit(AstArrayMem&);
-    void visit(AstBinop&);
     void visit(AstCond&);
     void visit(AstConvert&);
     void visit(AstDotprod&);
+    void visit(AstExtension&);
+    void visit(AstFun1&);
+    void visit(AstFun2&);
+    void visit(AstFun3&);
     void visit(AstGather&);
     void visit(AstIdxdata&);
-    void visit(AstIsomorph&);
     void visit(AstLitdata&);
     void visit(AstMakedata&);
     void visit(AstMatmulMM&);
@@ -63,6 +59,7 @@ public:
     void visit(AstRNGnormal&);
     void visit(AstRNGuniform&);
     void visit(AstScalar&);
+    void visit(AstTranspose&);
     void visit(AstVariable&);
 };
 

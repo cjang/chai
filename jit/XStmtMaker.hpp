@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_X_STMT_MAKER_HPP_
 #define _CHAI_X_STMT_MAKER_HPP_
@@ -9,9 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include "AstVariable.hpp"
-#include "BaseAst.hpp"
 #include "XStmt.hpp"
+#include "VectorTrace.hpp"
 #include "VisitAst.hpp"
 #include "VisitBCStmt.hpp"
 
@@ -23,6 +22,8 @@ namespace chai_internal {
 class XStmtMaker : public VisitBCStmt,
                    public VisitAst
 {
+    VectorTrace& _vt;
+
     // root lexical scope
     std::vector< XStmt* >& _lexRoot;
 
@@ -42,21 +43,34 @@ class XStmtMaker : public VisitBCStmt,
     // keep track of RNG seeds
     std::set< size_t > _rngSeeds;
 
-    // keep track of objects during descent down RHS
+    // keep track of objects during descent down RHS (clear each statement)
     std::set< BaseAst* > _trackAst;
-    std::set< BaseAst* > _trackGather;
+    std::set< BaseAst* > _trackExtension; // language extension
     std::set< BaseAst* > _trackIndex;
     enum TrackLiteral { LITERAL_DATA, LITERAL_SCALAR };
     std::map< BaseAst*, TrackLiteral > _trackLiteral;
     enum TrackMatmul { MATMUL_MM, MATMUL_MV, MATMUL_VM };
     std::map< BaseAst*, TrackMatmul > _trackMatmul;
+    std::set< BaseAst* > _trackMatmulArgs;
     std::set< BaseAst* > _trackReadData;
     enum TrackReduce { REDUCE_ACCUM, REDUCE_DOTPROD };
     std::map< BaseAst*, TrackReduce > _trackReduce;
     enum TrackRNG { RNG_NORMAL, RNG_UNIFORM };
     std::map< BaseAst*, TrackRNG > _trackRNG;
+    std::set< BaseAst* > _trackSameDataAcrossTraces;
     std::set< BaseAst* > _trackSendData;
+    std::set< BaseAst* > _trackTranspose;
     std::set< BaseAst* > _trackVar;
+
+    // keep track of transposed array variables (clear each statement)
+    std::vector< AstTranspose* > _transposeStack;
+    std::set< uint32_t >         _transposeTraceVar;
+    std::set< AstVariable* >     _transposeSplitVar;
+
+    // keep track of gathered array variables (clear each statement)
+    std::stack< AstGather* > _gatherStack;
+    std::set< uint32_t >     _gatherTraceVar;
+    std::set< AstVariable* > _gatherSplitVar;
 
     // keep track of array memory splits
     std::map< std::pair< uint32_t, uint32_t >, AstVariable* > _memSplit;
@@ -90,6 +104,19 @@ class XStmtMaker : public VisitBCStmt,
     // keep track of array memory assignments to a variable
     std::set< uint32_t > _assignedVars;
 
+    // readout variables (by definition, these must be from the trace)
+    std::map< uint32_t, size_t > _traceReadoutDim;
+
+    // is there a reduction statement inside a loop?
+    bool _reductionInsideLoop;
+
+    // number of containing non-matmul-argument transposes for an AST object
+    size_t getTransposeCount(void) const;
+
+    // special tracking for transposed and gathered variables
+    void insertTraceVar(const uint32_t varNum);
+    void insertSplitVar(AstVariable* varPtr);
+
     // add new statements
     void pushLexRoot(XStmt*);
     void pushLexScope(XStmt*);
@@ -99,7 +126,7 @@ class XStmtMaker : public VisitBCStmt,
     // split statements
     void clearAst(void);
     void insertAst(BaseAst&);
-    void insertGather(BaseAst&);
+    void insertExtension(BaseAst&);
     void insertIndex(BaseAst&);
     void insertLiteral(AstLitdata&);
     void insertLiteral(AstScalar&);
@@ -111,21 +138,33 @@ class XStmtMaker : public VisitBCStmt,
     void insertReduce(AstDotprod&);
     void insertRNG(AstRNGnormal&);
     void insertRNG(AstRNGuniform&);
+    void insertSameDataAcrossTraces(AstArrayMem&);
+    void insertSameDataAcrossTraces(AstVariable&);
     void insertSendData(AstArrayMem&);
     void insertSendData(AstMakedata&);
+    void insertTranspose(AstTranspose&);
     void insertVar(AstVariable&);
     enum SplitContext
     {
         DEFAULT,
+        FORCE_EXTENSION,
         FORCE_MATMUL
     };
-    void splitAst(BaseAst&, const SplitContext force = DEFAULT);
+    void splitAst(BaseAst&,
+                  const size_t argIndex,
+                  const SplitContext force = DEFAULT);
+    void splitAst(BaseAst&,
+                  const SplitContext force = DEFAULT);
 
     // recursive visiting down AST tree
     void descendAst(BaseAst&);
 
 public:
-    XStmtMaker(std::vector< XStmt* >&);
+    XStmtMaker(std::vector< XStmt* >&, VectorTrace&);
+
+    const std::map< uint32_t, size_t >& traceReadoutDim(void) const;
+
+    bool reductionInsideLoop(void) const;
 
     void visit(BCStmtCompound&);
     void visit(BCStmtRepeat&);
@@ -133,13 +172,15 @@ public:
 
     void visit(AstAccum&);
     void visit(AstArrayMem&);
-    void visit(AstBinop&);
     void visit(AstCond&);
     void visit(AstConvert&);
     void visit(AstDotprod&);
+    void visit(AstExtension&);
+    void visit(AstFun1&);
+    void visit(AstFun2&);
+    void visit(AstFun3&);
     void visit(AstGather&);
     void visit(AstIdxdata&);
-    void visit(AstIsomorph&);
     void visit(AstLitdata&);
     void visit(AstMakedata&);
     void visit(AstMatmulMM&);
@@ -150,6 +191,7 @@ public:
     void visit(AstRNGnormal&);
     void visit(AstRNGuniform&);
     void visit(AstScalar&);
+    void visit(AstTranspose&);
     void visit(AstVariable&);
 };
 

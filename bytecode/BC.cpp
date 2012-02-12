@@ -49,12 +49,15 @@ BC& BC::operator= (const BC& other)
 
 void BC::accept(Visit<BC>& v) const
 {
-    if (_code & SCALAR) {
+    if (_code & SCALAR)
+    {
         if (SCALAR == _code)
             v.visit(_scalar);                   // double argument
         else
             v.visit((_code & CLEAR) - 1);       // op code
-    } else {
+    }
+    else
+    {
         if (PTR == _code)
             v.visit(_ptr);                      // pointer argument
         else

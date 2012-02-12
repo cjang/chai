@@ -1,11 +1,14 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_AST_VARIABLE_HPP_
 #define _CHAI_AST_VARIABLE_HPP_
 
 #include <stdint.h>
+#include <vector>
 
+#include "AstArrayMem.hpp"
 #include "BaseAst.hpp"
+#include "FrontMem.hpp"
 
 namespace chai_internal {
 
@@ -20,32 +23,48 @@ class AstVariable : public BaseAst
     const uint32_t _variable;
     const uint32_t _version;
 
-    // read-only and write-only variables can be image textures
-    enum AccessMode
+    // trace variable has front/back memory assigned to it
+    const std::vector< FrontMem* > _frontMem;
+
+    // three general kinds of variables in the JIT middle-end
+    enum Kindness
     {
-        VAR_IS_READWRITE, VAR_IS_READONLY, VAR_IS_WRITEONLY
+        SPLIT_ARRAY_MEMORY,  // always a read-only argument to a kernel
+        SPLIT_OPERATION,     // write-only operation output, read-only input
+        TRACE_VARIABLE       // may be: read-only, write-only, read-write
     };
-    AccessMode _accessMode;
+
+    // the kind of this variable
+    const Kindness _kindOfVariable;
+    const bool     _sameDataAcrossTraces;
 
 public:
+    // new variable is split off array memory
+    AstVariable(AstArrayMem* barg);
+
     // new introduced variable not from trace
-    AstVariable(BaseAst* barg);
+    AstVariable(BaseAst* barg,
+                const bool writable);
 
     // variable from trace
     AstVariable(BaseAst* barg,
                 const uint32_t variable,
                 const uint32_t version,
-                const bool isLive);
+                const bool isLive,
+                const std::vector< FrontMem* >& frontMem);
 
     bool isTraceVariable(void) const;
     bool isLiveVariable(void) const;
     uint32_t variable(void) const;
     uint32_t version(void) const;
 
-    bool isReadOnly(void) const;
-    bool isWriteOnly(void) const;
-    void setReadOnly(void);
-    void setWriteOnly(void);
+    const std::vector< FrontMem* >& frontMem(void) const;
+
+    bool isSameDataAcrossTraces(void) const;
+
+    bool isReadOnly(const bool appearsOnLHS, const bool appearsOnRHS) const;
+    bool isWriteOnly(const bool appearsOnLHS, const bool appearsOnRHS) const;
+    bool isReadWrite(const bool appearsOnLHS, const bool appearsOnRHS) const;
 
     void accept(VisitAst&);
 };

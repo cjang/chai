@@ -10,18 +10,30 @@ RANLIB = ranlib
 .cpp.o :
 	$(GNU_CXX) -c $(GNU_CXXFLAGS) $(USE_CFLAGS) $(GLOBAL_CFLAGS) $< -o $@
 
-# archive library
-$(LIBRARY_FILE) : $(LIBRARY_OBJECT_CODE)
+# static archive library
+$(STATIC_ARCHIVE_LIBRARY) : $(LIBRARY_OBJECT_CODE)
 	$(AR) qc $@ $(LIBRARY_OBJECT_CODE)
 	$(RANLIB) $@
 
-INSTALL_DIR = ../install
+# shared object library
+$(SHARED_OBJECT_LIBRARY) : $(LIBRARY_OBJECT_CODE)
+	$(GNU_CXX) $(SHARED_LDFLAGS) -o $@ $(LIBRARY_OBJECT_CODE)
+
+INSTALL_DIR = ../_install
 
 INTERNAL_HEADER_DIR = $(INSTALL_DIR)/.include
 INTERNAL_OBJECT_DIR = $(INSTALL_DIR)/.lib
 
-HEADER_DIR = $(INSTALL_DIR)/include
+EXTERNAL_HEADER_DIR = $(INSTALL_DIR)/include/chai
+
 LIB_DIR = $(INSTALL_DIR)/lib
 
-GLOBAL_CFLAGS = -I$(INTERNAL_HEADER_DIR) -I$(HEADER_DIR) -fopenmp
+BIN_DIR = $(INSTALL_DIR)/bin
+
+# use internal _install, needed for regular builds
+GLOBAL_CFLAGS = -I$(INTERNAL_HEADER_DIR) -I$(INSTALL_DIR)/include $(LOGGING_ENABLED) -fopenmp
 GLOBAL_LDFLAGS = -L$(LIB_DIR) -fopenmp
+
+# use external install, may be useful for building sample applications
+#GLOBAL_CFLAGS = -I$(CHAI_INSTALLDIR_PREFIX)/include $(LOGGING_ENABLED) -fopenmp
+#GLOBAL_LDFLAGS = -L$(CHAI_INSTALLDIR_PREFIX)/lib -fopenmp

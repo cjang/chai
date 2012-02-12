@@ -3,8 +3,6 @@
 #include "AstAccum.hpp"
 #include "TransAccum.hpp"
 
-using namespace std;
-
 namespace chai_internal {
 
 ////////////////////////////////////////

@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_BASE_TRANS_HPP_
 #define _CHAI_BASE_TRANS_HPP_
@@ -8,12 +8,12 @@
 
 #include "BackMem.hpp"
 #include "BaseAst.hpp"
-#include "BC.hpp"
+#include "chai/BC.hpp"
+#include "chai/Stak.hpp"
+#include "chai/Visit.hpp"
 #include "FrontMem.hpp"
 #include "MemManager.hpp"
-#include "Stak.hpp"
 #include "VectorTrace.hpp"
-#include "Visit.hpp"
 
 namespace chai_internal {
 
@@ -50,6 +50,8 @@ protected:
 
 public:
     virtual ~BaseTrans(void);
+
+    virtual BaseTrans* clone(void) const;
 
     void setContext(VectorTrace& vt);
     void setContext(MemManager& mm);

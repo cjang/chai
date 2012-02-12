@@ -3,8 +3,6 @@
 #include "AstCond.hpp"
 #include "TransCond.hpp"
 
-using namespace std;
-
 namespace chai_internal {
 
 ////////////////////////////////////////

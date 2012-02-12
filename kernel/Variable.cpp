@@ -1,5 +1,6 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
+#include "Function.hpp"
 #include "Variable.hpp"
 
 using namespace std;
@@ -9,11 +10,19 @@ namespace chai_internal {
 ////////////////////////////////////////
 // abstract base class for variables
 
+Variable::Variable(void)
+    : _func(NULL) { }
+
 Variable::~Variable(void) { }
+
+void Variable::setFunction(Function* funcPtr)
+{
+    _func = funcPtr;
+}
 
 void Variable::identifierName(ostream& os) const
 {
-    os << "var" << this << " ";
+    os << _func->varNameLookup(this) << " ";
 }
 
 ////////////////////////////////////////
@@ -27,6 +36,11 @@ void Sampler::declareType(ostream& os) const
     os << "const sampler_t ";
 }
 
+void Sampler::convertType(ostream& os) const
+{
+    // don't do anything for texture samplers
+}
+
 ////////////////////////////////////////
 // image texture
 
@@ -37,6 +51,11 @@ Image2D::Image2D(const ImageAccess& rw)
 void Image2D::declareType(ostream& os) const
 {
     os << _imgAccess.str() << "image2d_t ";
+}
+
+void Image2D::convertType(ostream& os) const
+{
+    // don't do anything for texture samplers
 }
 
 ////////////////////////////////////////
@@ -93,6 +112,11 @@ FloatPt::FloatPt(const size_t precision,
       _isPointer(true),
       _addrSpace(qualifier) { }
 
+bool FloatPt::fp64(void) const
+{
+    return DP == _fpType;
+}
+
 void FloatPt::declareType(ostream& os) const
 {
     os << _addrSpace.str();
@@ -115,6 +139,26 @@ void FloatPt::declareType(ostream& os) const
     os << (_isPointer ? " * " : " ");
 }
 
+void FloatPt::convertType(ostream& os) const
+{
+    os << "(";
+
+    switch (_fpType)
+    {
+        case (SP) :
+            os << "float";
+            break;
+
+        case (DP) :
+            os << "double";
+            break;
+    }
+
+    if (_vectorLength > 1) os << _vectorLength;
+
+    os << ")";
+}
+
 ////////////////////////////////////////
 // integer scalar
 
@@ -134,6 +178,11 @@ void Integer::declareType(ostream& os) const
     if (_isConst) os << "const ";
 
     os << "int ";
+}
+
+void Integer::convertType(ostream& os) const
+{
+    // this is a scalar so no type conversion is required
 }
 
 }; // namespace chai_internal

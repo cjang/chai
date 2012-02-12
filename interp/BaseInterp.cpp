@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "MemalignSTL.hpp"
 #include "BaseInterp.hpp"
@@ -33,9 +33,18 @@ size_t BaseInterp::H(const size_t argStackIndex) const
 
 size_t BaseInterp::frontSize(const size_t argStackIndex) const
 {
+    // standard vector length is double2 and float4
+    const size_t standardVectorLength = isDouble(argStackIndex) ? 2 : 4;
+
+    // special case for scalar reductions
+    // relies on implicit convention of array dimensions
+    const bool specialCaseReadScalar
+        = 1 == H(argStackIndex) && 1 == W(argStackIndex);
+
     return (isDouble(argStackIndex) ? sizeof(double) : sizeof(float))
-               * W(argStackIndex)
-               * H(argStackIndex);
+               * (specialCaseReadScalar
+                      ? standardVectorLength
+                      : W(argStackIndex) * H(argStackIndex));
 }
 
 size_t BaseInterp::numTraces(void) const
@@ -58,6 +67,19 @@ void BaseInterp::checkout(const size_t argStackIndex) const
          it++)
     {
         (*it)->checkout();
+    }
+}
+
+void BaseInterp::swizzle(const size_t argStackIndex) const
+{
+    const vector< FrontMem* >& vref = _argStack[argStackIndex];
+
+    for (vector< FrontMem* >::const_iterator
+         it = vref.begin();
+         it != vref.end();
+         it++)
+    {
+        (*it)->swizzle(_uniqueSwizzleKey);
     }
 }
 
@@ -93,16 +115,25 @@ FrontMem* BaseInterp::allocFrontMem(const size_t W,
 
 BaseInterp::BaseInterp(const size_t inCount,
                        const size_t outCount)
-    : _inCount(inCount),
+    : _uniqueSwizzleKey(0),
+      _inCount(inCount),
       _outCount(outCount),
       _vt(NULL),
       _memManager(NULL) { }
 
 BaseInterp::~BaseInterp(void) { }
 
-void BaseInterp::setContext(VectorTrace& vt)
+BaseInterp* BaseInterp::clone(void) const
+{
+    // language extensions override and return an operation handler object
+    return NULL;
+}
+
+void BaseInterp::setContext(VectorTrace& vt,
+                            const size_t uniqueSwizzleKey)
 {
     _vt = &vt;
+    _uniqueSwizzleKey = uniqueSwizzleKey;
 }
 
 void BaseInterp::setContext(MemManager& mm)

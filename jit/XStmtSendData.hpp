@@ -28,6 +28,8 @@ public:
     XStmtSendData(AstVariable* lhs, AstArrayMem* rhs, const bool convert);
     XStmtSendData(AstVariable* lhs, AstMakedata* rhs, const bool convert);
 
+    bool trackLHS(void) const;
+
     bool swappable(const XStmt&) const;
 
     void accept(VisitXStmt&);

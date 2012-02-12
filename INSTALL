@@ -1,0 +1,109 @@
+This project is copyright 2012 by Chris Jang (fastkor@gmail.com)
+
+Build and install instructions
+
+===============================================================================
+Prerequisites:
+
+1. An OpenCL SDK
+   - Three vendors are supported: AMD, Intel, NVIDIA. If is possible to install
+     all three vendor SDKs at the same time in one filesystem. I do this during
+     during development. However, the SDKs may conflict as they can overwrite
+     files when installing under /usr.
+
+2. A compute device compatible with the SDK
+   - Any OpenCL compute device will work. AMD supports both CPUs and GPUs.
+     Intel supports CPUs. NVIDIA supports GPUs only. Note that vendors only
+     support hardware they manufacture. Intel CPUs do work with AMD's OpenCL
+     SDK but are not officially supported.
+
+3. Linux and a C++ compiler (using GNU g++)
+   - All development is currently done on Linux with GNU g++. POSIX APIs are
+     used. GNU and Linux specific extensions are mostly avoided. However, I
+     have not been testing outside of GNU/Linux so can not guarantee the code
+     will build properly on another Unix or with another C++ compiler.
+
+
+
+===============================================================================
+Build core libraries:
+
+If static archive libraries are needed, build them first:
+
+  1. ./configure [--prefix=<CHAI_INSTALLDIR_PREFIX>] [--log]
+  2. optionally edit generated file: Makefile.config
+  3. make
+  4. make install
+
+Then clean the build:
+
+  5. make distclean
+
+Now build shared object libraries:
+
+  6. ./configure --shared [--prefix=<CHAI_INSTALLDIR_PREFIX>] [--log]
+  7. optionally edit generated file: Makefile.config
+  8. make
+  9. make install
+
+If only shared libraries are needed, then start with step 6 and skip the
+static archive build.
+
+The --prefix option works in the usual way for a configure script. It controls
+the installation directory path.
+
+If --log is given to configure, verbose virtual machine logging to standard
+error is compiled in. This is useful for virtual machine development.
+
+Note the configure script is not from GNU autoconf. It does less and is much
+simpler. It is a simple Bourne shell script. It is always o.k. to edit it and
+the generated files: Makefile.config, ENV.AMD, ENV.INTEL, ENV.NVIDIA.
+
+The configure script expects vendor OpenCL SDKs to be installed in standard
+places:
+
+  AMD    - default installation creates full tree in /opt
+  Intel  - default installation in /usr (note Linux SDK is 64 bit only)
+           configure also searches in /opt if you have installed the SDK there
+  NVIDIA - default installation in /usr/local/cuda
+
+If the configure script finds multiple SDKs from the same vendor, it tries to
+pick the most recent release. To override any choices, edit the generated
+Makefile.config file.
+
+
+
+===============================================================================
+Build and run sample applications:
+
+1. cd samples
+
+2. (if necessary) set the LD_LIBRARY_PATH as appropriate to pick up vendor SDK libraries
+   - The ENV.(amd|intel|nvidia) scripts can be used to do this:
+       . ../ENV.amd
+       . ../ENV.intel
+       . ../ENV.nvidia
+
+2. list the compute devices with: LSdevice.(amd|intel|nvidia)
+   - All vendors can see all other vendors' devices. It doesn't matter which
+     binary is used. However, OpenCL compute device order is not defined to my
+     knowledge and does change if drivers are re-installed. As drivers and SDKs
+     only work with compute devices made by the corresponding vendor (except
+     for CPUs which may work between AMD and Intel), the vendor SDK used for
+     linking a binary determines which compute devices will work.
+   - The solution taken here relies on keyword matching with compute device
+     name and vendor strings. It seems bad to rely on "grep" for discovery.
+     Unfortunately, this appears to be the only portable way.
+
+3. edit a device specification file for your computer
+   - cp ../devspec.cfg myspec.cfg
+   - edit myspec.cfg so the device definition has keywords seen from LSdevice
+
+4. as appropriate:
+     make amd
+     make intel
+     make nvidia
+
+5. to run with the interpreter (no OpenCL compute device): <sampleapp> -f dummy
+
+6. to run with OpenCL: <sampleapp> -f myspec.cfg

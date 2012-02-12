@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_X_STMT_CREATE_DATA_HPP_
 #define _CHAI_X_STMT_CREATE_DATA_HPP_
@@ -13,12 +13,16 @@ namespace chai_internal {
 
 class XStmtCreateData : public XStmt
 {
+    const bool _outerLexicalScope;
+
     bool   _initializeData;
     float  _floatValue;
     double _doubleValue;
 
 public:
-    XStmtCreateData(AstVariable* lhs);
+    XStmtCreateData(AstVariable* lhs, const bool lexScope);
+
+    bool outerLexicalScope(void) const;
 
     bool initializeData(void) const;
     float floatValue(void) const;

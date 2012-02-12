@@ -1,8 +1,9 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_SCHEDULER_HPP_
 #define _CHAI_SCHEDULER_HPP_
 
+#include <istream>
 #include <map>
 #include <pthread.h>
 #include <set>
@@ -10,8 +11,10 @@
 #include <utility>
 
 #include "ArrayClient.hpp"
+#include "BaseInterp.hpp"
+#include "BaseTrans.hpp"
+#include "chai/RefCnt.hpp"
 #include "Executor.hpp"
-#include "RefCnt.hpp"
 #include "SingleTrace.hpp"
 
 namespace chai_internal {
@@ -24,7 +27,7 @@ class Scheduler
 {
     // memory management embedded in device execution
     // OpenCL management embedded in device execution
-    Executor _executor;
+    Executor* _executor;
 
     // array clients
     pthread_mutex_t                     _mtx;
@@ -55,28 +58,26 @@ class Scheduler
                                 const uint64_t hashCode,
                                 const bool deferOverride);
 
+    // OpenCL/GPU compute devices prioritized before interpreter
+    pthread_mutex_t _deviceMtx;
+    size_t          _idleGPUCnt;
+
     // device work
     pthread_mutex_t _workMtx;
     pthread_cond_t  _workCond;
 
     // active work queue
-    std::map<
-        uint64_t,
-        std::set<
-            std::pair< pthread_t, SingleTrace* >
-        > >         _workMap;
+    std::map< uint64_t, std::map< pthread_t, SingleTrace* > > _workMap;
 
     // work history
-    std::map<
-        uint64_t,
-        std::set< pthread_t >
-        >           _workHist;
+    std::map< uint64_t, std::set< pthread_t > >               _workHist;
 
     // work statistics
-    std::map<
-        uint64_t,
-        std::map< size_t, double >
-        >           _workStat;
+    std::map< uint64_t, std::map< size_t, double > >          _workStat;
+
+    // unique swizzling keys to avoid redundant data transfers
+    pthread_mutex_t _swizzleMtx;
+    size_t          _swizzleKey;
 
     void cleanup(void);
 
@@ -85,10 +86,18 @@ class Scheduler
 public:
     ~Scheduler(void);
 
-    static Scheduler& obj(void);
+    static Scheduler& singleton(void);
 
-    void init(void);
+    void init(std::istream& configSpec);
     void shutdown(void);
+
+    // must be called after init(), otherwise the new clone handler objects
+    // won't have a memory manager context
+    void extendLanguage(const uint32_t opCode,
+                        const BaseInterp& interpHandler,
+                        const BaseTrans& jitHandler);
+
+    size_t swizzleKey(void);
 
     ArrayClient* client(void);
 

@@ -1,18 +1,20 @@
+include ../Makefile.config
 include ../Makefile.common
 
+USE_CFLAGS=$(SHARED_CFLAGS)
+
 LIBRARY_OBJECT_CODE = \
-	peakstream.o
+	chai.o
 
-LIBRARY_HEADER_FILES =
+EXTERNAL_HEADER_FILES = \
+	chai.h
 
-PUBLIC_HEADER_FILES = \
-	peakstream.h
+all : preinstall $(LIBRARY_OBJECT_CODE)
 
-all : $(LIBRARY_OBJECT_CODE)
+preinstall :
+	install --mode=644 $(EXTERNAL_HEADER_FILES) $(EXTERNAL_HEADER_DIR)
 
-#	install --mode=644 $(LIBRARY_HEADER_FILES) $(INTERNAL_HEADER_DIR)
 install : all
-	install --mode=644 $(PUBLIC_HEADER_FILES) $(HEADER_DIR)
 	install $(LIBRARY_OBJECT_CODE) $(INTERNAL_OBJECT_DIR)
 
 clean :

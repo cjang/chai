@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "VectorTrace.hpp"
 
@@ -6,46 +6,70 @@ using namespace std;
 
 namespace chai_internal {
 
-VectorTrace::VectorTrace(const uint64_t hashCode,
-                         const set< SingleTrace* >& traceSet)
-    : _hashCode(hashCode),
-      _numTraces(traceSet.size())
+VectorTrace::VectorTrace(const map< pthread_t, SingleTrace* >& traceSet)
+    : _numTraces(traceSet.size())
 {
-    const SingleTrace* t = *traceSet.begin();
+    const SingleTrace* t = (*traceSet.begin()).second;
+    _hashCode            = t->hashCode();
+    _liveVariables       = t->_liveVariables;
+    _lhsVariable         = t->_lhsVariable;
+    _lhsVersion          = t->_lhsVersion;
+    _rhsBytecode         = t->_rhsBytecode;
+    _hashCodeHistory     = t->hashCodeHistory();
+    _stickyMovement      = t->stickyMovement();
 
-    _liveVariables = t->_liveVariables;
-
-    _lhsVariable = t->_lhsVariable;
-    _lhsVersion = t->_lhsVersion;
-
-    _rhsBytecode = t->_rhsBytecode;
+    // statement index -> number of array memory slots
+    map< size_t, size_t > stmtSlotCount;
 
     // iterate over all single traces
-    for (set< SingleTrace* >::const_iterator
+    for (map< pthread_t, SingleTrace* >::const_iterator
          it = traceSet.begin();
          it != traceSet.end();
          it++)
     {
+        SingleTrace* sitr = (*it).second;
+
         // statement pointers to array memory
         for (map< size_t, FrontMem* >::const_iterator
-             jt = (*it)->_frontMem.begin();
-             jt != (*it)->_frontMem.end();
+             jt = sitr->_frontMem.begin();
+             jt != sitr->_frontMem.end();
              jt++)
         {
             const size_t stmtIndex = (*jt).first;
 
-            _frontMem[ stmtIndex ].push_back( (*jt).second );
+            if (0 == stmtSlotCount.count(stmtIndex))
+                stmtSlotCount[stmtIndex] = 0;
+
+            if ((*jt).second->slotMem().empty())
+            {
+                _frontMem[ stmtIndex ].push_back( (*jt).second );
+                stmtSlotCount[ stmtIndex ]++;
+            }
+            else
+            {
+                for (vector< FrontMem* >::const_iterator
+                     kt = (*jt).second->slotMem().begin();
+                     kt != (*jt).second->slotMem().end();
+                     kt++)
+                {
+                    _frontMem[ stmtIndex ].push_back( *kt );
+                }
+
+                stmtSlotCount[ stmtIndex ] += (*jt).second->slotMem().size();
+            }
 
             if (0 == _frontVar.count(stmtIndex))
             {
-                _frontVar[ stmtIndex ] = (*it)->_frontVar[ stmtIndex ];
+                const uint32_t varNum = sitr->_frontVar[ stmtIndex ];
+                _frontVar[ stmtIndex ] = varNum;
+                _varFront[ varNum ] = stmtIndex;
             }
         }
 
         // for storing array memory values with variables
         for (map< uint32_t, SingleNut* >::const_iterator
-             jt = (*it)->_variableNuts.begin();
-             jt != (*it)->_variableNuts.end();
+             jt = sitr->_variableNuts.begin();
+             jt != sitr->_variableNuts.end();
              jt++)
         {
             if (0 == _vectorNuts.count((*jt).first))
@@ -55,6 +79,19 @@ VectorTrace::VectorTrace(const uint64_t hashCode,
 
             _vectorNuts[(*jt).first]->push((*jt).second);
         }
+    }
+
+    // 1. multiple single traces gathered by scheduler into a vector trace
+    // 2. vector array data from a single trace forms a vector trace
+    for (map< size_t, size_t >::const_iterator
+         it = stmtSlotCount.begin();
+         it != stmtSlotCount.end();
+         it++)
+    {
+        const size_t numSlots = (*it).second;
+
+        if (numSlots > _numTraces)
+            _numTraces = numSlots;
     }
 }
 
@@ -82,6 +119,16 @@ size_t VectorTrace::numTraces(void) const
 size_t VectorTrace::traceLength(void) const
 {
     return _lhsVariable.size();
+}
+
+const vector< uint64_t >& VectorTrace::hashCodeHistory(void) const
+{
+    return _hashCodeHistory;
+}
+
+bool VectorTrace::stickyMovement(void) const
+{
+    return _stickyMovement;
 }
 
 uint32_t VectorTrace::getVariable(const size_t stmtIndex) const
@@ -126,6 +173,18 @@ uint32_t VectorTrace::frontVar(const size_t stmtIndex)
     }
 }
 
+size_t VectorTrace::varFront(const uint32_t traceNum)
+{
+    if (0 == _varFront.count(traceNum))
+    {
+        return -1;
+    }
+    else
+    {
+        return _varFront[traceNum];
+    }
+}
+
 map< size_t, BackMem* >& VectorTrace::backMem(void)
 {
     return _backMem;
@@ -136,24 +195,48 @@ const map< size_t, BackMem* >& VectorTrace::backMem(void) const
     return _backMem;
 }
 
-map< uint32_t, DeviceMem* >& VectorTrace::traceMem(void)
+void VectorTrace::memallocFront(const uint32_t variable,
+                                const size_t frontSize,
+                                const vector< size_t >& frontIndex)
 {
-    return _traceMem;
+    _memallocFrontIndex[ variable ]
+        = pair< size_t, vector< size_t > >( frontSize, frontIndex );
 }
 
-const map< uint32_t, DeviceMem* >& VectorTrace::traceMem(void) const
+size_t VectorTrace::memallocFrontSize(const uint32_t variable) const
 {
-    return _traceMem;
+    if (_memallocFrontIndex.count(variable))
+    {
+        return const_cast< VectorTrace* >(this)
+                   ->_memallocFrontIndex[variable].first;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
-map< AstVariable*, DeviceMem* >& VectorTrace::splitMem(void)
+vector< size_t > VectorTrace::memallocFrontIndex(const uint32_t variable) const
 {
-    return _splitMem;
+    if (_memallocFrontIndex.count(variable))
+    {
+        return const_cast< VectorTrace* >(this)
+                   ->_memallocFrontIndex[variable].second;
+    }
+    else
+    {
+        return vector< size_t >();
+    }
 }
 
-const map< AstVariable*, DeviceMem* >& VectorTrace::splitMem(void) const
+bool VectorTrace::getUnifySameData(const uint32_t variable) const
 {
-    return _splitMem;
+    return _unifySameData.count(variable);
+}
+
+void VectorTrace::setUnifySameData(const uint32_t variable)
+{
+    _unifySameData.insert(variable);
 }
 
 map< uint32_t, VectorNut* >& VectorTrace::vectorNuts(void)

@@ -1,10 +1,14 @@
+include ../Makefile.config
 include ../Makefile.common
 
+USE_CFLAGS=$(SHARED_CFLAGS)
+
 LIBRARY_OBJECT_CODE = \
+	Logger.o \
 	SimpleFuns.o \
 	TEA.o
 
-LIBRARY_HEADER_FILES = \
+INTERNAL_HEADER_FILES = \
 	$(LIBRARY_OBJECT_CODE:.o=.hpp) \
 	MemalignSTL.hpp \
 	UtilFuns.hpp
@@ -12,7 +16,7 @@ LIBRARY_HEADER_FILES = \
 all : $(LIBRARY_OBJECT_CODE)
 
 install : all
-	install --mode=644 $(LIBRARY_HEADER_FILES) $(INTERNAL_HEADER_DIR)
+	install --mode=644 $(INTERNAL_HEADER_FILES) $(INTERNAL_HEADER_DIR)
 	install $(LIBRARY_OBJECT_CODE) $(INTERNAL_OBJECT_DIR)
 
 clean :

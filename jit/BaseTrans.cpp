@@ -1,8 +1,13 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+
+#include <set>
 
 #include "AstArrayMem.hpp"
 #include "AstVariable.hpp"
+#include "BackMem.hpp"
 #include "BaseTrans.hpp"
+#include "FrontMem.hpp"
+#include "Logger.hpp"
 #include "MemalignSTL.hpp"
 
 using namespace std;
@@ -17,6 +22,12 @@ BaseTrans::BaseTrans(const size_t inCount,
       _memManager(NULL) { }
 
 BaseTrans::~BaseTrans(void) { }
+
+BaseTrans* BaseTrans::clone(void) const
+{
+    // language extensions override and return an operation handler object
+    return NULL;
+}
 
 void BaseTrans::setContext(VectorTrace& vt)
 {
@@ -56,17 +67,33 @@ void BaseTrans::push(const uint32_t variable,
                      const uint32_t version,
                      stack< BaseAst* >& outStack)
 {
-    vector< FrontMem* > fm = _vt->vectorNuts()[variable]->getNutMem(version);
-    if (fm.empty())
+#ifdef __LOGGING_ENABLED__
+    stringstream ss;
+    ss << "variable=" << variable
+       << " version=" << version
+       << " outStack=" << outStack.size();
+    LOGGER(ss.str())
+#endif
+
+    vector< FrontMem* > frontMem = _vt->vectorNuts()[variable]
+                                      ->getNutMem(version);
+
+    if (frontMem.empty())
     {
         // AST variable object
-        outStack.push(_vt->vectorNuts()[variable]->getNutVar(version));
+        outStack.push(
+            _vt->vectorNuts()[variable]
+               ->getNutVar(version) );
     }
     else
     {
         // intermediate variable value is array memory
-        BackMem* bm = _memManager->unifyBackMem(variable, version, fm);
-        outStack.push(new AstArrayMem(fm, bm, variable, version));
+        outStack.push(
+            new AstArrayMem(
+                    frontMem,
+                    _memManager->unifyBackMem(variable, version, frontMem),
+                    variable,
+                    version ) );
     }
 }
 

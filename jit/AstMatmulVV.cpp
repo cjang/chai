@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "AstMatmulVV.hpp"
 
@@ -7,40 +7,16 @@ using namespace std;
 namespace chai_internal {
 
 ////////////////////////////////////////////////
-// mean, sum
+// outer product
 
 AstMatmulVV::AstMatmulVV(BaseAst* bargLeft,
                          BaseAst* bargRight)
-    : BaseAst(bargRight->W(),
-              bargLeft->W(),
-              bargLeft->isDouble() || bargRight->isDouble()),
-      _leftW(bargLeft->W()),
-      _leftH(bargLeft->H()),
-      _rightW(bargRight->W()),
-      _rightH(bargRight->H())
+    : AstMatmulBase(bargRight->W(),
+                    bargLeft->W(),
+                    bargLeft->isDouble() || bargRight->isDouble(),
+                    bargLeft,
+                    bargRight)
 {
-    pushArg(bargLeft);
-    pushArg(bargRight);
-}
-
-size_t AstMatmulVV::leftW(void) const
-{
-    return _leftW;
-}
-
-size_t AstMatmulVV::leftH(void) const
-{
-    return _leftH;
-}
-
-size_t AstMatmulVV::rightW(void) const
-{
-    return _rightW;
-}
-
-size_t AstMatmulVV::rightH(void) const
-{
-    return _rightH;
 }
 
 void AstMatmulVV::accept(VisitAst& v)

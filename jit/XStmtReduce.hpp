@@ -1,11 +1,8 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_X_STMT_REDUCE_HPP_
 #define _CHAI_X_STMT_REDUCE_HPP_
 
-#include "AstAccum.hpp"
-#include "AstDotprod.hpp"
-#include "AstVariable.hpp"
 #include "VisitAst.hpp"
 #include "XStmt.hpp"
 
@@ -41,13 +38,15 @@ public:
 
     void visit(AstAccum&);
     void visit(AstArrayMem&);
-    void visit(AstBinop&);
     void visit(AstCond&);
     void visit(AstConvert&);
     void visit(AstDotprod&);
+    void visit(AstExtension&);
+    void visit(AstFun1&);
+    void visit(AstFun2&);
+    void visit(AstFun3&);
     void visit(AstGather&);
     void visit(AstIdxdata&);
-    void visit(AstIsomorph&);
     void visit(AstLitdata&);
     void visit(AstMakedata&);
     void visit(AstMatmulMM&);
@@ -58,6 +57,7 @@ public:
     void visit(AstRNGnormal&);
     void visit(AstRNGuniform&);
     void visit(AstScalar&);
+    void visit(AstTranspose&);
     void visit(AstVariable&);
 };
 

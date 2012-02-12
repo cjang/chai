@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "DispatchInterp.hpp"
 
@@ -20,9 +20,28 @@ DispatchInterp::~DispatchInterp(void)
     }
 }
 
-void DispatchInterp::addOp(const uint32_t opCode, BaseInterp* op)
+bool DispatchInterp::containsOp(const uint32_t opCode) const
 {
-    _dtable[opCode] = op;
+    return _dtable.count(opCode);
+}
+
+void DispatchInterp::eraseOp(const uint32_t opCode)
+{
+    _dtable.erase(opCode);
+}
+
+void DispatchInterp::deleteOp(const uint32_t opCode)
+{
+    if (_dtable.count(opCode))
+    {
+        delete _dtable[opCode];
+        _dtable.erase(opCode);
+    }
+}
+
+void DispatchInterp::addOp(const uint32_t opCode, BaseInterp* opHandler)
+{
+    _dtable[opCode] = opHandler;
 }
 
 void DispatchInterp::setContext(stack< vector< FrontMem* > >& outStack)
@@ -30,14 +49,15 @@ void DispatchInterp::setContext(stack< vector< FrontMem* > >& outStack)
     _outStack = &outStack;
 }
 
-void DispatchInterp::setContext(VectorTrace& vt)
+void DispatchInterp::setContext(VectorTrace& vt,
+                                const size_t uniqueSwizzleKey)
 {
     for (map< uint32_t, BaseInterp* >::const_iterator
          it = _dtable.begin();
          it != _dtable.end();
          it++)
     {
-        (*it).second->setContext(vt);
+        (*it).second->setContext(vt, uniqueSwizzleKey);
     }
 }
 

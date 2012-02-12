@@ -8,7 +8,7 @@ using namespace std;
 namespace chai_internal {
 
 ////////////////////////////////////////////////
-// mean, sum
+// dot product
 
 AstDotprod::AstDotprod(BaseAst* bargLeft,
                        BaseAst* bargRight)

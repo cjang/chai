@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "VectorNut.hpp"
 
@@ -11,9 +11,7 @@ namespace chai_internal {
 // array variable nuts
 
 VectorNut::VectorNut(void)
-    : _refs(),
-      _nutVector(),
-      _versionMap() { }
+    : _nutVector() { }
 
 void VectorNut::push(SingleNut* nut)
 {
@@ -30,13 +28,13 @@ vector< FrontMem* > VectorNut::getNutMem(const uint32_t version)
          it != _nutVector.end();
          it++)
     {
-        FrontMem* fm = (*it)->getNut(version);
-
-        // if the version does not exist, an empty vector is returned
-        if (NULL == fm)
-            break;
-
-        vec.push_back(fm);
+        for (vector< FrontMem* >::const_iterator
+             jt = (*it)->getNutMem(version).begin();
+             jt != (*it)->getNutMem(version).end();
+             jt++)
+        {
+            vec.push_back(*jt);
+        }
     }
 
     return vec;
@@ -44,50 +42,44 @@ vector< FrontMem* > VectorNut::getNutMem(const uint32_t version)
 
 AstVariable* VectorNut::getNutVar(const uint32_t version)
 {
-    if (_versionMap.count(version))
+    // retrieve from underlying array variable nuts
+    return (*_nutVector.begin())->getNutVar(version);
+}
+
+void VectorNut::setNutMem(const uint32_t version, const vector< FrontMem* >& m)
+{
+    // no need to checkout references as the single nuts will do that
+
+    if (1 == _nutVector.size())
     {
-        return _versionMap[version];
+        // single thread and trace, possibly with vector array data
+        _nutVector[0]->setNutMem(version, m);
     }
     else
     {
-        // Loop rolling removes many variable versions.
-        // Return the highest one not greater than requested.
-        // Failed JIT loop rolling for other devices may leave higher
-        // versions behind as leftovers.
-
-        for (map< uint32_t, AstVariable* >::const_reverse_iterator
-             it = _versionMap.rbegin();
-             it != _versionMap.rend();
-             it++)
+        // write-through to single nuts
+        for (size_t i = 0; i < m.size(); i++)
         {
-            if ( (*it).first < version )
-                return (*it).second;
-        }
+            vector< FrontMem* > v;
+            v.push_back(m[i]);
 
-        // no suitable version found
-        return NULL;
+            _nutVector[i]->setNutMem(version, v);
+        }
     }
 }
 
-void VectorNut::setNut(const uint32_t version, const vector< FrontMem* >& m)
+void VectorNut::setNutVar(const uint32_t version, AstVariable* v)
 {
     // no need to checkout references as the single nuts will do that
 
     // write-through to single nuts
-    for (size_t i = 0; i < m.size(); i++)
+    for (vector< SingleNut* >::const_iterator
+         it = _nutVector.begin();
+         it != _nutVector.end();
+         it++)
     {
-        _nutVector[i]->setNut(version, m[i]);
+        (*it)->setNutVar(version, v);
     }
-}
-
-void VectorNut::setNut(const uint32_t version, AstVariable* obj)
-{
-    if (obj)
-    {
-        _refs.checkout( (RefObj*)obj ); // ugly cast
-    }
-
-    _versionMap[version] = obj;
 }
 
 }; // namespace chai_internal

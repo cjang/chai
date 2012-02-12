@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <string.h>
 
@@ -44,6 +44,23 @@ Stak<BC>& ArrayClient::assignment(const uint32_t variable,
 FrontMem* ArrayClient::memalloc(const uint32_t variable,
                                 const size_t W,
                                 const size_t H,
+                                const size_t precision)
+{
+    return _trace.memalloc(variable, W, H, precision);
+}
+
+FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
+                                const size_t precision,
+                                const size_t slots)
+{
+    return _trace.memalloc(variable, W, H, precision, slots);
+}
+
+FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
                                 float* dataPtr)
 {
     return _trace.memalloc(variable, W, H, dataPtr);
@@ -57,6 +74,22 @@ FrontMem* ArrayClient::memalloc(const uint32_t variable,
     return _trace.memalloc(variable, W, H, dataPtr);
 }
 
+FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
+                                const vector< float* >& dataPtr)
+{
+    return _trace.memalloc(variable, W, H, dataPtr);
+}
+
+FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
+                                const vector< double* >& dataPtr)
+{
+    return _trace.memalloc(variable, W, H, dataPtr);
+}
+
 void* ArrayClient::frontMem(FrontMem* m)
 {
     return reinterpret_cast<void*>(_trace.frontMem(m));
@@ -64,7 +97,7 @@ void* ArrayClient::frontMem(FrontMem* m)
 
 void ArrayClient::schedule(void)
 {
-    Scheduler::obj().wait(_ptself, _trace);
+    Scheduler::singleton().wait(_ptself, _trace);
 }
 
 }; // namespace chai_internal

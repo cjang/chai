@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_ARRAY_CLIENT_HPP_
 #define _CHAI_ARRAY_CLIENT_HPP_
@@ -8,11 +8,11 @@
 #include <stdint.h>
 #include <vector>
 
-#include "BC.hpp"
+#include "chai/BC.hpp"
+#include "chai/Stak.hpp"
 #include "ClientTrace.hpp"
 #include "FrontMem.hpp"
 #include "SingleNut.hpp"
-#include "Stak.hpp"
 
 namespace chai_internal {
 
@@ -41,12 +41,33 @@ public:
     FrontMem* memalloc(const uint32_t variable,
                        const size_t W,
                        const size_t H,
+                       const size_t precision);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
+                       const size_t precision,
+                       const size_t slots);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
                        float* dataPtr);
 
     FrontMem* memalloc(const uint32_t variable,
                        const size_t W,
                        const size_t H,
                        double* dataPtr);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
+                       const std::vector< float* >& dataPtr);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
+                       const std::vector< double* >& dataPtr);
 
     void* frontMem(FrontMem*);
 

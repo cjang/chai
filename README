@@ -1,32 +1,69 @@
-This project is copyright 2011 by Chris Jang (fastkor@gmail.com).
+This project is copyright 2012 by Chris Jang (fastkor@gmail.com).
 
 All source code is licensed under _The Artistic License 2.0_ of _The Perl
-Foundation_ except for the sample code (under /sample). Some of that code has
-been taken from PeakStream whitepapers and presentations. This is indicated
-in source code files as appropriate.
+Foundation_ except for the sample code (under /sample). Some samples are
+taken from PeakStream (TM) whitepapers and presentations. These are indicated
+in source code comments.
 
+===============================================================================
 What is this?
 
-It's a clean-room implementation of the PeakStream (TM) managed platform for
-GPGPU.
+Chai is a clean-room implementation of the PeakStream (TM) managed platform
+for GPGPU.
 
-This was an array programming language embedded as a domain specific language
-in C++ with a virtual machine and JIT that could target and schedule across
-heterogeneous devices (CPUs, GPUs and accelerators). It was still in a
-developmental state when the company was acquired in 2007 and the product line
-discontinued.
+PeakStream was an array programming language embedded as a domain specific
+language in C++. It had a virtual machine and JIT which could target and
+schedule across heterogeneous devices (CPUs, GPUs and accelerators). It was
+still in a developmental state when the company was acquired in 2007 and the
+product line discontinued.
 
+Chai's JIT back-end generates OpenCL (which did not exist during PeakStream's
+time). This means it works with the OpenCL SDKs from AMD, Intel, and NVIDIA.
+Chai supports compute devices from all three vendors.
+
+
+
+===============================================================================
 Why recreate it?
 
-PeakStream (TM) had a very practical approach to the GPGPU problem. It was a
-solution that minimized software development costs. It struck a good balance
-between GPGPU as managed platform without forcing applications to adopt
-completely different technology (which drives up development and training
-costs).
+PeakStream had a very practical approach to the GPGPU problem. It was a
+solution which minimized software development costs. It struck a good balance
+between old and new. GPGPU could be a managed platform embedded in C/C++
+applications. Native and managed code could co-exist naturally and work
+together.
 
-I believe it is the most cost-effective solution to GPGPU for non-specialist
-engineers and scientists.
+We don't write applications software in low level languages. We use high level
+languages. Why should applications that use GPUs be any different?
 
+
+
+===============================================================================
+How is Chai related to PeakStream?
+
+Other than the inspirational idea, there is no other relationship. I never
+used the PeakStream platform product in real life. All I have seen are
+marketing whitepapers, presentations, and a few research papers that compare
+competing GPGPU platforms circa 2007.
+
+To be honest, this lack of exposure to PeakStream's technology is not out of
+respect for clean-room development. Had I been able to find a copy of
+PeakStream, I would have looked at it. It is just that Google did a thorough
+job of discontinuing PeakStream's products after the acquisition.
+
+The engineering and design of Chai is almost certainly very different from
+PeakStream as a result of this independent history.
+
+
+
+===============================================================================
+Where is this going?
+
+Write once and run anywhere. Code that adapts and optimizes across different
+kinds of computers. This is the heterogeneous computing problem.
+
+
+
+===============================================================================
 Historical comments below:
 
 July 12th 2011 - pre alpha, development code checkpoint
@@ -35,3 +72,12 @@ management works. That includes (primitive but hopefully correct) management
 of host arrays and compute device memory buffers and images. Everything JIT
 comes next: 1) tracing JIT for glue; 2) auto-tuned high arithmetic intensity
 library kernels.
+
+Feb 12 2012 - alpha release, working but needs more work
+Code is in a working state with useful end-to-end functionality. Happy path
+functionality appears to be reliable. Autotuned GEMM and GEMV work with
+dynamically generated kernels from the JIT. Single threaded data parallel
+vectorization works for GPU compute devices. Multi-threaded gather/scatter
+vectorized scheduling works but is unstable (depends on compute device). Trace
+continuation (typically loops) with multiple readouts is working. Autotuning
+cold and warm start times are excessive.

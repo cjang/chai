@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <algorithm>
 #include <errno.h>
@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <sys/time.h>
 
+#include "Logger.hpp"
+#include "OCLhacks.hpp"
 #include "Scheduler.hpp"
 #include "VectorTrace.hpp"
 
@@ -45,45 +47,41 @@ void Scheduler::bossLoopFun(void)
 {
     while (_bossLoop)
     {
-        map< uint64_t,
-             set< pair< pthread_t, SingleTrace* > >
-             > currentWork;
+        map< uint64_t, map< pthread_t, SingleTrace* > > currentWork;
 
-        // collate client traces by hash code
 /*TRACE_LOCK*/ pthread_mutex_lock(&_traceMtx);
+        // collate client traces by hash code
         for (map< pthread_t, SingleTrace* >::iterator
              it = _traceMap.begin();
              it != _traceMap.end();
              it++)
         {
-            if ((*it).second)
+            SingleTrace* sitr = (*it).second;
+
+            if (sitr)
             {
-                currentWork[ (*it).second->hashCode() ]
-                    .insert( pair< pthread_t, SingleTrace* >(
-                                 (*it).first,
-                                 (*it).second) );
+                currentWork[ sitr->hashCode() ][ (*it).first ] = sitr;
                 (*it).second = NULL;
             }
         }
 /*TRACE_UNLOCK*/ pthread_mutex_unlock(&_traceMtx);
 
-        // add to pending work
 /*WORK_LOCK*/ pthread_mutex_lock(&_workMtx);
-        for (map< uint64_t,
-                  set< pair< pthread_t, SingleTrace* > >
-                  >::const_iterator
+        // add to pending work
+        for (map< uint64_t, map< pthread_t, SingleTrace* > >::const_iterator
              it = currentWork.begin();
              it != currentWork.end();
              it++)
         {
-            _workMap[ (*it).first ]
-                .insert( (*it).second.begin(),
-                         (*it).second.end() );
+            _workMap[ (*it).first ].insert( (*it).second.begin(),
+                                            (*it).second.end() );
         }
+
         pthread_cond_broadcast(&_workCond);
 /*WORK_UNLOCK*/ pthread_mutex_unlock(&_workMtx);
 
 /*BOSS_LOCK*/ pthread_mutex_lock(&_bossMtx);
+        // wait or look again for work
         if (0 == _bossCnt)
             pthread_cond_wait(&_bossCond, &_bossMtx);
         else
@@ -97,7 +95,9 @@ void Scheduler::bossLoopFun(void)
 
 void* Scheduler::deviceLoopThr(void* deviceCode)
 {
-    Scheduler::obj().deviceLoopFun(reinterpret_cast< size_t >(deviceCode));
+    Scheduler::singleton()
+        .deviceLoopFun(reinterpret_cast< size_t >(deviceCode));
+
     return NULL;
 }
 
@@ -108,24 +108,24 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
 
     while (_deviceLoop)
     {
-        map< uint64_t,
-             pair< set< pthread_t >, set< SingleTrace* > >
-             > workSelected;
-
-        map< uint64_t,
-             set< pair< pthread_t, SingleTrace* > >
-             > workRestore;
+        if (deviceCode >= MemManager::GPU_OPENCL)
+        {
+/*IDLEGPU_LOCK*/ pthread_mutex_lock(&_deviceMtx);
+            _idleGPUCnt--;
+/*IDLEGPU_UNLOCK*/ pthread_mutex_unlock(&_deviceMtx);
+        }
 
         // for deferral deadlock detection
         size_t chooseWorkCount = 0;
         bool   deferWorkFlag   = false;
 
+        // selected work, will be restored to queue if device fails
+        map< uint64_t, map< pthread_t, SingleTrace* > > workSelected;
+
 /*WORK_LOCK*/ pthread_mutex_lock(&_workMtx);
 
         // look for work
-        for (map< uint64_t,
-                  set< pair< pthread_t, SingleTrace* > >
-                  >::const_iterator
+        for (map< uint64_t, map< pthread_t, SingleTrace* > >::const_iterator
              it = _workMap.begin();
              it != _workMap.end();
              it++)
@@ -141,31 +141,15 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
             {
                 chooseWorkCount++;
 
-                set< pthread_t > pthSet;
-                set< SingleTrace* > traceSet;
-
-                // copy work
-                for (set< pair< pthread_t, SingleTrace* > >::const_iterator
+                // copy work not stuck to another device
+                for (map< pthread_t, SingleTrace* >::const_iterator
                      jt = (*it).second.begin();
                      jt != (*it).second.end();
                      jt++)
                 {
-                    pthSet.insert((*jt).first);
-                    traceSet.insert((*jt).second);
-
-                    // keep for restore if compute device fails
-                    workRestore[hashCode]
-                        .insert(
-                            pair< pthread_t, SingleTrace* >(
-                                (*jt).first,
-                                (*jt).second) );
+                    if ((*jt).second->stickyDevice( deviceCode ))
+                        workSelected[ hashCode ][ (*jt).first ] = (*jt).second;
                 }
-
-                // add to selected work
-                workSelected[hashCode]
-                    = pair< set< pthread_t >,
-                            set< SingleTrace* >
-                            >( pthSet, traceSet );
             }
             else
             {
@@ -179,44 +163,65 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
         deferOverrideFlag = false;
 
         // remove work so other devices do not see it
-        for (map< uint64_t,
-                  pair< set< pthread_t >, set< SingleTrace* > >
-                  >::const_iterator
+        for (map< uint64_t, map< pthread_t, SingleTrace* > >::const_iterator
              it = workSelected.begin();
              it != workSelected.end();
              it++)
         {
-            _workMap.erase((*it).first);
+            for (map< pthread_t, SingleTrace* >::const_iterator
+                 jt = (*it).second.begin();
+                 jt != (*it).second.end();
+                 jt++)
+            {
+                _workMap[ (*it).first ].erase( (*jt).first );
+            }
+
+            if (0 == _workMap[ (*it).first ].size())
+                _workMap.erase((*it).first);
         }
 
 /*WORK_UNLOCK*/ pthread_mutex_unlock(&_workMtx);
 
         // process the checked out work
-        for (map< uint64_t,
-                  pair< set< pthread_t >, set< SingleTrace* > >
-                  >::const_iterator
+        for (map< uint64_t, map< pthread_t, SingleTrace* > >::const_iterator
              it = workSelected.begin();
              it != workSelected.end();
              it++)
         {
             const uint64_t hashCode = (*it).first;
+            const map< pthread_t, SingleTrace* >& traceSet = (*it).second;
 
-            const set< pthread_t >& handleSet = (*it).second.first;
-            const set< SingleTrace* >& traceSet = (*it).second.second;
+#ifdef __LOGGING_ENABLED__
+            for (map< pthread_t, SingleTrace* >::const_iterator
+                 jt = traceSet.begin();
+                 jt != traceSet.end();
+                 jt++)
+            {
+                stringstream ss;
+                ss << "thread=" << (*jt).first
+                   << " hash=" << hashCode
+                   << " device=" << deviceCode
+                   << " sticky=" << (*jt).second->stickyDevice();
+                LOGGER(ss.str())
+            }
+#endif
 
             // VECTOR TRACE
-            VectorTrace vt(hashCode, traceSet);
+            VectorTrace vt(traceSet);
 
             // EXECUTOR (blocks and waits for the compute device)
-            const double goodnessTime = _executor.dispatch(deviceCode, vt);
+            const double goodnessTime = _executor->dispatch(deviceCode, vt);
 
 /*WORK_LOCK*/ pthread_mutex_lock(&_workMtx);
 
             // add to history
-            _workHist[hashCode]
-                .insert(
-                    handleSet.begin(),
-                    handleSet.end() );
+            for (map< pthread_t, SingleTrace* >::const_iterator
+                 jt = traceSet.begin();
+                 jt != traceSet.end();
+                 jt++)
+            {
+                _workHist[hashCode].insert((*jt).first);
+            }
 
             // update statistics
             if (_workStat[hashCode].count(deviceCode))
@@ -225,17 +230,15 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
                 const double previousVal = _workStat[hashCode][deviceCode];
 
                 // update goodness time if faster (or failed)
-                // FIXME - this should really be a median time
-                //         also, a pessimistic view means the
-                //         goodness time should be the worst
-                //         case, not the best
+                // This should really be a median time.
+                // Also, a pessimistic view means the goodness time should be
+                // the worst case, not the best
 
                 // note that failure codes are negative, so if a device
                 // works ok but then fails, it will be marked as failing
-                _workStat[hashCode][deviceCode]
-                    = goodnessTime < previousVal
-                          ? goodnessTime
-                          : previousVal;
+                _workStat[hashCode][deviceCode] = goodnessTime < previousVal
+                                                      ? goodnessTime
+                                                      : previousVal;
             }
             else
             {
@@ -244,40 +247,38 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
             }
 
             // if compute device did not do the work, must add it back
-            if (goodnessTime <= _executor.DEVICE_FAILURE)
+            if (goodnessTime <= _executor->DEVICE_FAILURE)
             {
-                for (set< pair< pthread_t, SingleTrace* > >::const_iterator
-                     jt = workRestore[hashCode].begin();
-                     jt != workRestore[hashCode].end();
+                _workMap[hashCode].insert( traceSet.begin(),
+                                           traceSet.end() );
+
+                // remove device stickyness
+                for (map< pthread_t, SingleTrace* >::const_iterator
+                     jt = traceSet.begin();
+                     jt != traceSet.end();
                      jt++)
                 {
-                    _workMap[hashCode].insert(*jt);
+                    (*jt).second->unstickyDevice();
                 }
             }
 
 /*WORK_UNLOCK*/ pthread_mutex_unlock(&_workMtx);
 
             // cleanup and signal client threads
-            if (goodnessTime > _executor.DEVICE_FAILURE)
+            if (goodnessTime > _executor->DEVICE_FAILURE)
             {
 /*TRACE_LOCK*/ pthread_mutex_lock(&_traceMtx);
 
-                // finished with traces, discard them
-                for (set< SingleTrace* >::const_iterator
+                for (map< pthread_t, SingleTrace* >::const_iterator
                      jt = traceSet.begin();
                      jt != traceSet.end();
                      jt++)
                 {
-                    _traceRef.release(*jt);
-                }
+                    // remove entries for client threads
+                    _traceMap.erase((*jt).first);
 
-                // remove entries for client threads
-                for (set< pthread_t >::const_iterator
-                     jt = handleSet.begin();
-                     jt != handleSet.end();
-                     jt++)
-                {
-                    _traceMap.erase(*jt);
+                    // finished with traces, discard them
+                    _traceRef.release((*jt).second);
                 }
 
                 pthread_cond_broadcast(&_traceCond);
@@ -286,33 +287,54 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
             }
         }
 
-/*WORK_LOCK*/ pthread_mutex_lock(&_workMtx);
-
-        // timed wait
-        struct timeval tval;
-        gettimeofday(&tval, NULL);
-
-        struct timespec tspec;
-        tspec.tv_sec = tval.tv_sec;
-        tspec.tv_nsec = tval.tv_usec * 1000;
-
-        // delay should auto-tune, exceed longest kernel time for device
-        const size_t delay = 500 * 1000 * 1000; // .5 sec
-        tspec.tv_nsec += delay;
-        if (tspec.tv_nsec < delay)
-            tspec.tv_sec++;
-
-        const int rc = pthread_cond_timedwait(&_workCond,
-                                              &_workMtx,
-                                              &tspec);
-
-        // check for deferral deadlock
-        if (ETIMEDOUT == rc && 0 == chooseWorkCount && deferWorkFlag)
+        if (deviceCode >= MemManager::GPU_OPENCL)
         {
-            deferOverrideFlag = true;
+/*IDLEGPU_LOCK*/ pthread_mutex_lock(&_deviceMtx);
+            _idleGPUCnt++;
+/*IDLEGPU_UNLOCK*/ pthread_mutex_unlock(&_deviceMtx);
         }
 
+        // CPU interpreter has lowest priority
+        bool waitForIdleGPUs = true;
+        while (_deviceLoop && waitForIdleGPUs)
+        {
+            // timed wait
+            struct timeval tval;
+            gettimeofday(&tval, NULL);
+
+            struct timespec tspec;
+            tspec.tv_sec = tval.tv_sec;
+            tspec.tv_nsec = tval.tv_usec * 1000;
+
+            // delay should auto-tune, exceed longest kernel time for device
+            const size_t delay = 100 * 1000 * 1000; // .1 sec
+            tspec.tv_nsec += delay;
+            if (tspec.tv_nsec < delay)
+                tspec.tv_sec++;
+
+/*WORK_LOCK*/ pthread_mutex_lock(&_workMtx);
+            const int rc = pthread_cond_timedwait(&_workCond,
+                                                  &_workMtx,
+                                                  &tspec);
 /*WORK_UNLOCK*/ pthread_mutex_unlock(&_workMtx);
+
+            // check for deferral deadlock
+            if (ETIMEDOUT == rc && 0 == chooseWorkCount && deferWorkFlag)
+            {
+                deferOverrideFlag = true;
+            }
+
+            if (deviceCode < MemManager::GPU_OPENCL)
+            {
+/*IDLEGPU_LOCK*/ pthread_mutex_lock(&_deviceMtx);
+                waitForIdleGPUs = _idleGPUCnt > 0;
+/*IDLEGPU_UNLOCK*/ pthread_mutex_unlock(&_deviceMtx);
+            }
+            else
+            {
+                waitForIdleGPUs = false;
+            }
+        }
 
     } // while (_deviceLoop)
 }
@@ -330,46 +352,34 @@ pair< bool, bool > Scheduler::deviceLoopChooseWork(
         // is there any history for this device?
         if (_workStat[hashCode].count(deviceCode))
         {
-            map< double, size_t > sortedTimes;
-
-            // sort historical device timings
-            for (map< size_t, double >::const_iterator
-                 it = _workStat[hashCode].begin();
-                 it != _workStat[hashCode].end();
-                 it++)
+            // ...and has it ever failed for this kernel?
+            if (_workStat[hashCode][deviceCode] > _executor->DEVICE_FAILURE)
             {
-                // negative time means skip device
-                if ((*it).second > _executor.DEVICE_FAILURE)
-                    sortedTimes[(*it).second] = (*it).first;
-            }
+                // it worked before
 
-            // find fastest device
-            const size_t fastestDevice = sortedTimes.empty()
-                                             ? -1 /* invalid device code */
-                                             : (*sortedTimes.begin()).second;
+                bool isOldThreads = true;
+                size_t oldThreadCnt = 0;
 
-            // is this the fastest device?
-            if (deviceCode == fastestDevice)
-            {
-                set< pthread_t > pthSet;
-
-                // assemble thread set
-                for (set< pair< pthread_t, SingleTrace* > >::const_iterator
+                // has thread set been seen before?
+                for (map< pthread_t, SingleTrace* >::const_iterator
                      it = _workMap[hashCode].begin();
                      it != _workMap[hashCode].end();
                      it++)
                 {
-                    pthSet.insert((*it).first);
+                    if (0 == _workHist[hashCode].count((*it).first))
+                    {
+                        isOldThreads = false;
+                        break;
+                    }
+                    else
+                    {
+                        oldThreadCnt++;
+                    }
                 }
 
-                // has thread set been seen before?
-                if ( includes(
-                         _workHist[hashCode].begin(),
-                         _workHist[hashCode].end(),
-                         pthSet.begin(),
-                         pthSet.end()) )
+                if (isOldThreads)
                 {
-                    if (_workHist[hashCode].size() == pthSet.size())
+                    if (_workHist[hashCode].size() == oldThreadCnt)
                     {
                         // exact match, take the work
                         doWork = true;
@@ -397,7 +407,7 @@ pair< bool, bool > Scheduler::deviceLoopChooseWork(
             }
             else
             {
-                // another device is faster, skip
+                // known history of failure with this device for the kernel
                 doWork = false;
             }
         }
@@ -419,19 +429,23 @@ pair< bool, bool > Scheduler::deviceLoopChooseWork(
 ////////////////////////////////////////
 // singleton
 
-Scheduler::Scheduler(void)
-    : _executor()
+Scheduler::Scheduler()
+    : _executor(NULL),
+      _idleGPUCnt(0),
+      _swizzleKey(0)
 {
     pthread_mutex_init(&_mtx, NULL);
     pthread_mutex_init(&_traceMtx, NULL);
     pthread_mutex_init(&_bossMtx, NULL);
     pthread_mutex_init(&_workMtx, NULL);
+    pthread_mutex_init(&_deviceMtx, NULL);
+    pthread_mutex_init(&_swizzleMtx, NULL);
     pthread_cond_init(&_traceCond, NULL);
     pthread_cond_init(&_bossCond, NULL);
     pthread_cond_init(&_workCond, NULL);
 
     // this should auto-tune
-    omp_set_num_threads(256);
+    //omp_set_num_threads(256);
 }
 
 Scheduler::~Scheduler(void)
@@ -440,6 +454,8 @@ Scheduler::~Scheduler(void)
     pthread_mutex_destroy(&_traceMtx);
     pthread_mutex_destroy(&_bossMtx);
     pthread_mutex_destroy(&_workMtx);
+    pthread_mutex_destroy(&_deviceMtx);
+    pthread_mutex_destroy(&_swizzleMtx);
     pthread_cond_destroy(&_traceCond);
     pthread_cond_destroy(&_bossCond);
     pthread_cond_destroy(&_workCond);
@@ -447,7 +463,7 @@ Scheduler::~Scheduler(void)
     cleanup();
 }
 
-Scheduler& Scheduler::obj(void)
+Scheduler& Scheduler::singleton(void)
 {
     static Scheduler obj;
     return obj;
@@ -456,34 +472,49 @@ Scheduler& Scheduler::obj(void)
 ////////////////////////////////////////
 // configuration
 
-void Scheduler::init(void)
+void Scheduler::init(istream& configSpec)
 {
+    _executor = new Executor(configSpec);
+
     // boss thread
     _bossLoop = true;
     _bossCnt = 0;
     pthread_create( &_boss,
                     NULL,
                     bossLoopThr,
-                    &Scheduler::obj() );
+                    &Scheduler::singleton() );
 
     // device threads
     _deviceLoop = true;
     _workMap.clear();
     for (set< size_t >::const_iterator
-         it = _executor.deviceCodes().begin();
-         it != _executor.deviceCodes().end();
+         it = _executor->deviceCodes().begin();
+         it != _executor->deviceCodes().end();
          it++)
     {
         const size_t deviceCode = *it;
+
         pthread_create( &_devicePth[deviceCode],
                         NULL,
                         deviceLoopThr,
                         reinterpret_cast< void* >(deviceCode) );
+
+        if (deviceCode >= MemManager::GPU_OPENCL)
+        {
+/*IDLEGPU_LOCK*/ pthread_mutex_lock(&_deviceMtx);
+            _idleGPUCnt++;
+/*IDLEGPU_UNLOCK*/ pthread_mutex_unlock(&_deviceMtx);
+        }
     }
 }
 
 void Scheduler::shutdown(void)
 {
+    // NVIDIA segfaults on shutdown, do not know why
+    // Note this assumes init() and shutdown() are only called once by apps.
+    if (OCLhacks::singleton().shutdownNOP())
+        return;
+
     void* status;
 
     // device threads
@@ -492,11 +523,12 @@ void Scheduler::shutdown(void)
     pthread_cond_broadcast(&_workCond);
 /*WORK_UNLOCK*/ pthread_mutex_unlock(&_workMtx);
     for (set< size_t >::const_iterator
-         it = _executor.deviceCodes().begin();
-         it != _executor.deviceCodes().end();
+         it = _executor->deviceCodes().begin();
+         it != _executor->deviceCodes().end();
          it++)
     {
         const size_t deviceCode = *it;
+
         pthread_join(_devicePth[deviceCode], &status);
     }
     _devicePth.clear();
@@ -511,6 +543,31 @@ void Scheduler::shutdown(void)
 
     // clear client data
     cleanup();
+
+    _idleGPUCnt = 0;
+
+    delete _executor;
+    _executor = NULL;
+}
+
+void Scheduler::extendLanguage(const uint32_t opCode,
+                               const BaseInterp& interpHandler,
+                               const BaseTrans& jitHandler)
+{
+    _executor->extendLanguage(opCode,
+                              interpHandler,
+                              jitHandler);
+}
+
+size_t Scheduler::swizzleKey(void)
+{
+/*SWIZZLE_LOCK*/ pthread_mutex_lock(&_swizzleMtx);
+
+    const size_t uniqueKey = _swizzleKey++;
+
+/*SWIZZLE_UNLOCK*/ pthread_mutex_unlock(&_swizzleMtx);
+
+    return uniqueKey;
 }
 
 ArrayClient* Scheduler::client(void)

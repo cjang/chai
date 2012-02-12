@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "DispatchTrans.hpp"
 
@@ -20,9 +20,28 @@ DispatchTrans::~DispatchTrans(void)
     }
 }
 
-void DispatchTrans::addOp(const uint32_t opCode, BaseTrans* op)
+bool DispatchTrans::containsOp(const uint32_t opCode) const
 {
-    _dtable[opCode] = op;
+    return _dtable.count(opCode);
+}
+
+void DispatchTrans::eraseOp(const uint32_t opCode)
+{
+    _dtable.erase(opCode);
+}
+
+void DispatchTrans::deleteOp(const uint32_t opCode)
+{
+    if (_dtable.count(opCode))
+    {
+        delete _dtable[opCode];
+        _dtable.erase(opCode);
+    }
+}
+
+void DispatchTrans::addOp(const uint32_t opCode, BaseTrans* opHandler)
+{
+    _dtable[opCode] = opHandler;
 }
 
 void DispatchTrans::setContext(stack< BaseAst* >& outStack)

@@ -1,10 +1,12 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_OCL_INIT_HPP_
 #define _CHAI_OCL_INIT_HPP_
 
 #include <CL/cl.h>
+#include <set>
 #include <string>
+
 #include "MemalignSTL.hpp"
 
 namespace chai_internal {
@@ -40,6 +42,9 @@ class OCLdevices
     std::vector< std::string >         _name;
     std::vector< std::string >         _vendor;
     std::vector< size_t >              _maxWorkGroupSize;
+    std::vector< bool >                _isCPU;
+    std::vector< bool >                _isGPU;
+    std::vector< bool >                _isACC;
 
     void insertDevice(const cl_device_id deviceID,
                       const size_t platformIndex);
@@ -55,6 +60,9 @@ public:
     std::string name(const size_t i) const;
     std::string vendor(const size_t i) const;
     size_t maxWorkGroupSize(const size_t i) const;
+    bool isCPU(const size_t i) const;
+    bool isGPU(const size_t i) const;
+    bool isACC(const size_t i) const;
 };
 
 ////////////////////////////////////////
@@ -131,6 +139,10 @@ public:
 
     OCLqueues& queues(void);
     const OCLqueues& queues(void) const;
+
+    std::set< size_t > cpuIndexes(void) const;
+    std::set< size_t > gpuIndexes(void) const;
+    std::set< size_t > accIndexes(void) const;
 
     // undefined
     OCLinit(const OCLinit& other);

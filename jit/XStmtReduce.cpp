@@ -1,14 +1,16 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "AstAccum.hpp"
 #include "AstArrayMem.hpp"
-#include "AstBinop.hpp"
 #include "AstCond.hpp"
 #include "AstConvert.hpp"
 #include "AstDotprod.hpp"
+#include "AstExtension.hpp"
+#include "AstFun1.hpp"
+#include "AstFun2.hpp"
+#include "AstFun3.hpp"
 #include "AstGather.hpp"
 #include "AstIdxdata.hpp"
-#include "AstIsomorph.hpp"
 #include "AstLitdata.hpp"
 #include "AstMakedata.hpp"
 #include "AstMatmulMM.hpp"
@@ -19,7 +21,9 @@
 #include "AstRNGnormal.hpp"
 #include "AstRNGuniform.hpp"
 #include "AstScalar.hpp"
+#include "AstTranspose.hpp"
 #include "AstVariable.hpp"
+#include "BaseAst.hpp"
 #include "XStmtReduce.hpp"
 
 using namespace std;
@@ -104,11 +108,6 @@ void XStmtReduce::visit(AstArrayMem& v)
 {
 }
 
-void XStmtReduce::visit(AstBinop& v)
-{
-    descendAst(v);
-}
-
 void XStmtReduce::visit(AstCond& v)
 {
     descendAst(v);
@@ -124,6 +123,26 @@ void XStmtReduce::visit(AstDotprod& v)
     descendAst(v);
 }
 
+void XStmtReduce::visit(AstExtension& v)
+{
+    descendAst(v);
+}
+
+void XStmtReduce::visit(AstFun1& v)
+{
+    descendAst(v);
+}
+
+void XStmtReduce::visit(AstFun2& v)
+{
+    descendAst(v);
+}
+
+void XStmtReduce::visit(AstFun3& v)
+{
+    descendAst(v);
+}
+
 void XStmtReduce::visit(AstGather& v)
 {
     descendAst(v);
@@ -133,11 +152,6 @@ void XStmtReduce::visit(AstIdxdata& v)
 {
 }
 
-void XStmtReduce::visit(AstIsomorph& v)
-{
-    descendAst(v);
-}
-
 void XStmtReduce::visit(AstLitdata& v)
 {
 }
@@ -145,6 +159,7 @@ void XStmtReduce::visit(AstLitdata& v)
 void XStmtReduce::visit(AstMakedata& v)
 {
 }
+
 void XStmtReduce::visit(AstMatmulMM& v)
 {
     descendAst(v);
@@ -179,6 +194,11 @@ void XStmtReduce::visit(AstRNGuniform& v)
 
 void XStmtReduce::visit(AstScalar& v)
 {
+}
+
+void XStmtReduce::visit(AstTranspose& v)
+{
+    descendAst(v);
 }
 
 void XStmtReduce::visit(AstVariable& v)

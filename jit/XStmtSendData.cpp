@@ -39,6 +39,11 @@ XStmtSendData::XStmtSendData(AstVariable* lhs,
     buoyancyRise();
 }
 
+bool XStmtSendData::trackLHS(void) const
+{
+    return false;
+}
+
 bool XStmtSendData::swappable(const XStmt& other) const
 {
     return XStmt::swappable(other);

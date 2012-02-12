@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "RefCnt.hpp"
+#include "chai/RefCnt.hpp"
 #include "VisitAst.hpp"
 
 namespace chai_internal {
