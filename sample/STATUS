@@ -30,8 +30,8 @@ UW - results generally wrong or out of order
 Sample        PentiumM  Core2Duo  Corei7_920  5440  5670  5770  5870  480
 Application   AMD       AMD       AMD  INTEL  AMD   AMD   AMD   AMD   NVIDIA
 ============  ========  ========  ===  =====  ====  ====  ====  ===   ======
-cg            KF        OK        OK   OK     OK    OK    OK    OK    OK
-cg64          KF        OK        OK   OK     IS    IS    IS    OK    OK
+cg            KF        OF        OK   OK     OK    OK    OK    OK    OK
+cg64          KF        OF        OK   OK     IS    IS    IS    OK    OK
 
 index         OK        OK        OK   OK     OK    OK    OK    OK    OK
 
@@ -51,6 +51,8 @@ matmul64_omp  KF        AF        AF   AF     IS    IS    IS    OK    OK
 matmul64_pth  KF        AF        AF   AF     IS    IS    IS    OK    OK
 matmul64_uni  KF        OK        OK   OK     IS    IS    IS    OK    OK
 matmul64_vec  KF        AF        AF   AF     IS    IS    IS    OK    OK
+
+md5           KF        OK        OK   OK     OK                      OK
 
 mingle        KF        OK        OK   OK     OK    OK    OK    OK    OK
 mingle64      KF        OK        OK   OK     IS    IS    IS    OK    OK

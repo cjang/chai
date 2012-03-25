@@ -1,6 +1,7 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "FrontMem.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -14,7 +15,7 @@ FrontMem::FrontMem(const size_t W,
       _W(W),
       _H(H),
       _slots(1),
-      _ptrType(FLOAT),
+      _precision(PrecType::Float),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -28,7 +29,35 @@ FrontMem::FrontMem(const size_t W,
       _W(W),
       _H(H),
       _slots(1),
-      _ptrType(DOUBLE),
+      _precision(PrecType::Double),
+      _ptrMem(NULL),
+      _backObj(NULL),
+      _dataPtr(dataPtr),
+      _slotMem() { }
+
+FrontMem::FrontMem(const size_t W,
+                   const size_t H,
+                   int32_t* dataPtr)
+    : RefObj(),
+      _variable(-1),
+      _W(W),
+      _H(H),
+      _slots(1),
+      _precision(PrecType::Int32),
+      _ptrMem(NULL),
+      _backObj(NULL),
+      _dataPtr(dataPtr),
+      _slotMem() { }
+
+FrontMem::FrontMem(const size_t W,
+                   const size_t H,
+                   uint32_t* dataPtr)
+    : RefObj(),
+      _variable(-1),
+      _W(W),
+      _H(H),
+      _slots(1),
+      _precision(PrecType::UInt32),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -43,7 +72,7 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(1),
-      _ptrType(sizeof(double) == precision ? DOUBLE : FLOAT),
+      _precision(precision),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
@@ -59,7 +88,7 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(slots),
-      _ptrType(sizeof(double) == precision ? DOUBLE : FLOAT),
+      _precision(precision),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
@@ -83,7 +112,7 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(1),
-      _ptrType(FLOAT),
+      _precision(PrecType::Float),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -98,7 +127,37 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(1),
-      _ptrType(DOUBLE),
+      _precision(PrecType::Double),
+      _ptrMem(NULL),
+      _backObj(NULL),
+      _dataPtr(dataPtr),
+      _slotMem() { }
+
+FrontMem::FrontMem(const uint32_t variable,
+                   const size_t W,
+                   const size_t H,
+                   int32_t* dataPtr)
+    : RefObj(),
+      _variable(variable),
+      _W(W),
+      _H(H),
+      _slots(1),
+      _precision(PrecType::Int32),
+      _ptrMem(NULL),
+      _backObj(NULL),
+      _dataPtr(dataPtr),
+      _slotMem() { }
+
+FrontMem::FrontMem(const uint32_t variable,
+                   const size_t W,
+                   const size_t H,
+                   uint32_t* dataPtr)
+    : RefObj(),
+      _variable(variable),
+      _W(W),
+      _H(H),
+      _slots(1),
+      _precision(PrecType::UInt32),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -113,7 +172,7 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(dataPtr.size()),
-      _ptrType(FLOAT),
+      _precision(PrecType::Float),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
@@ -140,13 +199,67 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(dataPtr.size()),
-      _ptrType(DOUBLE),
+      _precision(PrecType::Double),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
       _slotMem()
 {
     for (vector< double* >::const_iterator
+         it = dataPtr.begin();
+         it != dataPtr.end();
+         it++)
+    {
+        FrontMem *fm = new FrontMem(variable, W, H, *it);
+        fm->owned();
+        fm->checkout(true);
+        _slotMem.push_back(fm);
+    }
+}
+
+FrontMem::FrontMem(const uint32_t variable,
+                   const size_t W,
+                   const size_t H,
+                   const vector< int32_t* >& dataPtr)
+    : RefObj(),
+      _variable(variable),
+      _W(W),
+      _H(H),
+      _slots(dataPtr.size()),
+      _precision(PrecType::Int32),
+      _ptrMem(NULL),
+      _backObj(NULL),
+      _dataPtr(NULL),
+      _slotMem()
+{
+    for (vector< int32_t* >::const_iterator
+         it = dataPtr.begin();
+         it != dataPtr.end();
+         it++)
+    {
+        FrontMem *fm = new FrontMem(variable, W, H, *it);
+        fm->owned();
+        fm->checkout(true);
+        _slotMem.push_back(fm);
+    }
+}
+
+FrontMem::FrontMem(const uint32_t variable,
+                   const size_t W,
+                   const size_t H,
+                   const vector< uint32_t* >& dataPtr)
+    : RefObj(),
+      _variable(variable),
+      _W(W),
+      _H(H),
+      _slots(dataPtr.size()),
+      _precision(PrecType::UInt32),
+      _ptrMem(NULL),
+      _backObj(NULL),
+      _dataPtr(NULL),
+      _slotMem()
+{
+    for (vector< uint32_t* >::const_iterator
          it = dataPtr.begin();
          it != dataPtr.end();
          it++)
@@ -176,14 +289,7 @@ FrontMem::~FrontMem(void)
 
 size_t FrontMem::sizeBytes(void) const
 {
-    switch (_ptrType)
-    {
-        case (FLOAT) :
-            return _W * _H * sizeof(float);
-
-        case (DOUBLE) :
-            return _W * _H * sizeof(double);
-    }
+    return _W * _H * PrecType::sizeOf(_precision);
 }
 
 uint32_t FrontMem::variable(void) const
@@ -206,14 +312,9 @@ size_t FrontMem::slots(void) const
     return _slots;
 }
 
-bool FrontMem::isFloat(void) const
+size_t FrontMem::precision(void) const
 {
-    return FLOAT == _ptrType;
-}
-
-bool FrontMem::isDouble(void) const
-{
-    return DOUBLE == _ptrType;
+    return _precision;
 }
 
 void FrontMem::swizzle(const size_t uniqueKey)
@@ -227,15 +328,29 @@ void FrontMem::swizzle(const size_t uniqueKey)
 
 float* FrontMem::floatPtr(void) const
 {
-    return FLOAT == _ptrType
+    return PrecType::Float == _precision
                ? static_cast< float* >(_ptrMem)
                : NULL;
 }
 
 double* FrontMem::doublePtr(void) const
 {
-    return DOUBLE == _ptrType
+    return PrecType::Double == _precision
                ? static_cast< double* >(_ptrMem)
+               : NULL;
+}
+
+int32_t* FrontMem::intPtr(void) const
+{
+    return PrecType::Int32 == _precision
+               ? static_cast< int32_t* >(_ptrMem)
+               : NULL;
+}
+
+uint32_t* FrontMem::uintPtr(void) const
+{
+    return PrecType::UInt32 == _precision
+               ? static_cast< uint32_t* >(_ptrMem)
                : NULL;
 }
 
@@ -246,13 +361,13 @@ void* FrontMem::ptrMem(void) const
 
 void* FrontMem::ptrMem(const size_t precision) const
 {
-    if (precision == sizeof(double))
+    switch (precision)
     {
-        return doublePtr();
-    }
-    else
-    {
-        return floatPtr();
+        case (PrecType::UInt32) : return uintPtr();
+        case (PrecType::Int32) : return intPtr();
+        case (PrecType::Float) : return floatPtr();
+        case (PrecType::Double) : return doublePtr();
+        default: return NULL;
     }
 }
 

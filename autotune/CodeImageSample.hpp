@@ -31,7 +31,7 @@ struct ImageSampler : public IValue
     std::string name(void) const;
 };
 
-// read float and uint32 quad from a 2D image
+// read quad from a 2D image
 class ReadImage : public IValue
 {
     const GlobalVar&  _image;
@@ -48,7 +48,7 @@ public:
     std::string name(void) const;
 };
 
-// write float and uint32 quad to a 2D image
+// write quad to a 2D image
 class WriteImage : public IPrintable
 {
     const GlobalVar& _image;

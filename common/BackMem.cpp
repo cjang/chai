@@ -5,6 +5,7 @@
 #include "BackMem.hpp"
 #include "Logger.hpp"
 #include "MemManager.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -21,7 +22,7 @@ BackMem::BackMem(const size_t W,
       _H(H),
       _packing(packing),
       _frontCount(frontCount),
-      _ptrType(FLOAT),
+      _precision(PrecType::Float),
       _ptrMem(ptr),
       _memMgr(mm) { }
 
@@ -36,22 +37,43 @@ BackMem::BackMem(const size_t W,
       _H(H),
       _packing(packing),
       _frontCount(frontCount),
-      _ptrType(DOUBLE),
+      _precision(PrecType::Double),
+      _ptrMem(ptr),
+      _memMgr(mm) { }
+
+BackMem::BackMem(const size_t W,
+                 const size_t H,
+                 const size_t packing,
+                 const size_t frontCount,
+                 int32_t* ptr,
+                 MemManager* mm)
+    : RefObj(false),
+      _W(W),
+      _H(H),
+      _packing(packing),
+      _frontCount(frontCount),
+      _precision(PrecType::Int32),
+      _ptrMem(ptr),
+      _memMgr(mm) { }
+
+BackMem::BackMem(const size_t W,
+                 const size_t H,
+                 const size_t packing,
+                 const size_t frontCount,
+                 uint32_t* ptr,
+                 MemManager* mm)
+    : RefObj(false),
+      _W(W),
+      _H(H),
+      _packing(packing),
+      _frontCount(frontCount),
+      _precision(PrecType::UInt32),
       _ptrMem(ptr),
       _memMgr(mm) { }
 
 BackMem::~BackMem(void)
 {
-    switch (_ptrType)
-    {
-        case (FLOAT) :
-            free(static_cast< float* >(_ptrMem));
-            break;
-
-        case (DOUBLE) :
-            free(static_cast< double* >(_ptrMem));
-            break;
-    }
+    free(_ptrMem);
 
     // inform memory manager of object's destruction
     if (_memMgr)
@@ -85,23 +107,9 @@ size_t BackMem::frontCount(void) const
     return _frontCount;
 }
 
-bool BackMem::isFloat(void) const
-{
-    return FLOAT == _ptrType;
-}
-
-bool BackMem::isDouble(void) const
-{
-    return DOUBLE == _ptrType;
-}
-
 size_t BackMem::precision(void) const
 {
-    switch (_ptrType)
-    {
-        case (FLOAT) : return sizeof(float);
-        case (DOUBLE) : return sizeof(double);
-    }
+    return _precision;
 }
 
 void* BackMem::ptrMem(void) const

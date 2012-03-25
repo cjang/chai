@@ -50,11 +50,11 @@ class Function
     // variables by type and role
     Sampler*              _sampler;
     std::set< Variable* > _typeImage2D;
-    std::set< Variable* > _typeFloatPt;
+    std::set< Variable* > _typeAddrMem;
     std::set< Variable* > _typeInteger;
 
     // temporary private variables
-    std::map< std::pair< size_t, size_t >, FloatPt* > _privateVars;
+    std::map< std::pair< size_t, size_t >, AddrMem* > _privateVars;
 
     // private variables
     std::map< uint32_t, Variable* >           _tracePrivate;
@@ -81,7 +81,7 @@ class Function
     void addTraceArgument(const uint32_t, Variable*);
     void addSplitArgument(const AstVariable*, Variable*);
 
-    void addPrivate(FloatPt*);
+    void addPrivate(AddrMem*);
     void addPrivate(Integer*);
 
     void indentMore(void);
@@ -101,20 +101,20 @@ public:
     bool isFP64(void) const;
 
     void addArgument(const uint32_t, Image2D*);
-    void addArgument(const uint32_t, FloatPt*);
+    void addArgument(const uint32_t, AddrMem*);
     void addArgument(const uint32_t, Integer*);
 
     void addArgument(const AstVariable*, Image2D*);
-    void addArgument(const AstVariable*, FloatPt*);
+    void addArgument(const AstVariable*, AddrMem*);
     void addArgument(const AstVariable*, Integer*);
 
-    FloatPt* getPrivateVar(const size_t precision,
+    AddrMem* getPrivateVar(const size_t precision,
                            const size_t vectorLength);
 
-    FloatPt* createPrivate(const uint32_t,
+    AddrMem* createPrivate(const uint32_t,
                            const size_t precision,
                            const size_t vectorLength);
-    FloatPt* createPrivate(const AstVariable*,
+    AddrMem* createPrivate(const AstVariable*,
                            const size_t precision,
                            const size_t vectorLength);
 
@@ -125,6 +125,12 @@ public:
 
     const AstVariable* splitVar(Variable*);
     Variable* splitVar(const AstVariable*);
+
+    uint32_t traceVarPrivate(Variable*);
+    Variable* traceVarPrivate(const uint32_t);
+
+    const AstVariable* splitVarPrivate(Variable*);
+    Variable* splitVarPrivate(const AstVariable*);
 
     bool isPrivate(Variable*) const;
 
@@ -158,6 +164,7 @@ public:
 
     void barrier(void);
 
+    size_t loopIndexes(void) const;
     size_t loopBegin(const size_t startIndex, const size_t upperLimit);
     void loopEnd(void);
 

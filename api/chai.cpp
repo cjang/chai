@@ -8,6 +8,7 @@
 #include "ByteCodes.hpp"
 #include "chai/chai.h"
 #include "FrontMem.hpp"
+#include "PrecType.hpp"
 #include "Scheduler.hpp"
 #include "SingleNut.hpp"
 
@@ -57,11 +58,13 @@ ArrayExp::~ArrayExp(void) { }
 ArrayLit ## FP :: ArrayLit ## FP (const X a) : _lit(a) { } \
 X ArrayLit ## FP ::value(void) const { return _lit; } \
 void ArrayLit ## FP ::accept(Stak<BC>& v) const { \
-    v.push(_lit); \
+    v.push(static_cast<double>(_lit)); \
     v.push(ByteCodes::scalar_ ## FP); } \
 void ArrayLit ## FP ::accept(stack< ArrayDim >& v) const { \
     v.push(ArrayDim(1, 1)); }
 
+DEFN_ARRAY_LIT(u32, uint32_t)
+DEFN_ARRAY_LIT(i32, int32_t)
 DEFN_ARRAY_LIT(f32, float)
 DEFN_ARRAY_LIT(f64, double)
 
@@ -179,6 +182,7 @@ void ArrayFun::accept(stack< ArrayDim >& v) const
 ArrayFun NAME (const ArrayExp& A) { \
     return ArrayFun(ByteCodes:: FUNCODE, A, ArrayFun:: DIMSTACK); }
 
+DEFN_ARRAY_FUN1(abs, abs, UNCHANGED)
 DEFN_ARRAY_FUN1(acos, acos, UNCHANGED)
 DEFN_ARRAY_FUN1(acosh, acosh, UNCHANGED)
 DEFN_ARRAY_FUN1(acospi, acospi, UNCHANGED)
@@ -190,6 +194,7 @@ DEFN_ARRAY_FUN1(atanh, atanh, UNCHANGED)
 DEFN_ARRAY_FUN1(atanpi, atanpi, UNCHANGED)
 DEFN_ARRAY_FUN1(cbrt, cbrt, UNCHANGED)
 DEFN_ARRAY_FUN1(ceil, ceil, UNCHANGED)
+DEFN_ARRAY_FUN1(clz, clz, UNCHANGED)
 DEFN_ARRAY_FUN1(cos, cos, UNCHANGED)
 DEFN_ARRAY_FUN1(cosh, cosh, UNCHANGED)
 DEFN_ARRAY_FUN1(cospi, cospi, UNCHANGED)
@@ -215,7 +220,9 @@ DEFN_ARRAY_FUN1(log1p, log1p, UNCHANGED)
 DEFN_ARRAY_FUN1(logb, logb, UNCHANGED)
 DEFN_ARRAY_FUN1(mean, mean, REDUCED)
 DEFN_ARRAY_FUN1(nan, nan, UNCHANGED)
-DEFN_ARRAY_FUN1(operator-, negate, UNCHANGED)
+DEFN_ARRAY_FUN1(operator-, operatorUNARYMINUS, UNCHANGED)
+DEFN_ARRAY_FUN1(operator~, operatorCOMPLEMENT, UNCHANGED)
+DEFN_ARRAY_FUN1(operator!, operatorNOT, UNCHANGED)
 DEFN_ARRAY_FUN1(radians, radians, UNCHANGED)
 DEFN_ARRAY_FUN1(rint, rint, UNCHANGED)
 DEFN_ARRAY_FUN1(round, round, UNCHANGED)
@@ -252,6 +259,9 @@ DEFN_ARRAY_FUN3(clamp, clamp, FIRST3)
 DEFN_ARRAY_FUN3(fma, fma, FIRST3)
 DEFN_ARRAY_FUN3(gather2_floor, gather2_floor, FIRST3)
 DEFN_ARRAY_FUN3(mad, mad, FIRST3)
+DEFN_ARRAY_FUN3(mad24, mad24, FIRST3)
+DEFN_ARRAY_FUN3(mad_hi, mad_hi, FIRST3)
+DEFN_ARRAY_FUN3(mad_sat, mad_sat, FIRST3)
 DEFN_ARRAY_FUN3(mix, mix, FIRST3)
 DEFN_ARRAY_FUN3(smoothstep, smoothstep, FIRST3)
 
@@ -329,93 +339,124 @@ void IndexFun::accept(stack< ArrayDim >& v) const
     v.push(ArrayDim(_W, _H));
 }
 
-IndexFun index_f32(const size_t indexDim, const size_t W)
-{
-    return IndexFun(ByteCodes::index1_f32, indexDim, W, 1);
+#define DEFN_INDEX_FUN(FP) \
+IndexFun index_ ## FP (const size_t indexDim, const size_t W) \
+{ \
+    return IndexFun(ByteCodes::index1_ ## FP, indexDim, W, 1); \
+} \
+IndexFun index_ ## FP (const size_t indexDim, const size_t W, const size_t H) \
+{ \
+    return IndexFun(ByteCodes::index2_ ## FP, indexDim, W, H); \
 }
 
-IndexFun index_f64(const size_t indexDim, const size_t W)
-{
-    return IndexFun(ByteCodes::index1_f64, indexDim, W, 1);
-}
-
-IndexFun index_f32(const size_t indexDim, const size_t W, const size_t H)
-{
-    return IndexFun(ByteCodes::index2_f32, indexDim, W, H);
-}
-
-IndexFun index_f64(const size_t indexDim, const size_t W, const size_t H)
-{
-    return IndexFun(ByteCodes::index2_f64, indexDim, W, H);
-}
+DEFN_INDEX_FUN(u32)
+DEFN_INDEX_FUN(i32)
+DEFN_INDEX_FUN(f32)
+DEFN_INDEX_FUN(f64)
 
 ////////////////////////////////////////
-// special function for literals
+// (two argument) function value
 
-BinLitFun::BinLitFun(const uint32_t f,
-                     const ArrayExp& a,
-                     const ArrayExp& b)
-    : _lit32(ArrayLitf32(0)),
-      _lit64(ArrayLitf64(0)),
+DuoFun::DuoFun(const uint32_t f,
+               const ArrayExp& a,
+               const ArrayExp& b)
+    : _lit32u(ArrayLitu32(0)),
+      _lit32i(ArrayLiti32(0)),
+      _lit32f(ArrayLitf32(0)),
+      _lit64f(ArrayLitf64(0)),
       _funCode(f),
       _a(a),
       _b(b) { }
 
-BinLitFun::BinLitFun(const uint32_t f,
-                     const ArrayExp& a,
-                     const int b)
-    : _lit32(ArrayLitf32(b)),
-      _lit64(ArrayLitf64(0)),
+DuoFun::DuoFun(const uint32_t f,
+               const ArrayExp& a,
+               const uint32_t b)
+    : _lit32u(ArrayLitu32(b)), // b
+      _lit32i(ArrayLiti32(0)),
+      _lit32f(ArrayLitf32(0)),
+      _lit64f(ArrayLitf64(0)),
       _funCode(f),
       _a(a),
-      _b(_lit32) { }
+      _b(_lit32u) { }
 
-BinLitFun::BinLitFun(const uint32_t f,
-                     const int a,
-                     const ArrayExp& b)
-    : _lit32(ArrayLitf32(a)),
-      _lit64(ArrayLitf64(0)),
-      _funCode(f),
-      _a(_lit32),
-      _b(b) { }
-
-BinLitFun::BinLitFun(const uint32_t f,
-                     const ArrayExp& a,
-                     const float b)
-    : _lit32(ArrayLitf32(b)),
-      _lit64(ArrayLitf64(0)),
+DuoFun::DuoFun(const uint32_t f,
+               const ArrayExp& a,
+               const int32_t b)
+    : _lit32u(ArrayLitu32(0)),
+      _lit32i(ArrayLiti32(b)), // b
+      _lit32f(ArrayLitf32(0)),
+      _lit64f(ArrayLitf64(0)),
       _funCode(f),
       _a(a),
-      _b(_lit32) { }
+      _b(_lit32i) { }
 
-BinLitFun::BinLitFun(const uint32_t f,
-                     const float a,
-                     const ArrayExp& b)
-    : _lit32(ArrayLitf32(a)),
-      _lit64(ArrayLitf64(0)),
-      _funCode(f),
-      _a(_lit32),
-      _b(b) { }
-
-BinLitFun::BinLitFun(const uint32_t f,
-                     const ArrayExp& a,
-                     const double b)
-    : _lit32(ArrayLitf32(0)),
-      _lit64(ArrayLitf64(b)),
+DuoFun::DuoFun(const uint32_t f,
+               const ArrayExp& a,
+               const float b)
+    : _lit32u(ArrayLitu32(0)),
+      _lit32i(ArrayLiti32(0)),
+      _lit32f(ArrayLitf32(b)), // b
+      _lit64f(ArrayLitf64(0)),
       _funCode(f),
       _a(a),
-      _b(_lit64) { }
+      _b(_lit32f) { }
 
-BinLitFun::BinLitFun(const uint32_t f,
-                     const double a,
-                     const ArrayExp& b)
-    : _lit32(ArrayLitf32(0)),
-      _lit64(ArrayLitf64(a)),
+DuoFun::DuoFun(const uint32_t f,
+               const ArrayExp& a,
+               const double b)
+    : _lit32u(ArrayLitu32(0)),
+      _lit32i(ArrayLiti32(0)),
+      _lit32f(ArrayLitf32(0)),
+      _lit64f(ArrayLitf64(b)), // b
       _funCode(f),
-      _a(_lit64),
+      _a(a),
+      _b(_lit64f) { }
+
+DuoFun::DuoFun(const uint32_t f,
+               const uint32_t a,
+               const ArrayExp& b)
+    : _lit32u(ArrayLitu32(a)), // a
+      _lit32i(ArrayLiti32(0)),
+      _lit32f(ArrayLitf32(0)),
+      _lit64f(ArrayLitf64(0)),
+      _funCode(f),
+      _a(_lit32u),
       _b(b) { }
 
-void BinLitFun::accept(Stak<BC>& v) const
+DuoFun::DuoFun(const uint32_t f,
+               const int32_t a,
+               const ArrayExp& b)
+    : _lit32u(ArrayLitu32(0)),
+      _lit32i(ArrayLiti32(a)), // a
+      _lit32f(ArrayLitf32(0)),
+      _lit64f(ArrayLitf64(0)),
+      _funCode(f),
+      _a(_lit32i),
+      _b(b) { }
+
+DuoFun::DuoFun(const uint32_t f,
+               const float a,
+               const ArrayExp& b)
+    : _lit32u(ArrayLitu32(0)),
+      _lit32i(ArrayLiti32(0)),
+      _lit32f(ArrayLitf32(a)), // a
+      _lit64f(ArrayLitf64(0)),
+      _funCode(f),
+      _a(_lit32f),
+      _b(b) { }
+
+DuoFun::DuoFun(const uint32_t f,
+               const double a,
+               const ArrayExp& b)
+    : _lit32u(ArrayLitu32(0)),
+      _lit32i(ArrayLiti32(0)),
+      _lit32f(ArrayLitf32(0)),
+      _lit64f(ArrayLitf64(a)), // a
+      _funCode(f),
+      _a(_lit64f),
+      _b(b) { }
+
+void DuoFun::accept(Stak<BC>& v) const
 {
     _b.accept(v);
     _a.accept(v);
@@ -423,7 +464,7 @@ void BinLitFun::accept(Stak<BC>& v) const
     v.push(_funCode);
 }
 
-void BinLitFun::accept(stack< ArrayDim >& v) const
+void DuoFun::accept(stack< ArrayDim >& v) const
 {
     _b.accept(v);
     _a.accept(v);
@@ -432,274 +473,452 @@ void BinLitFun::accept(stack< ArrayDim >& v) const
     v.pop();
     const ArrayDim b = v.top();
     v.pop();
-    v.push(ArrayDim( (a.width > b.width ? a.width : b.width),
-                     (a.height > b.height ? a.height : b.height),
-                     (a.slots > b.slots ? a.slots : b.slots) ));
+
+    const size_t maxW = a.width > b.width ? a.width : b.width;
+    const size_t maxH = a.height > b.height ? a.height : b.height;
+    const size_t maxSlots = (a.slots > b.slots ? a.slots : b.slots);
+
+    v.push( ArrayDim(maxW, maxH, maxSlots) );
 }
 
 ////////////////////////////////////////
-// predicates
+// ternary predicate
 
-PredicateFun::PredicateFun(const uint32_t f,
-                           const ArrayExp& a,
-                           const ArrayExp& b)
-    : BinLitFun(f, a, b) { }
-
-PredicateFun::PredicateFun(const uint32_t f,
-                           const ArrayExp& a,
-                           const int b)
-    : BinLitFun(f, a, b) { }
-
-PredicateFun::PredicateFun(const uint32_t f,
-                           const int a,
-                           const ArrayExp& b)
-    : BinLitFun(f, a, b) { }
-
-PredicateFun::PredicateFun(const uint32_t f,
-                           const ArrayExp& a,
-                           const float b)
-    : BinLitFun(f, a, b) { }
-
-PredicateFun::PredicateFun(const uint32_t f,
-                           const float a,
-                           const ArrayExp& b)
-    : BinLitFun(f, a, b) { }
-
-PredicateFun::PredicateFun(const uint32_t f,
-                           const ArrayExp& a,
-                           const double b)
-    : BinLitFun(f, a, b) { }
-
-PredicateFun::PredicateFun(const uint32_t f,
-                           const double a,
-                           const ArrayExp& b)
-    : BinLitFun(f, a, b) { }
-
-void PredicateFun::accept(Stak<BC>& v) const
-{
-    BinLitFun::accept(v);
-}
-
-void PredicateFun::accept(stack< ArrayDim >& v) const
-{
-    BinLitFun::accept(v);
-}
-
-#define DEFN_ARRAY_PRED(NAME, FUNCODE) \
-PredicateFun NAME (const ArrayExp& A, const ArrayExp& B) { \
-    return PredicateFun(ByteCodes:: FUNCODE, A, B); } \
-PredicateFun NAME (const ArrayExp& A, const int B) { \
-    return PredicateFun(ByteCodes:: FUNCODE, A, B); } \
-PredicateFun NAME (const int A, const ArrayExp& B) { \
-    return PredicateFun(ByteCodes:: FUNCODE, A, B); } \
-PredicateFun NAME (const ArrayExp& A, const float B) { \
-    return PredicateFun(ByteCodes:: FUNCODE, A, B); } \
-PredicateFun NAME (const float A, const ArrayExp& B) { \
-    return PredicateFun(ByteCodes:: FUNCODE, A, B); } \
-PredicateFun NAME (const ArrayExp& A, const double B) { \
-    return PredicateFun(ByteCodes:: FUNCODE, A, B); } \
-PredicateFun NAME (const double A, const ArrayExp& B) { \
-    return PredicateFun(ByteCodes:: FUNCODE, A, B); }
-
-DEFN_ARRAY_PRED(operator==, operatorEQ)
-DEFN_ARRAY_PRED(operator!=, operatorNE)
-DEFN_ARRAY_PRED(operator<=, operatorLE)
-DEFN_ARRAY_PRED(operator>=, operatorGE)
-DEFN_ARRAY_PRED(operator<, operatorLT)
-DEFN_ARRAY_PRED(operator>, operatorGT)
-
-PredicateFun operator&& (const PredicateFun& A, const PredicateFun& B) {
-    return PredicateFun(ByteCodes::operatorAND, A, B); }
-
-PredicateFun operator|| (const PredicateFun& A, const PredicateFun& B) {
-    return PredicateFun(ByteCodes::operatorOR, A, B ); }
-
-CondFun::CondFun(const PredicateFun& p,
-                 const ArrayExp& a,
-                 const ArrayExp& b)
-    : _lit32A(ArrayLitf32(0)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(0)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const ArrayExp& a,
+               const ArrayExp& b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
       _a(a),
       _b(b) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const ArrayExp& a,
-                 const int b)
-    : _lit32A(ArrayLitf32(0)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(b)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const ArrayExp& a,
+               const uint32_t b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(b)), // b
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
       _a(a),
-      _b(_lit32B) { }
+      _b(_lit32uB) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const int a,
-                 const ArrayExp& b)
-    : _lit32A(ArrayLitf32(a)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(0)),
-      _lit64B(ArrayLitf64(0)),
-      _pred(p),
-      _a(_lit32A),
-      _b(b) { }
-
-CondFun::CondFun(const PredicateFun& p,
-                 const ArrayExp& a,
-                 const float b)
-    : _lit32A(ArrayLitf32(0)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(b)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const ArrayExp& a,
+               const int32_t b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(b)), // b
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
       _a(a),
-      _b(_lit32B) { }
+      _b(_lit32iB) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const float a,
-                 const ArrayExp& b)
-    : _lit32A(ArrayLitf32(a)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(0)),
-      _lit64B(ArrayLitf64(0)),
-      _pred(p),
-      _a(_lit32A),
-      _b(b) { }
-
-CondFun::CondFun(const PredicateFun& p,
-                 const ArrayExp& a,
-                 const double b)
-    : _lit32A(ArrayLitf32(0)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(0)),
-      _lit64B(ArrayLitf64(b)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const ArrayExp& a,
+               const float b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(b)), // b
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
       _a(a),
-      _b(_lit64B) { }
+      _b(_lit32fB) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const double a,
-                 const ArrayExp& b)
-    : _lit32A(ArrayLitf32(0)),
-      _lit64A(ArrayLitf64(a)),
-      _lit32B(ArrayLitf32(0)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const ArrayExp& a,
+               const double b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(b)), // b
+      _funCode(f),
       _pred(p),
-      _a(_lit64A),
+      _a(a),
+      _b(_lit64fB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const uint32_t a,
+               const ArrayExp& b)
+    : _lit32uA(ArrayLitu32(a)), // a
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
+      _pred(p),
+      _a(_lit32uA),
       _b(b) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const int a,
-                 const int b)
-    : _lit32A(ArrayLitf32(a)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(b)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const int32_t a,
+               const ArrayExp& b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(a)), // a
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
-      _a(_lit32A),
-      _b(_lit32B) { }
+      _a(_lit32iA),
+      _b(b) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const int a,
-                 const float b)
-    : _lit32A(ArrayLitf32(a)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(b)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const float a,
+               const ArrayExp& b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(a)), // a
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
-      _a(_lit32A),
-      _b(_lit32B) { }
+      _a(_lit32fA),
+      _b(b) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const int a,
-                 const double b)
-    : _lit32A(ArrayLitf32(a)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(0)),
-      _lit64B(ArrayLitf64(b)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const double a,
+               const ArrayExp& b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(a)), // a
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
-      _a(_lit32A),
-      _b(_lit64B) { }
+      _a(_lit64fA),
+      _b(b) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const float a,
-                 const int b)
-    : _lit32A(ArrayLitf32(a)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(b)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const uint32_t a,
+               const uint32_t b)
+    : _lit32uA(ArrayLitu32(a)), // a
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(b)), // b
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
-      _a(_lit32A),
-      _b(_lit32B) { }
+      _a(_lit32uA),
+      _b(_lit32uB) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const float a,
-                 const float b)
-    : _lit32A(ArrayLitf32(a)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(b)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const uint32_t a,
+               const int32_t b)
+    : _lit32uA(ArrayLitu32(a)), // a
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(b)), // b
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
-      _a(_lit32A),
-      _b(_lit32B) { }
+      _a(_lit32uA),
+      _b(_lit32iB) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const float a,
-                 const double b)
-    : _lit32A(ArrayLitf32(a)),
-      _lit64A(ArrayLitf64(0)),
-      _lit32B(ArrayLitf32(0)),
-      _lit64B(ArrayLitf64(b)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const uint32_t a,
+               const float b)
+    : _lit32uA(ArrayLitu32(a)), // a
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(b)), // b
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
-      _a(_lit32A),
-      _b(_lit64B) { }
+      _a(_lit32uA),
+      _b(_lit32fB) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const double a,
-                 const int b)
-    : _lit32A(ArrayLitf32(0)),
-      _lit64A(ArrayLitf64(a)),
-      _lit32B(ArrayLitf32(b)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const uint32_t a,
+               const double b)
+    : _lit32uA(ArrayLitu32(a)), // a
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(b)), // b
+      _funCode(f),
       _pred(p),
-      _a(_lit64A),
-      _b(_lit32B) { }
+      _a(_lit32uA),
+      _b(_lit64fB) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const double a,
-                 const float b)
-    : _lit32A(ArrayLitf32(0)),
-      _lit64A(ArrayLitf64(a)),
-      _lit32B(ArrayLitf32(b)),
-      _lit64B(ArrayLitf64(0)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const int32_t a,
+               const uint32_t b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(a)), // a
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(b)), // b
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
-      _a(_lit64A),
-      _b(_lit32B) { }
+      _a(_lit32iA),
+      _b(_lit32uB) { }
 
-CondFun::CondFun(const PredicateFun& p,
-                 const double a,
-                 const double b)
-    : _lit32A(ArrayLitf32(0)),
-      _lit64A(ArrayLitf64(a)),
-      _lit32B(ArrayLitf32(0)),
-      _lit64B(ArrayLitf64(b)),
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const int32_t a,
+               const int32_t b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(a)), // a
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(b)), // b
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
       _pred(p),
-      _a(_lit64A),
-      _b(_lit64B) { }
+      _a(_lit32iA),
+      _b(_lit32iB) { }
 
-void CondFun::accept(Stak<BC>& v) const
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const int32_t a,
+               const float b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(a)), // a
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(b)), // b
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
+      _pred(p),
+      _a(_lit32iA),
+      _b(_lit32fB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const int32_t a,
+               const double b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(a)), // a
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(b)), // b
+      _funCode(f),
+      _pred(p),
+      _a(_lit32iA),
+      _b(_lit64fB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const float a,
+               const uint32_t b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(a)), // a
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(b)), // b
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
+      _pred(p),
+      _a(_lit32fA),
+      _b(_lit32uB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const float a,
+               const int32_t b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(a)), // a
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(b)), // b
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
+      _pred(p),
+      _a(_lit32fA),
+      _b(_lit32iB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const float a,
+               const float b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(a)), // a
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(b)), // b
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
+      _pred(p),
+      _a(_lit32fA),
+      _b(_lit32fB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const float a,
+               const double b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(a)), // a
+      _lit64fA(ArrayLitf64(0)),
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(b)), // b
+      _funCode(f),
+      _pred(p),
+      _a(_lit32fA),
+      _b(_lit64fB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const double a,
+               const uint32_t b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(a)), // a
+      _lit32uB(ArrayLitu32(b)), // b
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
+      _pred(p),
+      _a(_lit64fA),
+      _b(_lit32uB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const double a,
+               const int32_t b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(a)), // a
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(b)), // b
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
+      _pred(p),
+      _a(_lit64fA),
+      _b(_lit32iB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const double a,
+               const float b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(a)), // a
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(b)), // b
+      _lit64fB(ArrayLitf64(0)),
+      _funCode(f),
+      _pred(p),
+      _a(_lit64fA),
+      _b(_lit32fB) { }
+
+TriFun::TriFun(const uint32_t f,
+               const ArrayExp& p,
+               const double a,
+               const double b)
+    : _lit32uA(ArrayLitu32(0)),
+      _lit32iA(ArrayLiti32(0)),
+      _lit32fA(ArrayLitf32(0)),
+      _lit64fA(ArrayLitf64(a)), // a
+      _lit32uB(ArrayLitu32(0)),
+      _lit32iB(ArrayLiti32(0)),
+      _lit32fB(ArrayLitf32(0)),
+      _lit64fB(ArrayLitf64(b)), // b
+      _funCode(f),
+      _pred(p),
+      _a(_lit64fA),
+      _b(_lit64fB) { }
+
+void TriFun::accept(Stak<BC>& v) const
 {
     _b.accept(v);
     _a.accept(v);
     _pred.accept(v);
 
-    v.push(ByteCodes::cond);
+    v.push(_funCode);
 }
 
-void CondFun::accept(stack< ArrayDim >& v) const
+void TriFun::accept(stack< ArrayDim >& v) const
 {
     _b.accept(v);
     _a.accept(v);
@@ -708,82 +927,122 @@ void CondFun::accept(stack< ArrayDim >& v) const
     v.pop();
     const ArrayDim b = v.top();
     v.pop();
+
     v.push(ArrayDim( (a.width > b.width ? a.width : b.width),
                      (a.height > b.height ? a.height : b.height),
                      (a.slots > b.slots ? a.slots : b.slots) ));
 }
 
-CondFun cond(const PredicateFun& pred, const ArrayExp& A, const ArrayExp& B) {
-    return CondFun(pred, A, B); }
+TriFun cond(const ArrayExp& pred, const ArrayExp& A, const ArrayExp& B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
 
-CondFun cond(const PredicateFun& pred, const ArrayExp& A, const int B) {
-    return CondFun(pred, A, B); }
+TriFun cond(const ArrayExp& pred, const ArrayExp& A, const uint32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const ArrayExp& A, const int32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const ArrayExp& A, const float B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const ArrayExp& A, const double B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
 
-CondFun cond(const PredicateFun& pred, const int A, const ArrayExp& B) {
-    return CondFun(pred, A, B); }
+TriFun cond(const ArrayExp& pred, const uint32_t A, const ArrayExp& B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const int32_t A, const ArrayExp& B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const float A, const ArrayExp& B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const double A, const ArrayExp& B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
 
-CondFun cond(const PredicateFun& pred, const ArrayExp& A, const float B) {
-    return CondFun(pred, A, B); }
+TriFun cond(const ArrayExp& pred, const uint32_t A, const uint32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const uint32_t A, const int32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const uint32_t A, const float B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const uint32_t A, const double B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
 
-CondFun cond(const PredicateFun& pred, const float A, const ArrayExp& B) {
-    return CondFun(pred, A, B); }
+TriFun cond(const ArrayExp& pred, const int32_t A, const uint32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const int32_t A, const int32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const int32_t A, const float B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const int32_t A, const double B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
 
-CondFun cond(const PredicateFun& pred, const ArrayExp& A, const double B) {
-    return CondFun(pred, A, B); }
+TriFun cond(const ArrayExp& pred, const float A, const uint32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const float A, const int32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const float A, const float B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const float A, const double B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
 
-CondFun cond(const PredicateFun& pred, const double A, const ArrayExp& B) {
-    return CondFun(pred, A, B); }
-
-CondFun cond(const PredicateFun& pred, const int A, const int B) {
-    return CondFun(pred, A, B); }
-
-CondFun cond(const PredicateFun& pred, const int A, const float B) {
-    return CondFun(pred, A, B); }
-
-CondFun cond(const PredicateFun& pred, const int A, const double B) {
-    return CondFun(pred, A, B); }
-
-CondFun cond(const PredicateFun& pred, const float A, const int B) {
-    return CondFun(pred, A, B); }
-
-CondFun cond(const PredicateFun& pred, const float A, const float B) {
-    return CondFun(pred, A, B); }
-
-CondFun cond(const PredicateFun& pred, const float A, const double B) {
-    return CondFun(pred, A, B); }
-
-CondFun cond(const PredicateFun& pred, const double A, const int B) {
-    return CondFun(pred, A, B); }
-
-CondFun cond(const PredicateFun& pred, const double A, const float B) {
-    return CondFun(pred, A, B); }
-
-CondFun cond(const PredicateFun& pred, const double A, const double B) {
-    return CondFun(pred, A, B); }
+TriFun cond(const ArrayExp& pred, const double A, const uint32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const double A, const int32_t B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const double A, const float B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
+TriFun cond(const ArrayExp& pred, const double A, const double B) {
+    return TriFun(ByteCodes::operatorCONDEXPR, pred, A, B); }
 
 ////////////////////////////////////////
 // binary operations
 
-#define DEFN_ARRAY_BINOPFUN(NAME, FUNCODE) \
-BinLitFun NAME (const ArrayExp& A, const ArrayExp& B) { \
-    return BinLitFun(ByteCodes:: FUNCODE, A, B); } \
-BinLitFun NAME (const ArrayExp& A, const int B) { \
-    return BinLitFun(ByteCodes:: FUNCODE, A, B); } \
-BinLitFun NAME (const int A, const ArrayExp& B) { \
-    return BinLitFun(ByteCodes:: FUNCODE, A, B); } \
-BinLitFun NAME (const ArrayExp& A, const float B) { \
-    return BinLitFun(ByteCodes:: FUNCODE, A, B); } \
-BinLitFun NAME (const float A, const ArrayExp& B) { \
-    return BinLitFun(ByteCodes:: FUNCODE, A, B); } \
-BinLitFun NAME (const ArrayExp& A, const double B) { \
-    return BinLitFun(ByteCodes:: FUNCODE, A, B); } \
-BinLitFun NAME (const double A, const ArrayExp& B) { \
-    return BinLitFun(ByteCodes:: FUNCODE, A, B); }
+DuoFun operator&& (const ArrayExp& A, const ArrayExp& B) {
+    return DuoFun(ByteCodes::operatorLOGICALAND, A, B); }
 
+DuoFun operator|| (const ArrayExp& A, const ArrayExp& B) {
+    return DuoFun(ByteCodes::operatorLOGICALOR, A, B); }
+
+#define DEFN_ARRAY_BINOPFUN(NAME, FUNCODE) \
+DuoFun NAME (const ArrayExp& A, const ArrayExp& B) { \
+    return DuoFun(ByteCodes:: FUNCODE, A, B); } \
+DuoFun NAME (const ArrayExp& A, const uint32_t B) { \
+    return DuoFun(ByteCodes:: FUNCODE, A, B); } \
+DuoFun NAME (const uint32_t A, const ArrayExp& B) { \
+    return DuoFun(ByteCodes:: FUNCODE, A, B); } \
+DuoFun NAME (const ArrayExp& A, const int32_t B) { \
+    return DuoFun(ByteCodes:: FUNCODE, A, B); } \
+DuoFun NAME (const int32_t A, const ArrayExp& B) { \
+    return DuoFun(ByteCodes:: FUNCODE, A, B); } \
+DuoFun NAME (const ArrayExp& A, const float B) { \
+    return DuoFun(ByteCodes:: FUNCODE, A, B); } \
+DuoFun NAME (const float A, const ArrayExp& B) { \
+    return DuoFun(ByteCodes:: FUNCODE, A, B); } \
+DuoFun NAME (const ArrayExp& A, const double B) { \
+    return DuoFun(ByteCodes:: FUNCODE, A, B); } \
+DuoFun NAME (const double A, const ArrayExp& B) { \
+    return DuoFun(ByteCodes:: FUNCODE, A, B); }
+
+DEFN_ARRAY_BINOPFUN(operator==, operatorEQUAL)
+DEFN_ARRAY_BINOPFUN(operator!=, operatorNOTEQUAL)
+DEFN_ARRAY_BINOPFUN(operator<=, operatorLESSEQUAL)
+DEFN_ARRAY_BINOPFUN(operator>=, operatorGREATEREQUAL)
+DEFN_ARRAY_BINOPFUN(operator<, operatorLESSTHAN)
+DEFN_ARRAY_BINOPFUN(operator>, operatorGREATERTHAN)
+DEFN_ARRAY_BINOPFUN(abs_diff, abs_diff)
+DEFN_ARRAY_BINOPFUN(add_sat, add_sat)
+DEFN_ARRAY_BINOPFUN(hadd, hadd)
+DEFN_ARRAY_BINOPFUN(mul24, mul24)
+DEFN_ARRAY_BINOPFUN(mul_hi, mul_hi)
+DEFN_ARRAY_BINOPFUN(rhadd, rhadd)
+DEFN_ARRAY_BINOPFUN(rotate, rotate)
+DEFN_ARRAY_BINOPFUN(sub_sat, sub_sat)
 DEFN_ARRAY_BINOPFUN(operator+, operatorADD)
-DEFN_ARRAY_BINOPFUN(operator-, operatorSUB)
-DEFN_ARRAY_BINOPFUN(operator*, operatorMUL)
-DEFN_ARRAY_BINOPFUN(operator/, operatorDIV)
+DEFN_ARRAY_BINOPFUN(operator-, operatorSUBTRACT)
+DEFN_ARRAY_BINOPFUN(operator*, operatorMULTIPLY)
+DEFN_ARRAY_BINOPFUN(operator/, operatorDIVIDE)
+DEFN_ARRAY_BINOPFUN(operator%, operatorMODULO)
+DEFN_ARRAY_BINOPFUN(operator<<, operatorSHIFTLEFT)
+DEFN_ARRAY_BINOPFUN(operator>>, operatorSHIFTRIGHT)
+DEFN_ARRAY_BINOPFUN(operator&, operatorBITWISEAND)
+DEFN_ARRAY_BINOPFUN(operator|, operatorBITWISEOR)
+DEFN_ARRAY_BINOPFUN(operator^, operatorBITWISEXOR)
 DEFN_ARRAY_BINOPFUN(max, max)
 DEFN_ARRAY_BINOPFUN(min, min)
 DEFN_ARRAY_BINOPFUN(maxmag, maxmag)
@@ -819,13 +1078,15 @@ DEFN_ARRAY_BINOPFUN(islessgreater, islessgreater)
 RNG ## FP ::RNG ## FP (const RNG ## FP ## Variant rngVariant) \
     : _rngVariant(rngVariant) { }
 
+DEFN_RNG(u32, uint32_t)
+DEFN_RNG(i32, int32_t)
 DEFN_RNG(f32, float)
 DEFN_RNG(f64, double)
 
 ////////////////////////////////////////
 // array variables
 
-#define DEFN_ARRAY(FP, X) \
+#define DEFN_ARRAY(FP, X, PREC) \
 \
 void ARR(FP)::initClient(void) { \
     if (! _client) { \
@@ -846,7 +1107,7 @@ ARR(FP)::ARR(FP) (const X lit) \
     _refs.checkout(_nut); \
     _client->constructor(_variable, _nut); \
     Stak<BC>& v = _client->assignment(_variable, _version++); \
-    v.push(lit); \
+    v.push(static_cast<double>(lit)); \
     v.push(ByteCodes::scalar_ ## FP); } \
 \
 ARR(FP)::ARR(FP) (void) \
@@ -948,32 +1209,32 @@ void ARR(FP)::accept(stack< ArrayDim >& v) const { \
     v.push(ArrayDim(_W, _H, _slots)); } \
 \
 X ARR(FP)::read_scalar(void) { \
-    const size_t standardVectorLength = sizeof(double) == sizeof(X) ? 2 : 4; \
+    const size_t standardVectorLength = PrecType::vecLength(PREC); \
     FrontMem* m = _client->memalloc(_variable, \
                                     standardVectorLength, \
                                     _H, \
-                                    sizeof(X)); \
+                                    PREC); \
     void* mx = _client->frontMem(m); \
     Stak<BC>& v = _client->assignment(_variable, _version); \
     v.push(mx); \
     v.push(BC(_variable, _version - 1)); \
     v.push(ByteCodes::read_scalar_ ## FP); \
     _client->schedule(); \
-    if (sizeof(double) == sizeof(X)) \
-        return static_cast<X*>(m->ptrMem(sizeof(X)))[0] \
-             + static_cast<X*>(m->ptrMem(sizeof(X)))[1]; \
+    if (2 == PrecType::vecLength(PREC)) \
+        return static_cast<X*>(m->ptrMem(PREC))[0] \
+             + static_cast<X*>(m->ptrMem(PREC))[1]; \
     else \
-        return static_cast<X*>(m->ptrMem(sizeof(X)))[0] \
-             + static_cast<X*>(m->ptrMem(sizeof(X)))[1] \
-             + static_cast<X*>(m->ptrMem(sizeof(X)))[2] \
-             + static_cast<X*>(m->ptrMem(sizeof(X)))[3]; } \
+        return static_cast<X*>(m->ptrMem(PREC))[0] \
+             + static_cast<X*>(m->ptrMem(PREC))[1] \
+             + static_cast<X*>(m->ptrMem(PREC))[2] \
+             + static_cast<X*>(m->ptrMem(PREC))[3]; } \
 \
 vector< X > ARR(FP)::read_scalar(const size_t slots) { \
-    const size_t standardVectorLength = sizeof(double) == sizeof(X) ? 2 : 4; \
+    const size_t standardVectorLength = PrecType::vecLength(PREC); \
     FrontMem* m = _client->memalloc(_variable, \
                                     standardVectorLength, \
                                     _H, \
-                                    sizeof(X), \
+                                    PREC, \
                                     slots); \
     void* mx = _client->frontMem(m); \
     Stak<BC>& v = _client->assignment(_variable, _version); \
@@ -987,13 +1248,13 @@ vector< X > ARR(FP)::read_scalar(const size_t slots) { \
          it != m->slotMem().end(); \
          it++) \
         rvec.push_back( \
-            sizeof(double) == sizeof(X) \
-                ? static_cast<X*>((*it)->ptrMem(sizeof(X)))[0] \
-                      + static_cast<X*>((*it)->ptrMem(sizeof(X)))[1] \
-                : static_cast<X*>((*it)->ptrMem(sizeof(X)))[0] \
-                      + static_cast<X*>((*it)->ptrMem(sizeof(X)))[1] \
-                      + static_cast<X*>((*it)->ptrMem(sizeof(X)))[2] \
-                      + static_cast<X*>((*it)->ptrMem(sizeof(X)))[3] ); \
+            2 == PrecType::vecLength(PREC) \
+                ? static_cast<X*>((*it)->ptrMem(PREC))[0] \
+                      + static_cast<X*>((*it)->ptrMem(PREC))[1] \
+                : static_cast<X*>((*it)->ptrMem(PREC))[0] \
+                      + static_cast<X*>((*it)->ptrMem(PREC))[1] \
+                      + static_cast<X*>((*it)->ptrMem(PREC))[2] \
+                      + static_cast<X*>((*it)->ptrMem(PREC))[3] ); \
     return rvec; } \
 \
 void ARR(FP)::read1(X* cpu, \
@@ -1002,20 +1263,20 @@ void ARR(FP)::read1(X* cpu, \
     FrontMem* m = _client->memalloc(_variable, \
                                     _W, \
                                     _H, \
-                                    sizeof(X)); \
+                                    PREC); \
     void* mx = _client->frontMem(m); \
     Stak<BC>& v = _client->assignment(_variable, _version); \
     v.push(mx); \
     v.push(BC(_variable, _version - 1)); \
     v.push(ByteCodes::read1_ ## FP); \
     _client->schedule(); \
-    if (sizeof(X) == stride) \
-        memcpy(cpu, m->ptrMem(sizeof(X)), n); \
+    if (PrecType::sizeOf(PREC) == stride) \
+        memcpy(cpu, m->ptrMem(PREC), n); \
     else \
         for (size_t i = 0; i < n; i+=stride) \
             memcpy(reinterpret_cast<char*>(cpu) + i, \
-                   static_cast<char*>(m->ptrMem(sizeof(X))) + i, \
-                   sizeof(X)); \
+                   static_cast<char*>(m->ptrMem(PREC)) + i, \
+                   PrecType::sizeOf(PREC)); \
     return; } \
 \
 void ARR(FP)::read1(const vector< X* >& cpu, \
@@ -1024,7 +1285,7 @@ void ARR(FP)::read1(const vector< X* >& cpu, \
     FrontMem* m = _client->memalloc(_variable, \
                                     _W, \
                                     _H, \
-                                    sizeof(X), \
+                                    PREC, \
                                     cpu.size()); \
     void* mx = _client->frontMem(m); \
     Stak<BC>& v = _client->assignment(_variable, _version); \
@@ -1033,14 +1294,14 @@ void ARR(FP)::read1(const vector< X* >& cpu, \
     v.push(ByteCodes::read1_ ## FP); \
     _client->schedule(); \
     for (size_t i = 0; i < cpu.size(); i++) \
-        if (sizeof(X) == stride) \
-            memcpy(cpu[i], m->slotMem()[i]->ptrMem(sizeof(X)), n); \
+        if (PrecType::sizeOf(PREC) == stride) \
+            memcpy(cpu[i], m->slotMem()[i]->ptrMem(PREC), n); \
         else \
             for (size_t j = 0; j < n; j+=stride) \
                 memcpy(reinterpret_cast<char*>(cpu[i]) + j, \
                        static_cast<char*>(m->slotMem()[i] \
-                                           ->ptrMem(sizeof(X))) + j, \
-                       sizeof(X)); \
+                                           ->ptrMem(PREC)) + j, \
+                       PrecType::sizeOf(PREC)); \
     return; } \
 \
 void ARR(FP)::read2(X* cpu, \
@@ -1050,20 +1311,20 @@ void ARR(FP)::read2(X* cpu, \
     FrontMem* m = _client->memalloc(_variable, \
                                     _W, \
                                     _H, \
-                                    sizeof(X)); \
+                                    PREC); \
     void* mx = _client->frontMem(m); \
     Stak<BC>& v = _client->assignment(_variable, _version); \
     v.push(mx); \
     v.push(BC(_variable, _version - 1)); \
     v.push(ByteCodes::read2_ ## FP); \
     _client->schedule(); \
-    if (sizeof(X) == stride) \
-        memcpy(cpu, static_cast<char*>(m->ptrMem(sizeof(X))) + pad, n); \
+    if (PrecType::sizeOf(PREC) == stride) \
+        memcpy(cpu, static_cast<char*>(m->ptrMem(PREC)) + pad, n); \
     else \
         for (size_t i = 0; i < n; i+=stride) \
             memcpy(reinterpret_cast<char*>(cpu) + i, \
-                   static_cast<char*>(m->ptrMem(sizeof(X))) + i + pad, \
-                   sizeof(X)); \
+                   static_cast<char*>(m->ptrMem(PREC)) + i + pad, \
+                   PrecType::sizeOf(PREC)); \
     return; } \
 \
 void ARR(FP)::read2(const vector< X* >& cpu, \
@@ -1073,7 +1334,7 @@ void ARR(FP)::read2(const vector< X* >& cpu, \
     FrontMem* m = _client->memalloc(_variable, \
                                     _W, \
                                     _H, \
-                                    sizeof(X), \
+                                    PREC, \
                                     cpu.size()); \
     void* mx = _client->frontMem(m); \
     Stak<BC>& v = _client->assignment(_variable, _version); \
@@ -1082,15 +1343,15 @@ void ARR(FP)::read2(const vector< X* >& cpu, \
     v.push(ByteCodes::read2_ ## FP); \
     _client->schedule(); \
     for (size_t i = 0; i < cpu.size(); i++) \
-        if (sizeof(X) == stride) \
+        if (PrecType::sizeOf(PREC) == stride) \
             memcpy(cpu[i], static_cast<char*>(m->slotMem()[i] \
-                                               ->ptrMem(sizeof(X))) + pad, n); \
+                                               ->ptrMem(PREC)) + pad, n); \
         else \
             for (size_t j = 0; j < n; j+=stride) \
                 memcpy(reinterpret_cast<char*>(cpu[i]) + j, \
                        static_cast<char*>(m->slotMem()[i] \
-                                           ->ptrMem(sizeof(X))) + j + pad, \
-                       sizeof(X)); \
+                                           ->ptrMem(PREC)) + j + pad, \
+                       PrecType::sizeOf(PREC)); \
     return; } \
 \
 ARR(FP) ARR(FP)::index(const size_t i, const size_t W) { \
@@ -1300,7 +1561,9 @@ ARR(FP) rng_normal_make(RNG ## FP & generator, \
     return ARR(FP)::rng_normal_make(generator, \
                                     length); }
 
-DEFN_ARRAY(f32, float)
-DEFN_ARRAY(f64, double)
+DEFN_ARRAY(u32, uint32_t, PrecType::UInt32)
+DEFN_ARRAY(i32, int32_t, PrecType::Int32)
+DEFN_ARRAY(f32, float, PrecType::Float)
+DEFN_ARRAY(f64, double, PrecType::Double)
 
 }; // namespace chai

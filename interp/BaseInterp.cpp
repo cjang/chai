@@ -1,7 +1,8 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
-#include "MemalignSTL.hpp"
 #include "BaseInterp.hpp"
+#include "MemalignSTL.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -11,14 +12,9 @@ namespace chai_internal {
 // common base for all bytecode
 // interpreter operations
 
-bool BaseInterp::isFloat(const size_t argStackIndex) const
+size_t BaseInterp::precision(const size_t argStackIndex) const
 {
-    return _argStack[argStackIndex].front()->isFloat();
-}
-
-bool BaseInterp::isDouble(const size_t argStackIndex) const
-{
-    return _argStack[argStackIndex].front()->isDouble();
+    return _argStack[argStackIndex].front()->precision();
 }
 
 size_t BaseInterp::W(const size_t argStackIndex) const
@@ -33,18 +29,19 @@ size_t BaseInterp::H(const size_t argStackIndex) const
 
 size_t BaseInterp::frontSize(const size_t argStackIndex) const
 {
+    const size_t prec = precision(argStackIndex);
+
     // standard vector length is double2 and float4
-    const size_t standardVectorLength = isDouble(argStackIndex) ? 2 : 4;
+    const size_t standardVectorLength = PrecType::vecLength(prec);
 
     // special case for scalar reductions
     // relies on implicit convention of array dimensions
     const bool specialCaseReadScalar
         = 1 == H(argStackIndex) && 1 == W(argStackIndex);
 
-    return (isDouble(argStackIndex) ? sizeof(double) : sizeof(float))
-               * (specialCaseReadScalar
-                      ? standardVectorLength
-                      : W(argStackIndex) * H(argStackIndex));
+    return PrecType::sizeOf(prec) *
+           (specialCaseReadScalar ? standardVectorLength
+                                  : W(argStackIndex) * H(argStackIndex));
 }
 
 size_t BaseInterp::numTraces(void) const
@@ -97,20 +94,34 @@ double* BaseInterp::doublePtr(const size_t argStackIndex,
     return vref[vecIndex % vref.size()]->doublePtr();
 }
 
+int32_t* BaseInterp::intPtr(const size_t argStackIndex,
+                            const size_t vecIndex) const
+{
+    const vector< FrontMem* >& vref = _argStack[argStackIndex];
+    return vref[vecIndex % vref.size()]->intPtr();
+}
+
+uint32_t* BaseInterp::uintPtr(const size_t argStackIndex,
+                              const size_t vecIndex) const
+{
+    const vector< FrontMem* >& vref = _argStack[argStackIndex];
+    return vref[vecIndex % vref.size()]->uintPtr();
+}
+
 BackMem* BaseInterp::allocBackMem(const size_t W,
                                   const size_t H,
-                                  const bool isDP) const
+                                  const size_t prec) const
 {
-    return _memManager->allocBackMem(W, H, isDP, numTraces());
+    return _memManager->allocBackMem(W, H, prec, numTraces());
 }
 
 FrontMem* BaseInterp::allocFrontMem(const size_t W,
-                                const size_t H,
-                                const bool isDP,
-                                BackMem* backMem,
-                                const size_t vecIndex) const
+                                    const size_t H,
+                                    const size_t prec,
+                                    BackMem* backMem,
+                                    const size_t vecIndex) const
 {
-    return _memManager->allocFrontMem(W, H, isDP, backMem, vecIndex);
+    return _memManager->allocFrontMem(W, H, prec, backMem, vecIndex);
 }
 
 BaseInterp::BaseInterp(const size_t inCount,

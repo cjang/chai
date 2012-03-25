@@ -22,7 +22,9 @@ class InterpGather : public BaseInterp
         for (size_t x = 0; x < W(0); x++)
         for (size_t y = 0; y < H(0); y++) {
             const int xf = _fun( d1 [idx(1, x, y)] );
-            dOut[x + y * W(0)] = d0 [(xf % W(0)) + y * W(0)];
+            const int xfM = xf % W(0);
+            const int xfR = (xfM < 0) ? xfM + W(0) : xfM;
+            dOut[x + y * W(0)] = d0 [xfR + y * W(0)];
         }
     }
 
@@ -32,8 +34,12 @@ class InterpGather : public BaseInterp
         for (size_t x = 0; x < W(0); x++)
         for (size_t y = 0; y < H(0); y++) {
             const int xf = _fun( d1 [idx(1, x, y)] );
+            const int xfM = xf % W(0);
+            const int xfR = (xfM < 0) ? xfM + W(0) : xfM;
             const int yf = _fun( d2 [idx(2, x, y)] );
-            dOut[x + y * W(0)] = d0 [(xf % W(0)) + (yf % H(0)) * W(0)];
+            const int yfM = yf % H(0);
+            const int yfR = (yfM < 0) ? yfM + H(0) : yfM;
+            dOut[x + y * W(0)] = d0 [xfR + yfR * W(0)];
         }
     }
 

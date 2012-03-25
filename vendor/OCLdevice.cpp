@@ -15,6 +15,8 @@ namespace chai_internal {
 
 template <> size_t imgveclen<float>() { return 4; }
 template <> size_t imgveclen<double>() { return 2; }
+template <> size_t imgveclen<int32_t>() { return 4; }
+template <> size_t imgveclen<uint32_t>() { return 4; }
 
 ////////////////////////////////////////
 // AccessMode
@@ -223,20 +225,40 @@ const cl_mem& OCLHeapOfMemoryBuffers::handle(const size_t index) const
 
 int OCLHeapOfImages::create(const size_t width,
                             const size_t height,
-                            const OCLImageMode* mode,
+                            const OCLImageMode& mode,
                             const bool pinned,
                             void* ptr,
-                            const bool freePtr)
+                            const bool freePtr,
+                            const size_t precTypeSizeCode)
 {
     cl_image_format format;
+
     format.image_channel_order = CL_RGBA;
-    format.image_channel_data_type = CL_UNSIGNED_INT32;
+
+    switch (precTypeSizeCode)
+    {
+        case (PrecType::UInt32) :
+            format.image_channel_data_type = CL_UNSIGNED_INT32;
+            break;
+
+        case (PrecType::Int32) :
+            format.image_channel_data_type = CL_SIGNED_INT32;
+            break;
+
+        case (PrecType::Float) :
+            format.image_channel_data_type = CL_FLOAT;
+            break;
+
+        case (PrecType::Double) :
+            format.image_channel_data_type = CL_UNSIGNED_INT32;
+            break;
+    }
 
     cl_int status;
     const cl_mem handle = clCreateImage2D(_context,
-                                          mode->flags(pinned
-                                                      ? CL_MEM_ALLOC_HOST_PTR
-                                                      : CL_MEM_USE_HOST_PTR),
+                                          mode.flags(pinned
+                                                     ? CL_MEM_ALLOC_HOST_PTR
+                                                     : CL_MEM_USE_HOST_PTR),
                                           &format,
                                           width,
                                           height,
@@ -252,7 +274,7 @@ int OCLHeapOfImages::create(const size_t width,
         _ptrs.push_back(ptr);
         _freePtr.push_back(freePtr);
         _handles.push_back(handle);
-        _access.push_back(mode);
+        _access.push_back(&mode);
         _pinned.push_back(pinned);
         _width.push_back(width);
         _height.push_back(height);
@@ -269,11 +291,13 @@ int OCLHeapOfImages::create(const size_t width,
 
 int OCLHeapOfImages::create(const size_t width,
                             const size_t height,
-                            const OCLImageMode* mode,
+                            const OCLImageMode& mode,
                             const bool pinned,
-                            const size_t alignment)
+                            const size_t alignment,
+                            const size_t precTypeSizeCode)
 {
-    const size_t size = width * height * 4 * sizeof(float);
+    // each texel is 32 bits in a 128 bit RGBA quad
+    const size_t size = width * height * 4 * sizeof(uint32_t);
 
     void *ptr;
     if (pinned)
@@ -284,7 +308,7 @@ int OCLHeapOfImages::create(const size_t width,
                                 size))
             return -1;
 
-    return create(width, height, mode, pinned, ptr, true);
+    return create(width, height, mode, pinned, ptr, true, precTypeSizeCode);
 }
 
 OCLHeapOfImages::OCLHeapOfImages(const cl_context context,
@@ -338,22 +362,6 @@ size_t OCLHeapOfImages::scavenge(void)
     }
 
     return totalCount;
-}
-
-int OCLHeapOfImages::createWithPointer(const size_t width,  // texel dimensions
-                                       const size_t height, // texel dimensions
-                                       const OCLImageMode& mode,
-                                       void* ptr)
-{
-    return create(width, height, &mode, false, ptr, false);
-}
-
-int OCLHeapOfImages::createWithPointer(const size_t width,  // texel dimensions
-                                       const size_t height, // texel dimensions
-                                       const OCLImageMode& mode,
-                                       const void* ptr)
-{
-    return create(width, height, &mode, false, const_cast<void*>(ptr), false);
 }
 
 bool OCLHeapOfImages::waitWrite(void)
@@ -447,7 +455,15 @@ int OCLHeapOfKernels::create( const vector<string>& source,
                                    &status );
 
     if (CL_SUCCESS != status)
+    {
+#ifdef __LOGGING_ENABLED__
+        stringstream ss;
+        ss << "clCreateProgramWithSource failed for " << kernelName;
+        LOGGER(ss.str())
+#endif
+
         return -1;
+    }
 
     if (CL_SUCCESS != clBuildProgram(
                           program,
@@ -472,6 +488,14 @@ int OCLHeapOfKernels::create( const vector<string>& source,
         {
             LOGGER(msgbuf)
         }
+#ifdef __LOGGING_ENABLED__
+        else
+        {
+            stringstream ss;
+            ss << "clBuildProgram failed for " << kernelName;
+            LOGGER(ss.str())
+        }
+#endif
 
         clReleaseProgram(program);
 

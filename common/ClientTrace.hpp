@@ -95,12 +95,32 @@ public:
     FrontMem* memalloc(const uint32_t variable,
                        const size_t W,
                        const size_t H,
+                       uint32_t* defPtr);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
+                       int32_t* defPtr);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
                        float* defPtr);
 
     FrontMem* memalloc(const uint32_t variable,
                        const size_t W,
                        const size_t H,
                        double* defPtr);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
+                       const std::vector< uint32_t* >& defPtr);
+
+    FrontMem* memalloc(const uint32_t variable,
+                       const size_t W,
+                       const size_t H,
+                       const std::vector< int32_t* >& defPtr);
 
     FrontMem* memalloc(const uint32_t variable,
                        const size_t W,

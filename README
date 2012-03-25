@@ -81,3 +81,11 @@ vectorization works for GPU compute devices. Multi-threaded gather/scatter
 vectorized scheduling works but is unstable (depends on compute device). Trace
 continuation (typically loops) with multiple readouts is working. Autotuning
 cold and warm start times are excessive.
+
+Mar 25 2012 - alpha 2 release, refactored JIT and first class integer arrays
+JIT code is reorganized into several subdirectories. The main new feature is
+unsigned and signed integer array type support. Mixed integer and floating
+point calculation is supported (includes autotuned GEMM and GEMV). Generated
+kernels make better use of private registers in generated code. Gathering now
+works in the kirch.cpp sample. The md5.cpp sample performs vectorized MD5 hash
+code calculation on the GPU.

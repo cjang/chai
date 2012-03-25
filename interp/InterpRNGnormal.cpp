@@ -1,15 +1,19 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <stdlib.h>
 
 #include "InterpRNGnormal.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
 namespace chai_internal {
 
 ////////////////////////////////////////
-// rng_normal_make_f32, rng_normal_make_f64
+// rng_normal_make_u32
+// rng_normal_make_i32
+// rng_normal_make_f32
+// rng_normal_make_f64
 
 void InterpRNGnormal::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
@@ -21,7 +25,7 @@ void InterpRNGnormal::sub_eval(stack< vector< FrontMem* > >& outStack)
     _gen.seed(seed);
 
     // first allocate backing memory
-    BackMem* backMem = allocBackMem(len, 1, _isDP);
+    BackMem* backMem = allocBackMem(len, 1, _precision);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
@@ -29,19 +33,31 @@ void InterpRNGnormal::sub_eval(stack< vector< FrontMem* > >& outStack)
     // calculate and create fronts
     for (size_t i = 0; i < numTraces(); i++)
     {
-        FrontMem* m = allocFrontMem(len, 1, _isDP, backMem, i);
+        FrontMem* m = allocFrontMem(len, 1, _precision, backMem, i);
 
         frontMem.push_back(m);
 
-        if (_isDP)
+        switch (_precision)
         {
-            for (size_t j = 0; j < len; j++)
-                m->doublePtr()[j] = _gen.normal<double>();
-        }
-        else
-        {
-            for (size_t j = 0; j < len; j++)
-                m->floatPtr()[j] = _gen.normal<float>();
+            case (PrecType::UInt32) :
+                for (size_t j = 0; j < len; j++)
+                    m->uintPtr()[j] = _gen.normal<uint32_t>();
+                break;
+
+            case (PrecType::Int32) :
+                for (size_t j = 0; j < len; j++)
+                    m->intPtr()[j] = _gen.normal<int32_t>();
+                break;
+
+            case (PrecType::Float) :
+                for (size_t j = 0; j < len; j++)
+                    m->floatPtr()[j] = _gen.normal<float>();
+                break;
+
+            case (PrecType::Double) :
+                for (size_t j = 0; j < len; j++)
+                    m->doublePtr()[j] = _gen.normal<double>();
+                break;
         }
     }
 
@@ -49,9 +65,9 @@ void InterpRNGnormal::sub_eval(stack< vector< FrontMem* > >& outStack)
     outStack.push(frontMem);
 }
 
-InterpRNGnormal::InterpRNGnormal(const bool isDP, InterpRNG& gen)
+InterpRNGnormal::InterpRNGnormal(const size_t precision, InterpRNG& gen)
     : BaseInterp(2, 0),
-      _isDP(isDP),
+      _precision(precision),
       _gen(gen) { }
 
 }; // namespace chai_internal

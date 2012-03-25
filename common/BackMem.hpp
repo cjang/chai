@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <set>
+#include <stdint.h>
 
 #include "chai/RefCnt.hpp"
 
@@ -25,8 +26,7 @@ class BackMem : public RefObj
     const size_t _frontCount;
 
     // precision
-    enum Type { FLOAT, DOUBLE };
-    const Type   _ptrType;
+    const size_t _precision;
 
     // managed pointer
     void*        _ptrMem;
@@ -52,6 +52,20 @@ public:
             double* ptr,
             MemManager* mm);
 
+    BackMem(const size_t W,
+            const size_t H,
+            const size_t packing,
+            const size_t frontCount,
+            int32_t* ptr,
+            MemManager* mm);
+
+    BackMem(const size_t W,
+            const size_t H,
+            const size_t packing,
+            const size_t frontCount,
+            uint32_t* ptr,
+            MemManager* mm);
+
     ~BackMem(void);
 
     size_t sizeElems(void) const;
@@ -62,8 +76,6 @@ public:
 
     size_t frontCount(void) const;
 
-    bool isFloat(void) const;
-    bool isDouble(void) const;
     size_t precision(void) const;
 
     void* ptrMem(void) const;

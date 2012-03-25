@@ -40,6 +40,7 @@ BUILD_TARGETS = \
 	loopsum_uni.x loopsum_vec.x loopsum_omp.x loopsum_pth.x \
 	matmul_uni.x matmul_vec.x matmul_omp.x matmul_pth.x \
 	matmul64_uni.x matmul64_vec.x matmul64_omp.x matmul64_pth.x \
+	md5.x \
 	mingle.x mingle64.x \
 	monte.x \
 	pi.x \

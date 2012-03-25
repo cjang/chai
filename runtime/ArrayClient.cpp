@@ -61,6 +61,22 @@ FrontMem* ArrayClient::memalloc(const uint32_t variable,
 FrontMem* ArrayClient::memalloc(const uint32_t variable,
                                 const size_t W,
                                 const size_t H,
+                                uint32_t* dataPtr)
+{
+    return _trace.memalloc(variable, W, H, dataPtr);
+}
+
+FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
+                                int32_t* dataPtr)
+{
+    return _trace.memalloc(variable, W, H, dataPtr);
+}
+
+FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
                                 float* dataPtr)
 {
     return _trace.memalloc(variable, W, H, dataPtr);
@@ -70,6 +86,22 @@ FrontMem* ArrayClient::memalloc(const uint32_t variable,
                                 const size_t W,
                                 const size_t H,
                                 double* dataPtr)
+{
+    return _trace.memalloc(variable, W, H, dataPtr);
+}
+
+FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
+                                const vector< uint32_t* >& dataPtr)
+{
+    return _trace.memalloc(variable, W, H, dataPtr);
+}
+
+FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
+                                const vector< int32_t* >& dataPtr)
 {
     return _trace.memalloc(variable, W, H, dataPtr);
 }

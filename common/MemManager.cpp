@@ -6,6 +6,7 @@
 #include "Logger.hpp"
 #include "MemalignSTL.hpp"
 #include "MemManager.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -170,6 +171,112 @@ ArrayBuf* MemManager::createArrayBuf(const AccessMode mode,
     }
 }
 
+ArrayBuf* MemManager::createArrayBuf(const AccessMode mode,
+                                     const size_t packing,
+                                     const size_t W,
+                                     const size_t H,
+                                     const size_t vectorLength,
+                                     int32_t* ptr)
+{
+    ArrayBuf* arrayBuf = NULL;
+
+    switch (mode)
+    {
+        case (READ) :
+            arrayBuf = new ArrayBuf( *_oclDevice,
+                                     ArrayBuf::READ,
+                                     packing,
+                                     W,
+                                     H,
+                                     ptr,
+                                     vectorLength );
+            break;
+
+        case (WRITE) :
+            arrayBuf = new ArrayBuf( *_oclDevice,
+                                     ArrayBuf::WRITE,
+                                     packing,
+                                     W,
+                                     H,
+                                     ptr,
+                                     vectorLength );
+            break;
+
+        case (READWRITE) :
+            arrayBuf = new ArrayBuf( *_oclDevice,
+                                     ArrayBuf::READWRITE,
+                                     packing,
+                                     W,
+                                     H,
+                                     ptr,
+                                     vectorLength );
+            break;
+    }
+
+    if (arrayBuf->bufOk())
+    {
+        return arrayBuf;
+    }
+    else
+    {
+        delete arrayBuf;
+        return NULL;
+    }
+}
+
+ArrayBuf* MemManager::createArrayBuf(const AccessMode mode,
+                                     const size_t packing,
+                                     const size_t W,
+                                     const size_t H,
+                                     const size_t vectorLength,
+                                     uint32_t* ptr)
+{
+    ArrayBuf* arrayBuf = NULL;
+
+    switch (mode)
+    {
+        case (READ) :
+            arrayBuf = new ArrayBuf( *_oclDevice,
+                                     ArrayBuf::READ,
+                                     packing,
+                                     W,
+                                     H,
+                                     ptr,
+                                     vectorLength );
+            break;
+
+        case (WRITE) :
+            arrayBuf = new ArrayBuf( *_oclDevice,
+                                     ArrayBuf::WRITE,
+                                     packing,
+                                     W,
+                                     H,
+                                     ptr,
+                                     vectorLength );
+            break;
+
+        case (READWRITE) :
+            arrayBuf = new ArrayBuf( *_oclDevice,
+                                     ArrayBuf::READWRITE,
+                                     packing,
+                                     W,
+                                     H,
+                                     ptr,
+                                     vectorLength );
+            break;
+    }
+
+    if (arrayBuf->bufOk())
+    {
+        return arrayBuf;
+    }
+    else
+    {
+        delete arrayBuf;
+        return NULL;
+    }
+}
+
 bool MemManager::createArrayInternal(const uint32_t varNum,
                                      const AccessMode mode,
                                      const size_t packing,
@@ -180,7 +287,9 @@ bool MemManager::createArrayInternal(const uint32_t varNum,
                                      VectorTrace& vt,
                                      const bool initBackMem,
                                      const float val32,
-                                     const double val64)
+                                     const double val64,
+                                     const int32_t val32i,
+                                     const uint32_t val32u)
 {
     // need backing memory if variable is live as it may be subsequently
     // referenced within traces to swizzle data back from the compute device
@@ -211,28 +320,36 @@ bool MemManager::createArrayInternal(const uint32_t varNum,
             }
         }
 
-        const bool isDP = precision == sizeof(double);
-
         // memalloc only allocates backing memory for make and read
         // zeros, ones and scalar literals do not have backing memory yet
         BackMem* backMem
             = vt.backMem().count( vt.varFront(varNum) )
                   ? vt.backMem()[ vt.varFront(varNum) ]
-                  : allocBackMem(W, H, isDP, vt.numTraces()); // allocate!
+                  : allocBackMem(W, H, precision, vt.numTraces()); // allocate!
 
         // initialize backing memory
         if (initBackMem)
         {
             switch (precision)
             {
-                case (sizeof(float)) :
+                case (PrecType::UInt32) :
                     for (size_t i = 0; i < backMem->sizeElems(); i++)
-                        static_cast< float* >( backMem->ptrMem() )[i] = val32;
+                        static_cast< uint32_t* >(backMem->ptrMem())[i] = val32u;
                     break;
 
-                case (sizeof(double)) :
+                case (PrecType::Int32) :
                     for (size_t i = 0; i < backMem->sizeElems(); i++)
-                        static_cast< double* >( backMem->ptrMem() )[i] = val64;
+                        static_cast< int32_t* >(backMem->ptrMem())[i] = val32i;
+                    break;
+
+                case (PrecType::Float) :
+                    for (size_t i = 0; i < backMem->sizeElems(); i++)
+                        static_cast< float* >(backMem->ptrMem())[i] = val32;
+                    break;
+
+                case (PrecType::Double) :
+                    for (size_t i = 0; i < backMem->sizeElems(); i++)
+                        static_cast< double* >(backMem->ptrMem())[i] = val64;
                     break;
             }
         }
@@ -246,7 +363,7 @@ bool MemManager::createArrayInternal(const uint32_t varNum,
             for (size_t i = 0; i < vt.numTraces(); i++)
             {
                 // allocate!
-                frontMem.push_back( allocFrontMem(W, H, isDP, backMem, i) );
+                frontMem.push_back(allocFrontMem(W, H, precision, backMem, i));
             }
 
             // there must be nut objects for a live variable in the trace
@@ -311,7 +428,9 @@ bool MemManager::createArrayInternal(const AstVariable* varPtr,
                                      VectorTrace& vt,
                                      const bool initBackMem,
                                      const float val32,
-                                     const double val64)
+                                     const double val64,
+                                     const int32_t val32i,
+                                     const uint32_t val32u)
 {
     // continuation check for pre-existing allocation
     for (vector< uint64_t >::const_iterator
@@ -343,11 +462,19 @@ bool MemManager::createArrayInternal(const AstVariable* varPtr,
         {
             switch (precision)
             {
-                case (sizeof(float)) :
+                case (PrecType::UInt32) :
+                    arrayBuf->fillValue(val32u);
+                    break;
+
+                case (PrecType::Int32) :
+                    arrayBuf->fillValue(val32i);
+                    break;
+
+                case (PrecType::Float) :
                     arrayBuf->fillValue(val32);
                     break;
 
-                case (sizeof(double)) :
+                case (PrecType::Double) :
                     arrayBuf->fillValue(val64);
                     break;
             }
@@ -476,7 +603,8 @@ bool MemManager::memalloc(VectorTrace& vt)
                                            : dataPtrMap.size(); // make boxes
 
         // standard vector length is double2 and float4
-        const size_t standardVectorLength = proto->isDouble() ? 2 : 4;
+        const size_t standardVectorLength
+                         = PrecType::vecLength(proto->precision());
 
         // special case for scalar reductions
         // relies on implicit convention of array dimensions
@@ -496,8 +624,7 @@ bool MemManager::memalloc(VectorTrace& vt)
 
         // size of memory for each front memory box
         const size_t frontSize
-            = proto->H() * frontWidth * (proto->isDouble() ? sizeof(double)
-                                                           : sizeof(float));
+            = proto->H() * frontWidth * PrecType::sizeOf(proto->precision());
 
         BackMem* backMem = NULL;
 
@@ -543,19 +670,44 @@ bool MemManager::memalloc(VectorTrace& vt)
                     memset(b, 0, frontSize * numBackingSlots);
                 }
 
-                backMem = proto->isDouble()
-                              ? new BackMem(frontWidth,
-                                            proto->H(),
-                                            numBackingSlots,
-                                            vt.numTraces(), // front count
-                                            static_cast<double*>(b),
-                                            this)
-                              : new BackMem(frontWidth,
-                                            proto->H(),
-                                            numBackingSlots,
-                                            vt.numTraces(), // front count
-                                            static_cast<float*>(b),
-                                            this);
+                switch (proto->precision())
+                {
+                    case (PrecType::UInt32) :
+                        backMem = new BackMem(frontWidth,
+                                              proto->H(),
+                                              numBackingSlots,
+                                              vt.numTraces(), // front count
+                                              static_cast<uint32_t*>(b),
+                                              this);
+                        break;
+
+                    case (PrecType::Int32) :
+                        backMem = new BackMem(frontWidth,
+                                              proto->H(),
+                                              numBackingSlots,
+                                              vt.numTraces(), // front count
+                                              static_cast<int32_t*>(b),
+                                              this);
+                        break;
+
+                    case (PrecType::Float) :
+                        backMem = new BackMem(frontWidth,
+                                              proto->H(),
+                                              numBackingSlots,
+                                              vt.numTraces(), // front count
+                                              static_cast<float*>(b),
+                                              this);
+                        break;
+
+                    case (PrecType::Double) :
+                        backMem = new BackMem(frontWidth,
+                                              proto->H(),
+                                              numBackingSlots,
+                                              vt.numTraces(), // front count
+                                              static_cast<double*>(b),
+                                              this);
+                        break;
+                }
             }
             else
             {
@@ -598,12 +750,10 @@ bool MemManager::memalloc(VectorTrace& vt)
                 if (specialCasePadNeeded)
                 {
                     const size_t dataRowSize
-                        = proto->W() * (proto->isDouble() ? sizeof(double)
-                                                          : sizeof(float));
+                        = proto->W() * PrecType::sizeOf(proto->precision());
 
                     const size_t padRowSize
-                        = frontWidth * (proto->isDouble() ? sizeof(double)
-                                                          : sizeof(float));
+                        = frontWidth * PrecType::sizeOf(proto->precision());
 
                     for (size_t j = 0; j < proto->H(); j++)
                     {
@@ -849,7 +999,7 @@ bool MemManager::checkSameDataAcrossTraces(
     }
 
     // standard vector length is double2 and float4
-    const size_t standardVectorLength = proto->isDouble() ? 2 : 4;
+    const size_t standardVectorLength = PrecType::vecLength(proto->precision());
 
     // special case for scalars
     // relies on implicit convention of array dimensions
@@ -901,7 +1051,7 @@ BackMem* MemManager::unifyBackMem(const uint32_t variable,
     }
 
     // standard vector length is double2 and float4
-    const size_t standardVectorLength = proto->isDouble() ? 2 : 4;
+    const size_t standardVectorLength = PrecType::vecLength(proto->precision());
 
     // special case for scalars
     // relies on implicit convention of array dimensions
@@ -921,8 +1071,7 @@ BackMem* MemManager::unifyBackMem(const uint32_t variable,
 
     // size of memory for each front memory box
     const size_t frontSize
-        = proto->H() * frontWidth * (proto->isDouble() ? sizeof(double)
-                                                       : sizeof(float));
+        = proto->H() * frontWidth * PrecType::sizeOf(proto->precision());
 
     void* b = NULL;
 
@@ -940,19 +1089,44 @@ BackMem* MemManager::unifyBackMem(const uint32_t variable,
                 memset(b, 0, frontSize * frontMem.size());
             }
 
-            backMem = proto->isDouble()
-                          ? new BackMem(frontWidth,
-                                        proto->H(),
-                                        frontMem.size(),
-                                        frontMem.size(), // front count
-                                        static_cast<double*>(b),
-                                        this)
-                          : new BackMem(frontWidth,
-                                        proto->H(),
-                                        frontMem.size(),
-                                        frontMem.size(), // front count
-                                        static_cast<float*>(b),
-                                        this);
+            switch (proto->precision())
+            {
+                case (PrecType::UInt32) :
+                    backMem = new BackMem(frontWidth,
+                                          proto->H(),
+                                          frontMem.size(),
+                                          frontMem.size(), // front count
+                                          static_cast<uint32_t*>(b),
+                                          this);
+                    break;
+
+                case (PrecType::Int32) :
+                    backMem = new BackMem(frontWidth,
+                                          proto->H(),
+                                          frontMem.size(),
+                                          frontMem.size(), // front count
+                                          static_cast<int32_t*>(b),
+                                          this);
+                    break;
+
+                case (PrecType::Float) :
+                    backMem = new BackMem(frontWidth,
+                                          proto->H(),
+                                          frontMem.size(),
+                                          frontMem.size(), // front count
+                                          static_cast<float*>(b),
+                                          this);
+                    break;
+
+                case (PrecType::Double) :
+                    backMem = new BackMem(frontWidth,
+                                          proto->H(),
+                                          frontMem.size(),
+                                          frontMem.size(), // front count
+                                          static_cast<double*>(b),
+                                          this);
+                    break;
+            }
         }
         else
         {
@@ -979,12 +1153,10 @@ BackMem* MemManager::unifyBackMem(const uint32_t variable,
             if (specialCasePadNeeded)
             {
                 const size_t dataRowSize
-                    = proto->W() * (proto->isDouble() ? sizeof(double)
-                                                      : sizeof(float));
+                    = proto->W() * PrecType::sizeOf(proto->precision());
 
                 const size_t padRowSize
-                    = frontWidth * (proto->isDouble() ? sizeof(double)
-                                                      : sizeof(float));
+                    = frontWidth * PrecType::sizeOf(proto->precision());
 
                 for (size_t j = 0; j < proto->H(); j++)
                 {
@@ -1122,20 +1294,50 @@ bool MemManager::createArraySendData(const uint32_t varNum,
         }
     }
 
-    ArrayBuf* arrayBuf
-        = backMem->isDouble()
-              ? createArrayBuf( mode,
-                                backMem->packing(),
-                                backMem->W(),
-                                backMem->H(),
-                                vectorLength,
-                                static_cast< double* >(backMem->ptrMem()) )
-              : createArrayBuf( mode,
-                                backMem->packing(),
-                                backMem->W(),
-                                backMem->H(),
-                                vectorLength,
-                                static_cast< float* >(backMem->ptrMem()) );
+    ArrayBuf* arrayBuf = NULL;
+
+    switch (backMem->precision())
+    {
+        case (PrecType::UInt32) :
+            arrayBuf = createArrayBuf(
+                           mode,
+                           backMem->packing(),
+                           backMem->W(),
+                           backMem->H(),
+                           vectorLength,
+                           static_cast< uint32_t* >(backMem->ptrMem()) );
+            break;
+
+        case (PrecType::Int32) :
+            arrayBuf = createArrayBuf(
+                           mode,
+                           backMem->packing(),
+                           backMem->W(),
+                           backMem->H(),
+                           vectorLength,
+                           static_cast< int32_t* >(backMem->ptrMem()) );
+            break;
+
+        case (PrecType::Float) :
+            arrayBuf = createArrayBuf(
+                           mode,
+                           backMem->packing(),
+                           backMem->W(),
+                           backMem->H(),
+                           vectorLength,
+                           static_cast< float* >(backMem->ptrMem()) );
+            break;
+
+        case (PrecType::Double) :
+            arrayBuf = createArrayBuf(
+                           mode,
+                           backMem->packing(),
+                           backMem->W(),
+                           backMem->H(),
+                           vectorLength,
+                           static_cast< double* >(backMem->ptrMem()) );
+            break;
+    }
 
     if (NULL != arrayBuf)
     {
@@ -1196,6 +1398,8 @@ bool MemManager::createArrayTemp(const uint32_t varNum,
                                vt,
                                false,
                                0,
+                               0,
+                               0,
                                0);
 }
 
@@ -1213,11 +1417,13 @@ bool MemManager::createArrayTemp(const uint32_t varNum,
                                packing,
                                W,
                                H,
-                               sizeof(float),
+                               PrecType::Float,
                                vectorLength,
                                vt,
                                true,
                                val32,
+                               0,
+                               0,
                                0);
 }
 
@@ -1235,12 +1441,62 @@ bool MemManager::createArrayTemp(const uint32_t varNum,
                                packing,
                                W,
                                H,
-                               sizeof(double),
+                               PrecType::Double,
                                vectorLength,
                                vt,
                                true,
                                0,
-                               val64);
+                               val64,
+                               0,
+                               0);
+}
+
+bool MemManager::createArrayTemp(const uint32_t varNum,
+                                 const AccessMode mode,
+                                 const size_t packing,
+                                 const size_t W,
+                                 const size_t H,
+                                 const size_t vectorLength,
+                                 VectorTrace& vt,
+                                 const int32_t val32i)
+{
+    return createArrayInternal(varNum,
+                               mode,
+                               packing,
+                               W,
+                               H,
+                               PrecType::Int32,
+                               vectorLength,
+                               vt,
+                               true,
+                               0,
+                               0,
+                               val32i,
+                               0);
+}
+
+bool MemManager::createArrayTemp(const uint32_t varNum,
+                                 const AccessMode mode,
+                                 const size_t packing,
+                                 const size_t W,
+                                 const size_t H,
+                                 const size_t vectorLength,
+                                 VectorTrace& vt,
+                                 const uint32_t val32u)
+{
+    return createArrayInternal(varNum,
+                               mode,
+                               packing,
+                               W,
+                               H,
+                               PrecType::UInt32,
+                               vectorLength,
+                               vt,
+                               true,
+                               0,
+                               0,
+                               0,
+                               val32u);
 }
 
 ////////////////////////////////////////
@@ -1268,20 +1524,50 @@ bool MemManager::createArraySendData(const AstVariable* varPtr,
         }
     }
 
-    ArrayBuf* arrayBuf
-        = backMem->isDouble()
-              ? createArrayBuf( mode,
-                                backMem->packing(),
-                                backMem->W(),
-                                backMem->H(),
-                                vectorLength,
-                                static_cast< double* >(backMem->ptrMem()) )
-              : createArrayBuf( mode,
-                                backMem->packing(),
-                                backMem->W(),
-                                backMem->H(),
-                                vectorLength,
-                                static_cast< float* >(backMem->ptrMem()) );
+    ArrayBuf* arrayBuf = NULL;
+
+    switch (backMem->precision())
+    {
+        case (PrecType::UInt32) :
+            arrayBuf = createArrayBuf(
+                           mode,
+                           backMem->packing(),
+                           backMem->W(),
+                           backMem->H(),
+                           vectorLength,
+                           static_cast< uint32_t* >(backMem->ptrMem()) );
+            break;
+
+        case (PrecType::Int32) :
+            arrayBuf = createArrayBuf(
+                           mode,
+                           backMem->packing(),
+                           backMem->W(),
+                           backMem->H(),
+                           vectorLength,
+                           static_cast< int32_t* >(backMem->ptrMem()) );
+            break;
+
+        case (PrecType::Float) :
+            arrayBuf = createArrayBuf(
+                           mode,
+                           backMem->packing(),
+                           backMem->W(),
+                           backMem->H(),
+                           vectorLength,
+                           static_cast< float* >(backMem->ptrMem()) );
+            break;
+
+        case (PrecType::Double) :
+            arrayBuf = createArrayBuf(
+                           mode,
+                           backMem->packing(),
+                           backMem->W(),
+                           backMem->H(),
+                           vectorLength,
+                           static_cast< double* >(backMem->ptrMem()) );
+            break;
+    }
 
     if (NULL != arrayBuf)
     {
@@ -1315,6 +1601,8 @@ bool MemManager::createArrayTemp(const AstVariable* varPtr,
                                vt,
                                false,
                                0,
+                               0,
+                               0,
                                0);
 }
 
@@ -1332,11 +1620,13 @@ bool MemManager::createArrayTemp(const AstVariable* varPtr,
                                packing,
                                W,
                                H,
-                               sizeof(float),
+                               PrecType::Float,
                                vectorLength,
                                vt,
                                true,
                                val32,
+                               0,
+                               0,
                                0);
 }
 
@@ -1354,12 +1644,62 @@ bool MemManager::createArrayTemp(const AstVariable* varPtr,
                                packing,
                                W,
                                H,
-                               sizeof(double),
+                               PrecType::Double,
                                vectorLength,
                                vt,
                                true,
                                0,
-                               val64);
+                               val64,
+                               0,
+                               0);
+}
+
+bool MemManager::createArrayTemp(const AstVariable* varPtr,
+                                 const AccessMode mode,
+                                 const size_t packing,
+                                 const size_t W,
+                                 const size_t H,
+                                 const size_t vectorLength,
+                                 VectorTrace& vt,
+                                 const int32_t val32i)
+{
+    return createArrayInternal(varPtr,
+                               mode,
+                               packing,
+                               W,
+                               H,
+                               PrecType::Int32,
+                               vectorLength,
+                               vt,
+                               true,
+                               0,
+                               0,
+                               val32i,
+                               0);
+}
+
+bool MemManager::createArrayTemp(const AstVariable* varPtr,
+                                 const AccessMode mode,
+                                 const size_t packing,
+                                 const size_t W,
+                                 const size_t H,
+                                 const size_t vectorLength,
+                                 VectorTrace& vt,
+                                 const uint32_t val32u)
+{
+    return createArrayInternal(varPtr,
+                               mode,
+                               packing,
+                               W,
+                               H,
+                               PrecType::UInt32,
+                               vectorLength,
+                               vt,
+                               true,
+                               0,
+                               0,
+                               0,
+                               val32u);
 }
 
 ////////////////////////////////////////
@@ -1368,11 +1708,11 @@ bool MemManager::createArrayTemp(const AstVariable* varPtr,
 
 BackMem* MemManager::allocBackMem(const size_t W,
                                   const size_t H,
-                                  const bool isDP,
+                                  const size_t precision,
                                   const size_t vecSize)
 {
     // standard vector length is double2 and float4
-    const size_t standardVectorLength = isDP ? 2 : 4;
+    const size_t standardVectorLength = PrecType::vecLength(precision);
 
     // special case for scalar reductions
     // relies on implicit convention of array dimensions
@@ -1387,8 +1727,7 @@ BackMem* MemManager::allocBackMem(const size_t W,
     const size_t frontWidth = specialCasePadNeeded ? specialCasePadWidth : W;
 
     // size of memory for each front memory box
-    const size_t frontSize
-        = H * frontWidth * (isDP ? sizeof(double) : sizeof(float));
+    const size_t frontSize = H * frontWidth * PrecType::sizeOf(precision);
 
     void* b = NULL;
 
@@ -1403,18 +1742,46 @@ BackMem* MemManager::allocBackMem(const size_t W,
             memset(b, 0, frontSize * vecSize);
         }
 
-        BackMem* backMem = isDP ? new BackMem(W,
-                                              H,
-                                              vecSize,
-                                              vecSize, // front count
-                                              static_cast<double*>(b),
-                                              this)
-                                : new BackMem(W,
-                                              H,
-                                              vecSize,
-                                              vecSize, // front count
-                                              static_cast<float*>(b),
-                                              this);
+        BackMem* backMem = NULL;
+
+        switch (precision)
+        {
+            case (PrecType::UInt32) :
+                backMem = new BackMem(W,
+                                      H,
+                                      vecSize,
+                                      vecSize, // front count
+                                      static_cast<uint32_t*>(b),
+                                      this);
+                break;
+
+            case (PrecType::Int32) :
+                backMem = new BackMem(W,
+                                      H,
+                                      vecSize,
+                                      vecSize, // front count
+                                      static_cast<int32_t*>(b),
+                                      this);
+                break;
+
+            case (PrecType::Float) :
+                backMem = new BackMem(W,
+                                      H,
+                                      vecSize,
+                                      vecSize, // front count
+                                      static_cast<float*>(b),
+                                      this);
+                break;
+
+            case (PrecType::Double) :
+                backMem = new BackMem(W,
+                                      H,
+                                      vecSize,
+                                      vecSize, // front count
+                                      static_cast<double*>(b),
+                                      this);
+                break;
+        }
 
 #ifdef __LOGGING_ENABLED__
         stringstream ss;
@@ -1422,7 +1789,7 @@ BackMem* MemManager::allocBackMem(const size_t W,
            << " W=" << W
            << " H=" << H
            << " vecSize=" << vecSize
-           << " isDP=" << isDP;
+           << " precision=" << precision;
         LOGGER(ss.str())
 #endif
 
@@ -1439,12 +1806,12 @@ BackMem* MemManager::allocBackMem(const size_t W,
 
 FrontMem* MemManager::allocFrontMem(const size_t W,
                                     const size_t H,
-                                    const bool isDP,
+                                    const size_t precision,
                                     BackMem* backMem,
                                     const size_t vecIndex) const
 {
     // standard vector length is double2 and float4
-    const size_t standardVectorLength = isDP ? 2 : 4;
+    const size_t standardVectorLength = PrecType::vecLength(precision);
 
     // special case for scalar reductions
     // relies on implicit convention of array dimensions
@@ -1459,15 +1826,28 @@ FrontMem* MemManager::allocFrontMem(const size_t W,
     const size_t frontWidth = specialCasePadNeeded ? specialCasePadWidth : W;
 
     // size of memory for each front memory box
-    const size_t frontSize
-        = H * frontWidth * (isDP ? sizeof(double) : sizeof(float));
+    const size_t frontSize = H * frontWidth * PrecType::sizeOf(precision);
 
-    FrontMem* frontMem;
+    FrontMem* frontMem = NULL;
 
-    if (isDP)
-        frontMem = new FrontMem(W, H, static_cast<double*>(NULL));
-    else
-        frontMem = new FrontMem(W, H, static_cast<float*>(NULL));
+    switch (precision)
+    {
+        case (PrecType::UInt32) :
+            frontMem = new FrontMem(W, H, static_cast<uint32_t*>(NULL));
+            break;
+
+        case (PrecType::Int32) :
+            frontMem = new FrontMem(W, H, static_cast<int32_t*>(NULL));
+            break;
+
+        case (PrecType::Float) :
+            frontMem = new FrontMem(W, H, static_cast<float*>(NULL));
+            break;
+
+        case (PrecType::Double) :
+            frontMem = new FrontMem(W, H, static_cast<double*>(NULL));
+            break;
+    }
 
 #ifdef __LOGGING_ENABLED__
     stringstream ss;
@@ -1502,6 +1882,16 @@ bool MemManager::enqueueKernel(VectorTrace& vt,
     {
         *kernelObj << OCLWorkIndex(globalHeight, 1);
     }
+
+#ifdef __LOGGING_ENABLED__
+    stringstream ss;
+    ss << "index space width=" << globalWidth;
+    if (0 != globalHeight)
+    {
+        ss << " height=" << globalHeight;
+    }
+    LOGGER(ss.str())
+#endif
 
     // set kernel arguments
     for (vector< Variable* >::const_iterator

@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <errno.h>
-#include <omp.h>
 #include <stdint.h>
 #include <sys/time.h>
 
@@ -443,9 +442,6 @@ Scheduler::Scheduler()
     pthread_cond_init(&_traceCond, NULL);
     pthread_cond_init(&_bossCond, NULL);
     pthread_cond_init(&_workCond, NULL);
-
-    // this should auto-tune
-    //omp_set_num_threads(256);
 }
 
 Scheduler::~Scheduler(void)

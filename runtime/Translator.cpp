@@ -2,15 +2,18 @@
 
 #include <set>
 #include <sstream>
+#include <stdint.h>
 #include <string>
 #include <vector>
 
-#include "BCStmtMaker.hpp"
-#include "BCStmtTrace.hpp"
 #include "ByteCodes.hpp"
+#include "ByteTrace.hpp"
+#include "EnqueueTrace.hpp"
 #include "EvergreenMatmulBase.hpp"
 #include "Logger.hpp"
+#include "MakeBCStmt.hpp"
 #include "OCLhacks.hpp"
+#include "PrecType.hpp"
 #include "TransAccum.hpp"
 #include "TransCond.hpp"
 #include "TransConvert.hpp"
@@ -30,8 +33,7 @@
 #include "TransRNGuniform.hpp"
 #include "TransScalar.hpp"
 #include "TransTranspose.hpp"
-#include "XStmtEnqueue.hpp"
-#include "XStmtTrace.hpp"
+#include "WorkTrace.hpp"
 
 using namespace std;
 
@@ -42,67 +44,148 @@ Translator::Translator(const size_t deviceCode)
       _stdEM(NULL),
       _jitMemo()
 {
-    // internal
-    _opDisp.addOp(ByteCodes::convert_f32, new TransConvert(false));
-    _opDisp.addOp(ByteCodes::convert_f64, new TransConvert(true));
-    _opDisp.addOp(ByteCodes::scalar_f32, new TransScalar(false));
-    _opDisp.addOp(ByteCodes::scalar_f64, new TransScalar(true));
+    const size_t uintPrec = PrecType::UInt32;
+    const size_t intPrec = PrecType::Int32;
+    const size_t floatPrec = PrecType::Float;
+    const size_t doublePrec = PrecType::Double;
 
-    // arithmetic and predicate operators
-    _opDisp.addOp(ByteCodes::negate, new TransFun1(_NEGATE_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorADD, new TransFun2(_ADD_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorAND, new TransFun2(_AND_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorDIV, new TransFun2(_DIV_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorMUL, new TransFun2(_MUL_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorOR, new TransFun2(_OR_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorSUB, new TransFun2(_SUB_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorEQ, new TransFun2(_EQ_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorGE, new TransFun2(_GE_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorGT, new TransFun2(_GT_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorLE, new TransFun2(_LE_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorLT, new TransFun2(_LT_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorNE, new TransFun2(_NE_::singleton()));
-
-    // selection and gathering
-    _opDisp.addOp(ByteCodes::cond, new TransCond);
-    _opDisp.addOp(ByteCodes::gather1_floor, new TransGather(1));
-    _opDisp.addOp(ByteCodes::gather2_floor, new TransGather(2));
-    _opDisp.addOp(ByteCodes::index1_f32, new TransIdxdata(1, false));
-    _opDisp.addOp(ByteCodes::index1_f64, new TransIdxdata(1, true));
-    _opDisp.addOp(ByteCodes::index2_f32, new TransIdxdata(2, false));
-    _opDisp.addOp(ByteCodes::index2_f64, new TransIdxdata(2, true));
-
-    // data creation
-    _opDisp.addOp(ByteCodes::make1_f32, new TransMakedata(false));
-    _opDisp.addOp(ByteCodes::make1_f64, new TransMakedata(true));
-    _opDisp.addOp(ByteCodes::make2_f32, new TransMakedata(false));
-    _opDisp.addOp(ByteCodes::make2_f64, new TransMakedata(true));
+    const uint32_t uintOne = 1;
+    const int32_t intOne = 1;
     const float floatOne = 1;
     const double doubleOne = 1;
-    _opDisp.addOp(ByteCodes::ones1_f32, new TransLitdata(1, floatOne));
-    _opDisp.addOp(ByteCodes::ones1_f64, new TransLitdata(1, doubleOne));
-    _opDisp.addOp(ByteCodes::ones2_f32, new TransLitdata(2, floatOne));
-    _opDisp.addOp(ByteCodes::ones2_f64, new TransLitdata(2, doubleOne));
+
+    const uint32_t uintZero = 0;
+    const int32_t intZero = 0;
     const float floatZero = 0;
     const double doubleZero = 0;
+
+    // internal
+    _opDisp.addOp(ByteCodes::convert_u32, new TransConvert(uintPrec));
+    _opDisp.addOp(ByteCodes::convert_i32, new TransConvert(intPrec));
+    _opDisp.addOp(ByteCodes::convert_f32, new TransConvert(floatPrec));
+    _opDisp.addOp(ByteCodes::convert_f64, new TransConvert(doublePrec));
+    _opDisp.addOp(ByteCodes::scalar_u32, new TransScalar(uintPrec));
+    _opDisp.addOp(ByteCodes::scalar_i32, new TransScalar(intPrec));
+    _opDisp.addOp(ByteCodes::scalar_f32, new TransScalar(floatPrec));
+    _opDisp.addOp(ByteCodes::scalar_f64, new TransScalar(doublePrec));
+
+    // arithmetic operators
+    _opDisp.addOp(ByteCodes::operatorUNARYMINUS,
+                  new TransFun1(_UNARYMINUS_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorADD,
+                  new TransFun2(_ADD_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorDIVIDE,
+                  new TransFun2(_DIVIDE_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorMULTIPLY,
+                  new TransFun2(_MULTIPLY_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorSUBTRACT,
+                  new TransFun2(_SUBTRACT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorCOMPLEMENT,
+                  new TransFun1(_COMPLEMENT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorNOT,
+                  new TransFun1(_NOT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorMODULO,
+                  new TransFun2(_MODULO_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorSHIFTLEFT,
+                  new TransFun2(_SHIFTLEFT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorSHIFTRIGHT,
+                  new TransFun2(_SHIFTRIGHT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorBITWISEAND,
+                  new TransFun2(_BITWISEAND_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorBITWISEOR,
+                  new TransFun2(_BITWISEOR_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorBITWISEXOR,
+                  new TransFun2(_BITWISEXOR_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorCONDEXPR,
+                  new TransCond);
+
+    // predicate operators
+    _opDisp.addOp(ByteCodes::operatorLOGICALAND,
+                  new TransFun2(_LOGICALAND_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorLOGICALOR,
+                  new TransFun2(_LOGICALOR_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorEQUAL,
+                  new TransFun2(_EQUAL_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorNOTEQUAL,
+                  new TransFun2(_NOTEQUAL_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorGREATEREQUAL,
+                  new TransFun2(_GREATEREQUAL_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorGREATERTHAN,
+                  new TransFun2(_GREATERTHAN_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorLESSEQUAL,
+                  new TransFun2(_LESSEQUAL_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorLESSTHAN,
+                  new TransFun2(_LESSTHAN_::singleton()));
+
+    // selection and gathering
+    _opDisp.addOp(ByteCodes::gather1_floor, new TransGather(1));
+    _opDisp.addOp(ByteCodes::gather2_floor, new TransGather(2));
+    _opDisp.addOp(ByteCodes::index1_u32, new TransIdxdata(1, uintPrec));
+    _opDisp.addOp(ByteCodes::index1_i32, new TransIdxdata(1, intPrec));
+    _opDisp.addOp(ByteCodes::index1_f32, new TransIdxdata(1, floatPrec));
+    _opDisp.addOp(ByteCodes::index1_f64, new TransIdxdata(1, doublePrec));
+    _opDisp.addOp(ByteCodes::index2_u32, new TransIdxdata(2, uintPrec));
+    _opDisp.addOp(ByteCodes::index2_i32, new TransIdxdata(2, intPrec));
+    _opDisp.addOp(ByteCodes::index2_f32, new TransIdxdata(2, floatPrec));
+    _opDisp.addOp(ByteCodes::index2_f64, new TransIdxdata(2, doublePrec));
+
+    // data creation
+    _opDisp.addOp(ByteCodes::make1_u32, new TransMakedata(uintPrec));
+    _opDisp.addOp(ByteCodes::make1_i32, new TransMakedata(intPrec));
+    _opDisp.addOp(ByteCodes::make1_f32, new TransMakedata(floatPrec));
+    _opDisp.addOp(ByteCodes::make1_f64, new TransMakedata(doublePrec));
+    _opDisp.addOp(ByteCodes::make2_u32, new TransMakedata(uintPrec));
+    _opDisp.addOp(ByteCodes::make2_i32, new TransMakedata(intPrec));
+    _opDisp.addOp(ByteCodes::make2_f32, new TransMakedata(floatPrec));
+    _opDisp.addOp(ByteCodes::make2_f64, new TransMakedata(doublePrec));
+    _opDisp.addOp(ByteCodes::ones1_u32, new TransLitdata(1, uintOne));
+    _opDisp.addOp(ByteCodes::ones1_i32, new TransLitdata(1, intOne));
+    _opDisp.addOp(ByteCodes::ones1_f32, new TransLitdata(1, floatOne));
+    _opDisp.addOp(ByteCodes::ones1_f64, new TransLitdata(1, doubleOne));
+    _opDisp.addOp(ByteCodes::ones2_u32, new TransLitdata(2, uintOne));
+    _opDisp.addOp(ByteCodes::ones2_i32, new TransLitdata(2, intOne));
+    _opDisp.addOp(ByteCodes::ones2_f32, new TransLitdata(2, floatOne));
+    _opDisp.addOp(ByteCodes::ones2_f64, new TransLitdata(2, doubleOne));
+    _opDisp.addOp(ByteCodes::zeros1_u32, new TransLitdata(1, uintZero));
+    _opDisp.addOp(ByteCodes::zeros1_i32, new TransLitdata(1, intZero));
     _opDisp.addOp(ByteCodes::zeros1_f32, new TransLitdata(1, floatZero));
     _opDisp.addOp(ByteCodes::zeros1_f64, new TransLitdata(1, doubleZero));
+    _opDisp.addOp(ByteCodes::zeros2_u32, new TransLitdata(2, uintZero));
+    _opDisp.addOp(ByteCodes::zeros2_i32, new TransLitdata(2, intZero));
     _opDisp.addOp(ByteCodes::zeros2_f32, new TransLitdata(2, floatZero));
     _opDisp.addOp(ByteCodes::zeros2_f64, new TransLitdata(2, doubleZero));
 
     // read back data
+    _opDisp.addOp(ByteCodes::read_scalar_u32, new TransReadout(0));
+    _opDisp.addOp(ByteCodes::read_scalar_i32, new TransReadout(0));
     _opDisp.addOp(ByteCodes::read_scalar_f32, new TransReadout(0));
     _opDisp.addOp(ByteCodes::read_scalar_f64, new TransReadout(0));
+    _opDisp.addOp(ByteCodes::read1_u32, new TransReadout(1));
+    _opDisp.addOp(ByteCodes::read1_i32, new TransReadout(1));
     _opDisp.addOp(ByteCodes::read1_f32, new TransReadout(1));
     _opDisp.addOp(ByteCodes::read1_f64, new TransReadout(1));
+    _opDisp.addOp(ByteCodes::read2_u32, new TransReadout(2));
+    _opDisp.addOp(ByteCodes::read2_i32, new TransReadout(2));
     _opDisp.addOp(ByteCodes::read2_f32, new TransReadout(2));
     _opDisp.addOp(ByteCodes::read2_f64, new TransReadout(2));
 
     // random numbers
-    _opDisp.addOp(ByteCodes::rng_normal_make_f32, new TransRNGnormal(false));
-    _opDisp.addOp(ByteCodes::rng_normal_make_f64, new TransRNGnormal(true));
-    _opDisp.addOp(ByteCodes::rng_uniform_make_f32, new TransRNGuniform(false));
-    _opDisp.addOp(ByteCodes::rng_uniform_make_f64, new TransRNGuniform(true));
+    _opDisp.addOp(ByteCodes::rng_normal_make_u32,
+                  new TransRNGnormal(uintPrec));
+    _opDisp.addOp(ByteCodes::rng_normal_make_i32,
+                  new TransRNGnormal(intPrec));
+    _opDisp.addOp(ByteCodes::rng_normal_make_f32,
+                  new TransRNGnormal(floatPrec));
+    _opDisp.addOp(ByteCodes::rng_normal_make_f64,
+                  new TransRNGnormal(doublePrec));
+    _opDisp.addOp(ByteCodes::rng_uniform_make_u32,
+                  new TransRNGuniform(uintPrec));
+    _opDisp.addOp(ByteCodes::rng_uniform_make_i32,
+                  new TransRNGuniform(intPrec));
+    _opDisp.addOp(ByteCodes::rng_uniform_make_f32,
+                  new TransRNGuniform(floatPrec));
+    _opDisp.addOp(ByteCodes::rng_uniform_make_f64,
+                  new TransRNGuniform(doublePrec));
 
     // auto-tuned matrix multiply
     _opDisp.addOp(ByteCodes::matmul, new TransMatmul);
@@ -191,6 +274,21 @@ Translator::Translator(const size_t deviceCode)
                   new TransFun3(_SMOOTHSTEP_::singleton()));
     _opDisp.addOp(ByteCodes::sign, new TransFun1(_SIGN_::singleton()));
 
+    // integer functions
+    _opDisp.addOp(ByteCodes::abs, new TransFun1(_ABS_::singleton()));
+    _opDisp.addOp(ByteCodes::abs_diff, new TransFun2(_ABS_DIFF_::singleton()));
+    _opDisp.addOp(ByteCodes::add_sat, new TransFun2(_ADD_SAT_::singleton()));
+    _opDisp.addOp(ByteCodes::clz, new TransFun1(_CLZ_::singleton()));
+    _opDisp.addOp(ByteCodes::hadd, new TransFun2(_HADD_::singleton()));
+    _opDisp.addOp(ByteCodes::mad24, new TransFun3(_MAD24_::singleton()));
+    _opDisp.addOp(ByteCodes::mad_hi, new TransFun3(_MAD_HI_::singleton()));
+    _opDisp.addOp(ByteCodes::mad_sat, new TransFun3(_MAD_SAT_::singleton()));
+    _opDisp.addOp(ByteCodes::mul24, new TransFun2(_MUL24_::singleton()));
+    _opDisp.addOp(ByteCodes::mul_hi, new TransFun2(_MUL_HI_::singleton()));
+    _opDisp.addOp(ByteCodes::rhadd, new TransFun2(_RHADD_::singleton()));
+    _opDisp.addOp(ByteCodes::rotate, new TransFun2(_ROTATE_::singleton()));
+    _opDisp.addOp(ByteCodes::sub_sat, new TransFun2(_SUB_SAT_::singleton()));
+
     // relational functions
     _opDisp.addOp(ByteCodes::isequal, new TransFun2(_ISEQUAL_::singleton()));
     _opDisp.addOp(ByteCodes::isnotequal,
@@ -272,17 +370,17 @@ bool Translator::sub_evaluate(VectorTrace& vt)
     LOGGER(ss.str())
 #endif
 
-    BCStmtTrace bcsTrace(vt);
+    ByteTrace bcsTrace(vt);
 
     // bytecode code transformations
     bcsTrace.optimizeBytecode();
 
     // generate boxed statements
-    BCStmtMaker bcsMaker(_opDisp);
+    MakeBCStmt bcsMaker(_opDisp);
     bcsTrace.traverse(bcsMaker);
 
     // working trace
-    XStmtTrace xsTrace(bcsTrace);
+    WorkTrace xsTrace(bcsTrace);
 
     // perform reorder and together
     xsTrace.reorder();
@@ -310,7 +408,7 @@ bool Translator::sub_evaluate(VectorTrace& vt)
     }
 
     // enqueue
-    XStmtEnqueue xsEnqueue(vt, getMemManager(), *_stdEM, *jitMemo);
+    EnqueueTrace xsEnqueue(vt, getMemManager(), *_stdEM, *jitMemo);
     xsTrace.traverse(xsEnqueue);
 
     return xsEnqueue.isOk();

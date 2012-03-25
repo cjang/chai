@@ -26,8 +26,7 @@ class FrontMem : public RefObj
     const size_t _slots;
 
     // precision
-    enum Type { FLOAT, DOUBLE };
-    const Type   _ptrType;
+    const size_t _precision;
 
     // managed pointer into the backing memory
     void*        _ptrMem;
@@ -45,6 +44,8 @@ public:
     // used by interpreter
     FrontMem(const size_t W, const size_t H, float* dataPtr);
     FrontMem(const size_t W, const size_t H, double* dataPtr);
+    FrontMem(const size_t W, const size_t H, int32_t* dataPtr);
+    FrontMem(const size_t W, const size_t H, uint32_t* dataPtr);
 
     // used by read_scalar, read1, read2
     FrontMem(const uint32_t variable,
@@ -72,12 +73,32 @@ public:
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
+             int32_t* dataPtr);
+
+    FrontMem(const uint32_t variable,
+             const size_t W,
+             const size_t H,
+             uint32_t* dataPtr);
+
+    FrontMem(const uint32_t variable,
+             const size_t W,
+             const size_t H,
              const std::vector< float* >& dataPtr);
 
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
              const std::vector< double* >& dataPtr);
+
+    FrontMem(const uint32_t variable,
+             const size_t W,
+             const size_t H,
+             const std::vector< int32_t* >& dataPtr);
+
+    FrontMem(const uint32_t variable,
+             const size_t W,
+             const size_t H,
+             const std::vector< uint32_t* >& dataPtr);
 
     ~FrontMem(void);
 
@@ -89,13 +110,14 @@ public:
     size_t H(void) const;
     size_t slots(void) const;
 
-    bool isFloat(void) const;
-    bool isDouble(void) const;
+    size_t precision(void) const;
 
     void swizzle(const size_t uniqueKey);
 
     float* floatPtr(void) const;
     double* doublePtr(void) const;
+    int32_t* intPtr(void) const;
+    uint32_t* uintPtr(void) const;
     void* ptrMem(void) const;
     void* ptrMem(const size_t precision) const;
     void* dataPtr(void) const;

@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "CodeImageSample.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -44,13 +45,23 @@ string ReadImage::name(void) const
 {
     stringstream ss;
 
-    if (_image.singlePrecision())
+    switch (_image.precision())
     {
-        ss << "read_imagef(";
-    }
-    else if (_image.doublePrecision())
-    {
-        ss << "read_imageui(";
+        case (PrecType::UInt32) :
+            ss << "read_imageui(";
+            break;
+
+        case (PrecType::Int32) :
+            ss << "read_imagei(";
+            break;
+
+        case (PrecType::Float) :
+            ss << "read_imagef(";
+            break;
+
+        case (PrecType::Double) :
+            ss << "read_imageui(";
+            break;
     }
 
     ss << _image.name()
@@ -77,13 +88,23 @@ ostream& WriteImage::print(ostream& os) const
 {
     os << _indent;
 
-    if (_image.singlePrecision())
+    switch (_image.precision())
     {
-        os << "write_imagef(";
-    }
-    else if (_image.doublePrecision())
-    {
-        os << "write_imageui(";
+        case (PrecType::UInt32) :
+            os << "write_imageui(";
+            break;
+
+        case (PrecType::Int32) :
+            os << "write_imagei(";
+            break;
+
+        case (PrecType::Float) :
+            os << "write_imagef(";
+            break;
+
+        case (PrecType::Double) :
+            os << "write_imageui(";
+            break;
     }
 
     os << _image.name() << ", (int2)("

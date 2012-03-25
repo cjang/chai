@@ -17,8 +17,8 @@ class NameOf
     //            1 is int
     //            sizeof(float) is float
     //            sizeof(double) is double
-    // vectorLength 1, 2, 4 is memory buffer
-    // writable: true is nonconst, false is const
+    // vectorLength 0 is image; 1, 2, 4 is memory buffer
+    // writable: true is non-const, false is const
     static void memvar(std::ostream&,
                        const size_t precision,
                        const size_t vectorLength,

@@ -11,8 +11,9 @@
 #include "EvergreenMatmulMV.hpp"
 #include "OCLhacks.hpp"
 #include "OCLinit.hpp"
+#include "PrecType.hpp"
 #include "StandardEM.hpp"
-#include "ParseArgs.hpp"
+#include "ParseArgs.hpp" // last included file due to pre-processor macros
 
 using namespace chai_internal;
 using namespace std;
@@ -61,6 +62,27 @@ void ParseArgs::setVectorLengthLimits(const size_t vectorLength,
         default :
             startIdx = stopIdx = vectorLength;
             break;
+    }
+}
+
+size_t ParseArgs::precisionChar(const char UISD) const
+{
+    switch (UISD)
+    {
+        case ('U') :
+            return PrecType::UInt32;
+
+        case ('I') :
+            return PrecType::Int32;
+
+        case ('S') :
+            return PrecType::Float;
+
+        case ('D') :
+            return PrecType::Double;
+
+        default :
+            return -1;
     }
 }
 
@@ -147,15 +169,15 @@ bool ParseArgs::getOpt(OCLinit& cinit)
                 _general = 1; // true
                 break;
 
-            // -p SSS|SSD|SDS...DDD
+            // -p [UISD]{3}
             case ('p') :
                 {
                 const string t = optarg;
                 if (3 == t.size())
                 {
-                    _precA = 'D' == t[0] ? sizeof(double) : sizeof(float);
-                    _precB = 'D' == t[1] ? sizeof(double) : sizeof(float);
-                    _precC = 'D' == t[2] ? sizeof(double) : sizeof(float);
+                    if (-1 == (_precA = precisionChar(t[0]))) ok = false;
+                    if (-1 == (_precB = precisionChar(t[1]))) ok = false;
+                    if (-1 == (_precC = precisionChar(t[2]))) ok = false;
                 }
                 else
                     ok = false;

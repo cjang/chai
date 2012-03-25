@@ -1,10 +1,11 @@
 include ../Makefile.config
 include ../Makefile.common
 
-USE_CFLAGS=$(SHARED_CFLAGS)
+USE_CFLAGS=$(SHARED_CFLAGS) -D__STDC_LIMIT_MACROS
 
 LIBRARY_OBJECT_CODE = \
 	Logger.o \
+	PrecType.o \
 	SimpleFuns.o \
 	TEA.o
 

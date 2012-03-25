@@ -13,6 +13,7 @@
 #include "CodeValues.hpp"
 #include "EvergreenMatmulMV.hpp"
 #include "Logger.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -45,7 +46,8 @@ string MatmulMVBase::assignMAD(
         return assign( accum[j / vlenC][j % vlenC],
                        MADValue( valueA[j / vlenA][j % vlenA],
                                  valueB[l / vlenB][l % vlenB],
-                                 accum[j / vlenC][j % vlenC] ));
+                                 accum[j / vlenC][j % vlenC],
+                                 useMADFunction() ));
     }
     else
     {
@@ -53,7 +55,8 @@ string MatmulMVBase::assignMAD(
         return assign( accum[j / vlenC][j % vlenC],
                        MADValue( valueA[l / vlenA][l % vlenA],
                                  valueB[l / vlenB][l % vlenB],
-                                 accum[j / vlenC][j % vlenC] ));
+                                 accum[j / vlenC][j % vlenC],
+                                 useMADFunction() ));
     }
 }
 
@@ -199,9 +202,9 @@ bool MatmulMVBase::getParams(set< vector<size_t> >& paramSet)
 
     const bool exogenousOk =
         (packing() > 0) &&
-        (sizeof(float) == precisionA() || sizeof(double) == precisionA()) &&
-        (sizeof(float) == precisionB() || sizeof(double) == precisionB()) &&
-        (sizeof(float) == precisionC() || sizeof(double) == precisionC()) &&
+        PrecType::validSizeCode(precisionA()) &&
+        PrecType::validSizeCode(precisionB()) &&
+        PrecType::validSizeCode(precisionC()) &&
         (0 != dimensionM()) &&
         (0 != dimensionN());
 
@@ -393,18 +396,39 @@ bool MatmulMV::setArgsInternal(OCLkernel& ckernel,
                                        ? localSize()
                                        : localSize() * blockWidth();
 
-        if (_B->isSinglePrecision())
+        switch (_B->precision())
         {
-            OCLLocalbuf<float> localTmp( numberElems );
-            if (! (ckernel << localTmp).statusOp())
-                return false;
-        }
+            case (PrecType::UInt32) :
+                {
+                OCLLocalbuf<uint32_t> localTmp( numberElems );
+                if (! (ckernel << localTmp).statusOp())
+                    return false;
+                }
+                break;
 
-        if (_B->isDoublePrecision())
-        {
-            OCLLocalbuf<double> localTmp( numberElems );
-            if (! (ckernel << localTmp).statusOp())
-                return false;
+            case (PrecType::Int32) :
+                {
+                OCLLocalbuf<int32_t> localTmp( numberElems );
+                if (! (ckernel << localTmp).statusOp())
+                    return false;
+                }
+                break;
+
+            case (PrecType::Float) :
+                {
+                OCLLocalbuf<float> localTmp( numberElems );
+                if (! (ckernel << localTmp).statusOp())
+                    return false;
+                }
+                break;
+
+            case (PrecType::Double) :
+                {
+                OCLLocalbuf<double> localTmp( numberElems );
+                if (! (ckernel << localTmp).statusOp())
+                    return false;
+                }
+                break;
         }
     }
 
@@ -422,35 +446,75 @@ bool MatmulMV::setArgsInternal(OCLkernel& ckernel,
     if (general())
     {
         // alpha
-        if (_A->isSinglePrecision() && _B->isSinglePrecision())
+        switch ( maxPrecision(_A->precision(), _B->precision()) )
         {
-            const float alpha32 = alpha;
+            case (PrecType::UInt32) :
+                {
+                    const uint32_t alphaK = alpha;
+                    if (! (ckernel << alphaK).statusOp())
+                        return false;
+                }
+                break;
 
-            if (! (ckernel << alpha32).statusOp())
-                return false;
-        }
-        else
-        {
-            const double alpha64 = alpha;
+            case (PrecType::Int32) :
+                {
+                    const int32_t alphaK = alpha;
+                    if (! (ckernel << alphaK).statusOp())
+                        return false;
+                }
+                break;
 
-            if (! (ckernel << alpha64).statusOp())
-                return false;
+            case (PrecType::Float) :
+                {
+                    const float alphaK = alpha;
+                    if (! (ckernel << alphaK).statusOp())
+                        return false;
+                }
+                break;
+
+            case (PrecType::Double) :
+                {
+                    const double alphaK = alpha;
+                    if (! (ckernel << alphaK).statusOp())
+                        return false;
+                }
+                break;
         }
 
         // beta
-        if (_C->isSinglePrecision())
+        switch (_C->precision())
         {
-            const float beta32 = beta;
+            case (PrecType::UInt32) :
+                {
+                    const uint32_t betaK = beta;
+                    if (! (ckernel << betaK).statusOp())
+                        return false;
+                }
+                break;
 
-            if (! (ckernel << beta32).statusOp())
-                return false;
-        }
-        else
-        {
-            const double beta64 = beta;
+            case (PrecType::Int32) :
+                {
+                    const int32_t betaK = beta;
+                    if (! (ckernel << betaK).statusOp())
+                        return false;
+                }
+                break;
 
-            if (! (ckernel << beta64).statusOp())
-                return false;
+            case (PrecType::Float) :
+                {
+                    const float betaK = beta;
+                    if (! (ckernel << betaK).statusOp())
+                        return false;
+                }
+                break;
+
+            case (PrecType::Double) :
+                {
+                    const double betaK = beta;
+                    if (! (ckernel << betaK).statusOp())
+                        return false;
+                }
+                break;
         }
     }
 
@@ -604,13 +668,32 @@ bool MatmulMV::setArgs(OCLdevice& cdev,
         }
     }
 
-    const double alpha = PARANOID_CHECK == _checkOutputMode
-                             ? posrand<double>()
-                             : 1;
+    double alpha;
+    if ( PrecType::isTypeFP(precA) &&
+         PrecType::isTypeFP(precB) )
+    {
+        if (PARANOID_CHECK == _checkOutputMode)
+            alpha = posrand<double>();
+        else
+            alpha = 1;
+    }
+    else
+    {
+        alpha = 1;
+    }
 
-    const double beta = PARANOID_CHECK == _checkOutputMode
-                            ? posrand<double>()
-                            : 1;
+    double beta;
+    if ( PrecType::isTypeFP(precC) )
+    {
+        if (PARANOID_CHECK == _checkOutputMode)
+            beta = posrand<double>();
+        else
+            beta = 1;
+    }
+    else
+    {
+        beta = 1;
+    }
 
     return setArgsInternal(ckernel, A, B, C, alpha, beta);
 }
@@ -686,13 +769,21 @@ bool MatmulMV::checkOutput(void)
             const size_t pA = getSameDataMatrixA() ? 0 : p;
             const size_t pB = getSameDataMatrixB() ? 0 : p;
 
-            for (size_t l = 0; l < dimensionN(); l++)
+            if (transposeA())
             {
-                valueC += ( transposeA()
-                                ? _A->getArrayElem(pA, l, j)
-                                : _A->getArrayElem(pA, j, l) )
-                          *
-                            _B->getArrayElem(pB, 0, l);
+                for (size_t l = 0; l < dimensionN(); l++)
+                {
+                    valueC += _A->getArrayElem(pA, l, j) *
+                              _B->getArrayElem(pB, 0, l);
+                }
+            }
+            else
+            {
+                for (size_t l = 0; l < dimensionN(); l++)
+                {
+                    valueC += _A->getArrayElem(pA, j, l) *
+                              _B->getArrayElem(pB, 0, l);
+                }
             }
 
             if (general())
@@ -708,31 +799,9 @@ bool MatmulMV::checkOutput(void)
 
         // aggregate L1 error in calculation
         const double absdiffError = _C->absdiffHostArray();
-
-        // Elements of A and B are uniform on [0, 1) so mean value of C
-        // is predictable.
-        // simple matrix-vector multiply: .5 * .5 * N
-        // general matrix-vector multiply: alpha * .5 * .5 * N + beta * .5
-        const double expectMean = general()
-                         ? _alpha * .25f * dimensionN() + _beta * .5f
-                         : .25f * dimensionN();
-
-        const double actualMean = accumC / (packing() *
-                                            dimensionM());
-
-        // percentage error from statistically expected value, this detects
-        // uninitialized buffer failures as they are usually filled with zeros
-        const double mape = fabs((actualMean - expectMean) / expectMean);
-
-        // MAPE of 50 basis points seems like a lot but for small matrices
-        // is reasonable, for example, 10 basis points is often exceeded
-        if ( absdiffError < _paranoidLimit && mape < 0.5f )
+        if (absdiffError >= _paranoidLimit)
         {
-            return true;
-        }
 #ifdef __LOGGING_ENABLED__
-        else
-        {
             map< int, size_t > errHist = _C->absdiffHistogram();
 
             stringstream ss;
@@ -747,8 +816,64 @@ bool MatmulMV::checkOutput(void)
                << "0.0000001 <= error < 0.000001 : " << errHist[-6] << endl
                << "            error < 0.0000001 : " << errHist[-7];
             LOGGER(ss.str())
-        }
 #endif
+
+            return false;
+        }
+
+        return true;
+
+        // extra statistical test for floating point
+        if ( PrecType::isTypeFP(precisionA()) &&
+             PrecType::isTypeFP(precisionB()) &&
+             PrecType::isTypeFP(precisionC()) )
+        {
+            // Elements of A and B are uniform on [0, 1) so mean value of C
+            // is predictable.
+            // simple matrix-vector multiply: .5 * .5 * N
+            // general matrix-vector multiply: alpha * .5 * .5 * N + beta * .5
+            const double expectMean = general()
+                             ? _alpha * .25f * dimensionN() + _beta * .5f
+                             : .25f * dimensionN();
+
+            const double actualMean = accumC / (packing() *
+                                                dimensionM());
+
+            // percentage error from statistically expected value, this detects
+            // uninitialized buffer failures as they are usually filled with
+            // zeros
+            const double mape = fabs((actualMean - expectMean) / expectMean);
+
+            // MAPE of 50 basis points seems like a lot but for small matrices
+            // is reasonable, for example, 10 basis points is often exceeded
+            if (mape < 0.5f)
+            {
+                return true;
+            }
+#ifdef __LOGGING_ENABLED__
+            else
+            {
+                map< int, size_t > errHist = _C->absdiffHistogram();
+
+                stringstream ss;
+                ss << "absolute error: " << absdiffError << endl
+                   << "              1. <= error     : " << errHist[1] << endl
+                   << "            0.1 <= error < 1. : " << errHist[0] << endl
+                   << "          0.01 <= error < 0.1 : " << errHist[-1] << endl
+                   << "        0.001 <= error < 0.01 : " << errHist[-2] << endl
+                   << "      0.0001 <= error < 0.001 : " << errHist[-3] << endl
+                   << "    0.00001 <= error < 0.0001 : " << errHist[-4] << endl
+                   << "  0.000001 <= error < 0.00001 : " << errHist[-5] << endl
+                   << "0.0000001 <= error < 0.000001 : " << errHist[-6] << endl
+                   << "            error < 0.0000001 : " << errHist[-7];
+                LOGGER(ss.str())
+            }
+#endif
+        }
+        else
+        {
+            return true;
+        }
     }
 
     return false;
@@ -773,11 +898,12 @@ ostream& MatmulMV::print(ostream& os) const
 
     ////////////////////////////////////////
     // OpenCL double precision extension
-    os << pragma_extension( sizeof(double) == precA ||
-                            sizeof(double) == precB ||
-                            sizeof(double) == precC
-                                ? sizeof(double) : sizeof(float),
-                            _deviceIndex );
+    if (PrecType::Double == precA ||
+        PrecType::Double == precB ||
+        PrecType::Double == precC)
+    {
+        os << pragma_extension(PrecType::Double, _deviceIndex);
+    }
 
     ////////////////////////////////////////
     // kernel arguments
@@ -793,18 +919,14 @@ ostream& MatmulMV::print(ostream& os) const
     const PrivateVar N("N", 1, 1, false, kDecl, dimensionN(), inlineDim());
 
     const PrivateVar alpha("alpha",
-                           sizeof(double) == precA || sizeof(double) == precB
-                               ? sizeof(double)
-                               : sizeof(float),
+                           maxPrecision(precA, precB),
                            1,
                            false,
                            kDecl,
                            general());
 
     const PrivateVar beta("beta",
-                          sizeof(double) == precC
-                              ? sizeof(double)
-                              : sizeof(float),
+                          precC,
                           1,
                           false,
                           kDecl,
@@ -830,9 +952,10 @@ ostream& MatmulMV::print(ostream& os) const
 
     ////////////////////////////////////////
     // accumulate inner product sum
+    const size_t accumPrec = maxPrecision(precA, precB, precC);
     const vector< PrivateVar > accum = privateVector(
                                            "accum",
-                                           precC,
+                                           accumPrec,
                                            vlenC,
                                            transposeA() ? vnumC : 1 );
     os << declare(accum);
@@ -859,7 +982,7 @@ ostream& MatmulMV::print(ostream& os) const
         os << ForLoop(packIdx, packing(), 1);
 
     // set accumulators to zero
-    os << assign(accum, CastValue(ConstantValue(0), precC, vlenC));
+    os << assign(accum, CastValue(ConstantValue(0), accumPrec, vlenC));
 
     // initialize pointer to memory buffer for matrix A
     if (0 != vlenA)
@@ -933,7 +1056,7 @@ ostream& MatmulMV::print(ostream& os) const
                                   packIdxDisableB * packIdx ),
                               precB,
                               vlenB,
-                              4 != effVectorLengthB() ));
+                              PrecType::Double == precB ));
 
             // iterate over rows of A within the vector length of B
             for (size_t oIdx = 0; oIdx < effVectorLengthB(); oIdx++)
@@ -955,7 +1078,7 @@ ostream& MatmulMV::print(ostream& os) const
                                         + oIdx ),
                                 precA,
                                 vlenA,
-                                4 != effVectorLengthA() ));
+                                PrecType::Double == precA ));
                     }
                     else
                     {
@@ -1016,7 +1139,7 @@ ostream& MatmulMV::print(ostream& os) const
                                             + oIdx ),
                                     precA,
                                     vlenA,
-                                    4 != effVectorLengthA() ));
+                                    PrecType::Double == precA ));
                         }
                         else
                         {
@@ -1049,13 +1172,19 @@ ostream& MatmulMV::print(ostream& os) const
         {
             if (0 == vlenC)
             {
-                os << WriteImage(matrixC,
-                                 switchGlobalCol * vnumC + i,
-                                 packIdx * N,
-                                 ReinterpretValue(accum[i],
-                                                  0,
-                                                  4,
-                                                  4 != effVectorLengthC()) );
+                os << WriteImage(
+                          matrixC,
+                          switchGlobalCol * vnumC + i,
+                          packIdx * N,
+                          ReinterpretValue(
+                              ConvertValue(
+                                  accum[i],
+                                  precC,
+                                  vlenC,
+                                  accumPrec != precC ),
+                              PrecType::UInt32,
+                              PrecType::vecLength(PrecType::UInt32),
+                              PrecType::Double == precC ));
             }
             else
             {
@@ -1064,13 +1193,19 @@ ostream& MatmulMV::print(ostream& os) const
                                             + switchGlobalCol * vnumC
                                             + i );
 
-                os << assign( GlobalVar(*ptrMatrixC),
+                os << assign(
+                          GlobalVar(*ptrMatrixC),
+                          ConvertValue(
                               general()
-                                  ? MADValue(CastValue(alpha, precC, vlenC),
+                                  ? MADValue(CastValue(alpha, accumPrec, vlenC),
                                              accum[i],
-                                             CastValue(beta, precC, vlenC) *
-                                             *ptrMatrixC)
-                                  : accum[i] );
+                                             CastValue(beta, accumPrec, vlenC) *
+                                             *ptrMatrixC,
+                                             useMADFunction())
+                                  : accum[i],
+                              precC,
+                              vlenC,
+                              accumPrec != precC ));
             }
         }
     }
@@ -1096,7 +1231,7 @@ ostream& MatmulMV::print(ostream& os) const
                                   packIdxDisableB * packIdx ),
                               precB,
                               vlenB,
-                              4 != effVectorLengthB() ));
+                              PrecType::Double == precB ));
             }
 
             // each component of output vector C corresponds to a row of A
@@ -1119,7 +1254,7 @@ ostream& MatmulMV::print(ostream& os) const
                                         + oIdx ),
                                 precA,
                                 vlenA,
-                                4 != effVectorLengthA() ));
+                                PrecType::Double == precA ));
                     }
                     else
                     {
@@ -1189,7 +1324,7 @@ ostream& MatmulMV::print(ostream& os) const
                                             + oIdx ),
                                     precA,
                                     vlenA,
-                                    4 != effVectorLengthA() ));
+                                    PrecType::Double == precA ));
                         }
                         else
                         {
@@ -1220,13 +1355,19 @@ ostream& MatmulMV::print(ostream& os) const
         // write to output vector C
         if (0 == vlenC)
         {
-            os << WriteImage(matrixC,
-                             switchGlobalCol,
-                             packIdx * M,
-                             ReinterpretValue(accum[0],
-                                              0,
-                                              4,
-                                              4 != effVectorLengthC()) );
+            os << WriteImage(
+                      matrixC,
+                      switchGlobalCol,
+                      packIdx * M,
+                      ReinterpretValue(
+                          ConvertValue(
+                              accum[0],
+                              precC,
+                              vlenC,
+                              accumPrec != precC ),
+                          PrecType::UInt32,
+                          PrecType::vecLength(PrecType::UInt32),
+                          PrecType::Double == precC ));
         }
         else
         {
@@ -1234,13 +1375,19 @@ ostream& MatmulMV::print(ostream& os) const
                                         + packIdx * (M / vlenC)
                                         + switchGlobalCol );
 
-            os << assign( GlobalVar(*ptrMatrixC),
-                          general()
-                              ? MADValue(CastValue(alpha, precC, vlenC),
-                                         accum[0],
-                                         CastValue(beta, precC, vlenC) *
-                                         *ptrMatrixC)
-                              : accum[0] );
+            os << assign(
+                      GlobalVar(*ptrMatrixC),
+                          ConvertValue(
+                              general()
+                                  ? MADValue(CastValue(alpha, accumPrec, vlenC),
+                                             accum[0],
+                                             CastValue(beta, accumPrec, vlenC) *
+                                             *ptrMatrixC,
+                                             useMADFunction())
+                                  : accum[0],
+                              precC,
+                              vlenC,
+                              accumPrec != precC ));
         }
     }
 

@@ -63,7 +63,7 @@ To print the usage summary, just run the tool without arguments. You may need
 to set the LD_LIBRARY_PATH as described above.
 
     $ ./ATmatmul.amd
-    usage: ./ATmatmul.amd -f configspec -p SDD -m M [-n N -k K] [-t NT] [-c batching] [-g|-G] [-v 042|x1x|777] [-s] [-r]
+    usage: ./ATmatmul.amd -f configspec -p UISD{3} -m M [-n N -k K] [-t NT{2}] [-c batching] [-g|-G] [-v 042|x1x|777] [-s] [-r]
 
 A sample configspec file is ../devspec.cfg . This is what I use during
 development-integration-test. If you have the same compute devices that I use,
@@ -135,7 +135,7 @@ To print the usage summary, just run the tool without arguments. You may need
 to set the LD_LIBRARY_PATH as described above.
 
     $ ./ATmatvec.amd
-    usage: ./ATmatvec.amd -f configspec -p SDD -m M [-n N] [-t T] [-c batching] [-g|-G] [-v 042|x1x|777] [-s] [-r]
+    usage: ./ATmatvec.amd -f configspec -p UISD{3} -m M [-n N] [-t NT] [-c batching] [-g|-G] [-v 042|x1x|777] [-s] [-r]
 
 This is very similar to ATmatmul as described above. The differences are the
 same as between GEMM and GEMV.

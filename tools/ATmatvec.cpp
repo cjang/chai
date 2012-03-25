@@ -8,6 +8,7 @@
 #include "EvergreenMatmulMV.hpp"
 #include "OCLdevice.hpp"
 #include "OCLhacks.hpp"
+#include "PrecType.hpp"
 #include "StandardEM.hpp"
 #include "Watchdog.hpp"
 #include "chai/ParseArgs.hpp"
@@ -21,7 +22,7 @@ int main(int argc, char *argv[])
     if (1 == argc)
     {
         cerr << "usage: " << argv[0]
-             << " -f configspec -p SDD -m M [-n N] [-t T]"
+             << " -f configspec -p UISD{3} -m M [-n N] [-t NT]"
              << " [-c batching] [-g|-G] [-v 042|x1x|777] [-s] [-r]"
              << endl;
         exit(1);
@@ -53,6 +54,16 @@ int main(int argc, char *argv[])
     matvec.setPacking(1);     // default
     matvec.setGeneral(false); // default
     pargs.setOpt(matvec);
+
+    // some compute devices are single precision only
+    if (! OCLhacks::singleton().supportFP64(deviceIdx) &&
+        (PrecType::Double == matvec.precisionA() ||
+         PrecType::Double == matvec.precisionB() ||
+         PrecType::Double == matvec.precisionC()) )
+    {
+        cerr << "error: compute device single precision only" << endl;
+        exit(1);
+    }
 
     // detect OpenCL compiler hangs and exit the process
     const double watchSecs = OCLhacks::singleton().watchdogSecs(deviceIdx);

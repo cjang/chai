@@ -422,6 +422,7 @@ void ForLoopSubscript::arraySub(ostream& os) const
         // This could be a problem if the vector length is not 1
         // and a matrix is transposed.
         const size_t width = varWidth() / varVectorLength();
+        const size_t height = varHeight();
 
         widthIdx(os);
 
@@ -451,7 +452,7 @@ void ForLoopSubscript::widthIdx(ostream& os) const
 
     stringstream ss;
     if (isGatherIndex())
-        ss << "convert_int(" << getGatherWidthIndex() << ")";
+        ss << "convert_int_rtn(" << getGatherWidthIndex() << ")";
     else
         ss << "i" << x;
 
@@ -481,7 +482,7 @@ void ForLoopSubscript::heightIdx(ostream& os) const
 
         stringstream ss;
         if (isGatherIndex())
-            ss << "convert_int(" << getGatherHeightIndex() << ")";
+            ss << "convert_int_rtn(" << getGatherHeightIndex() << ")";
         else
             ss << "i" << y;
 
@@ -557,8 +558,6 @@ void StreamSubscript::arraySub(ostream& os) const
     }
     else
     {
-        const size_t y = isTransposed() ? 0 : 1;
-
         // More problems if a matrix is transposed and vector length
         // is not 1... Just adding a transposed matrix to a normal one
         // is problematic.
@@ -588,7 +587,7 @@ void StreamSubscript::widthIdx(ostream& os) const
     stringstream ss;
 
     if (isGatherIndex())
-        ss << "convert_int(" << getGatherWidthIndex() << ")";
+        ss << "convert_int_rtn(" << getGatherWidthIndex() << ")";
     else
         ss << "get_global_id(" << x << ")";
 
@@ -617,7 +616,7 @@ void StreamSubscript::heightIdx(ostream& os) const
 
         stringstream ss;
         if (isGatherIndex())
-            ss << "convert_int(" << getGatherHeightIndex() << ")";
+            ss << "convert_int_rtn(" << getGatherHeightIndex() << ")";
         else
             ss << "get_global_id(" << y << ")";
 

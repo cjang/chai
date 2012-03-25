@@ -51,6 +51,8 @@ class ParseArgs
                                size_t& startIdx,
                                size_t& stopIdx) const;
 
+    size_t precisionChar(const char UISD) const;
+
 public:
     ParseArgs(int argc, char *argv[]);
 

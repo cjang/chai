@@ -1,6 +1,7 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "Function.hpp"
+#include "PrecType.hpp"
 #include "Variable.hpp"
 
 using namespace std;
@@ -68,91 +69,68 @@ ConstPointerVariableDecl::ConstPointerVariableDecl(void) { }
 ////////////////////////////////////////
 // memory buffer
 
-FloatPt::Type FloatPt::precisionToType(const size_t precision) const
-{
-    return sizeof(double) == precision ? DP : SP;
-}
-
-FloatPt::FloatPt(const size_t precision,
+AddrMem::AddrMem(const size_t precision,
                  const size_t vectorLength,
                  const AddressSpace& qualifier)
-    : _fpType(precisionToType(precision)),
+    : _precision(precision),
       _vectorLength(vectorLength),
       _isConst(false),
       _isPointer(false),
       _addrSpace(qualifier) { }
 
-FloatPt::FloatPt(const size_t precision,
+AddrMem::AddrMem(const size_t precision,
                  const size_t vectorLength,
                  const ConstVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : _fpType(precisionToType(precision)),
+    : _precision(precision),
       _vectorLength(vectorLength),
       _isConst(true),
       _isPointer(false),
       _addrSpace(qualifier) { }
 
-FloatPt::FloatPt(const size_t precision,
+AddrMem::AddrMem(const size_t precision,
                  const size_t vectorLength,
                  const PointerVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : _fpType(precisionToType(precision)),
+    : _precision(precision),
       _vectorLength(vectorLength),
       _isConst(false),
       _isPointer(true),
       _addrSpace(qualifier) { }
 
-FloatPt::FloatPt(const size_t precision,
+AddrMem::AddrMem(const size_t precision,
                  const size_t vectorLength,
                  const ConstPointerVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : _fpType(precisionToType(precision)),
+    : _precision(precision),
       _vectorLength(vectorLength),
       _isConst(true),
       _isPointer(true),
       _addrSpace(qualifier) { }
 
-bool FloatPt::fp64(void) const
+bool AddrMem::fp64(void) const
 {
-    return DP == _fpType;
+    return PrecType::Double == _precision;
 }
 
-void FloatPt::declareType(ostream& os) const
+void AddrMem::declareType(ostream& os) const
 {
     os << _addrSpace.str();
 
     if (_isConst) os << "const ";
 
-    switch (_fpType)
-    {
-        case (SP) :
-            os << "float";
-            break;
-
-        case (DP) :
-            os << "double";
-            break;
-    }
+    os << PrecType::getPrimitiveName(_precision);
 
     if (_vectorLength > 1) os << _vectorLength;
 
     os << (_isPointer ? " * " : " ");
 }
 
-void FloatPt::convertType(ostream& os) const
+void AddrMem::convertType(ostream& os) const
 {
     os << "(";
 
-    switch (_fpType)
-    {
-        case (SP) :
-            os << "float";
-            break;
-
-        case (DP) :
-            os << "double";
-            break;
-    }
+    os << PrecType::getPrimitiveName(_precision);
 
     if (_vectorLength > 1) os << _vectorLength;
 

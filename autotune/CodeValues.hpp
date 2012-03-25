@@ -64,6 +64,22 @@ public:
     std::string name(void) const;
 };
 
+class ConvertValue : public IValue
+{
+    const size_t  _precision;
+    const size_t  _vectorLength;
+    const IValue& _value;
+    const bool    _doApply;
+
+public:
+    ConvertValue(const IValue& value,
+                 const size_t precision,
+                 const size_t vectorLength,
+                 const bool doApply = true);
+
+    std::string name(void) const;
+};
+
 class DerefValue : public IValue
 {
     const IValue& _value;
@@ -210,10 +226,23 @@ class MADValue : public IValue
     const IValue& _b;
     const IValue& _c;
 
+    const bool _useMADFunction;
+
 public:
-    MADValue(const IValue& a, const IValue& b, const IValue& c);
-    MADValue(const std::string& a, const std::string& b, const std::string& c);
-    MADValue(const std::string& a, const std::string& b, const IValue& c);
+    MADValue(const IValue& a,
+             const IValue& b,
+             const IValue& c,
+             const bool useMADFunction = true);
+
+    MADValue(const std::string& a,
+             const std::string& b,
+             const std::string& c,
+             const bool useMADFunction = true);
+
+    MADValue(const std::string& a,
+             const std::string& b,
+             const IValue& c,
+             const bool useMADFunction = true);
 
     std::string name(void) const;
 };

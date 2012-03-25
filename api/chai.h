@@ -63,6 +63,8 @@ public: \
     void accept(std::stack< ArrayDim >&) const; \
 };
 
+DECL_ARRAY_LIT(u32, uint32_t)
+DECL_ARRAY_LIT(i32, int32_t)
 DECL_ARRAY_LIT(f32, float)
 DECL_ARRAY_LIT(f64, double)
 
@@ -91,6 +93,7 @@ public:
     void accept(std::stack< ArrayDim >&) const;
 };
 
+ArrayFun abs (CAER);
 ArrayFun acos (CAER);
 ArrayFun acosh (CAER);
 ArrayFun acospi (CAER);
@@ -102,6 +105,7 @@ ArrayFun atanh (CAER);
 ArrayFun atanpi (CAER);
 ArrayFun cbrt (CAER);
 ArrayFun ceil (CAER);
+ArrayFun clz (CAER);
 ArrayFun cos (CAER);
 ArrayFun cosh (CAER);
 ArrayFun cospi (CAER);
@@ -128,6 +132,8 @@ ArrayFun logb (CAER);
 ArrayFun mean (CAER);
 ArrayFun nan (CAER);
 ArrayFun operator- (CAER);
+ArrayFun operator~ (CAER);
+ArrayFun operator! (CAER);
 ArrayFun radians (CAER);
 ArrayFun rint (CAER);
 ArrayFun round (CAER);
@@ -156,6 +162,9 @@ ArrayFun clamp (CAER, CAER, CAER);
 ArrayFun fma (CAER, CAER, CAER);
 ArrayFun gather2_floor (CAER, CAER, CAER);
 ArrayFun mad (CAER, CAER, CAER);
+ArrayFun mad24 (CAER, CAER, CAER);
+ArrayFun mad_hi (CAER, CAER, CAER);
+ArrayFun mad_sat (CAER, CAER, CAER);
 ArrayFun mix (CAER, CAER, CAER);
 ArrayFun smoothstep (CAER, CAER, CAER);
 
@@ -213,133 +222,160 @@ public:
     void accept(std::stack< ArrayDim >&) const;
 };
 
-IndexFun index_f32(const size_t indexDim, const size_t W);
-IndexFun index_f64(const size_t indexDim, const size_t W);
-IndexFun index_f32(const size_t indexDim, const size_t W, const size_t H);
-IndexFun index_f64(const size_t indexDim, const size_t W, const size_t H);
+#define DECL_INDEX_FUN(FP) \
+IndexFun index_ ## FP (const size_t indexDim, const size_t W); \
+IndexFun index_ ## FP (const size_t indexDim, const size_t W, const size_t H);
+
+DECL_INDEX_FUN(u32)
+DECL_INDEX_FUN(i32)
+DECL_INDEX_FUN(f32)
+DECL_INDEX_FUN(f64)
 
 ////////////////////////////////////////
-// special function for literals
+// (two argument) function value
 
-class BinLitFun : public ArrayExp
+class DuoFun : public ArrayExp
 {
-    const ArrayLitf32 _lit32;
-    const ArrayLitf64 _lit64;
+    const ArrayLitu32 _lit32u;
+    const ArrayLiti32 _lit32i;
+    const ArrayLitf32 _lit32f;
+    const ArrayLitf64 _lit64f;
+
     const uint32_t    _funCode;
+
     const ArrayExp&   _a;
     const ArrayExp&   _b;
 
 public:
-    BinLitFun(const uint32_t, CAER, CAER);
-    BinLitFun(const uint32_t, CAER, const int);
-    BinLitFun(const uint32_t, const int, CAER);
-    BinLitFun(const uint32_t, CAER, const float);
-    BinLitFun(const uint32_t, const float, CAER);
-    BinLitFun(const uint32_t, CAER, const double);
-    BinLitFun(const uint32_t, const double, CAER);
+    DuoFun(const uint32_t, CAER, CAER);
+    DuoFun(const uint32_t, CAER, const uint32_t);
+    DuoFun(const uint32_t, CAER, const int32_t);
+    DuoFun(const uint32_t, CAER, const float);
+    DuoFun(const uint32_t, CAER, const double);
+    DuoFun(const uint32_t, const uint32_t, CAER);
+    DuoFun(const uint32_t, const int32_t, CAER);
+    DuoFun(const uint32_t, const float, CAER);
+    DuoFun(const uint32_t, const double, CAER);
     void accept(chai_internal::Stak<chai_internal::BC>&) const;
     void accept(std::stack< ArrayDim >&) const;
 };
 
 ////////////////////////////////////////
-// predicates
+// (three argument) function value
 
-struct PredicateFun : public BinLitFun
+class TriFun : public ArrayExp
 {
-    PredicateFun(const uint32_t, CAER, CAER);
-    PredicateFun(const uint32_t, CAER, const int);
-    PredicateFun(const uint32_t, const int, CAER);
-    PredicateFun(const uint32_t, CAER, const float);
-    PredicateFun(const uint32_t, const float, CAER);
-    PredicateFun(const uint32_t, CAER, const double);
-    PredicateFun(const uint32_t, const double, CAER);
-    void accept(chai_internal::Stak<chai_internal::BC>&) const;
-    void accept(std::stack< ArrayDim >&) const;
-};
-
-#define DECL_ARRAY_PRED(NAME) \
-PredicateFun NAME (CAER, CAER); \
-PredicateFun NAME (CAER, const int); \
-PredicateFun NAME (const int, CAER); \
-PredicateFun NAME (CAER, const float); \
-PredicateFun NAME (const float, CAER); \
-PredicateFun NAME (CAER, const double); \
-PredicateFun NAME (const double, CAER);
-
-DECL_ARRAY_PRED(operator==)
-DECL_ARRAY_PRED(operator!=)
-DECL_ARRAY_PRED(operator<=)
-DECL_ARRAY_PRED(operator>=)
-DECL_ARRAY_PRED(operator<)
-DECL_ARRAY_PRED(operator>)
-
-PredicateFun operator&& (const PredicateFun&, const PredicateFun&);
-PredicateFun operator|| (const PredicateFun&, const PredicateFun&);
-
-class CondFun : public ArrayExp
-{
-    const ArrayLitf32   _lit32A;
-    const ArrayLitf64   _lit64A;
-    const ArrayLitf32   _lit32B;
-    const ArrayLitf64   _lit64B;
-    const PredicateFun& _pred;
-    const ArrayExp&     _a;
-    const ArrayExp&     _b;
+    const ArrayLitu32 _lit32uA;
+    const ArrayLiti32 _lit32iA;
+    const ArrayLitf32 _lit32fA;
+    const ArrayLitf64 _lit64fA;
+    const ArrayLitu32 _lit32uB;
+    const ArrayLiti32 _lit32iB;
+    const ArrayLitf32 _lit32fB;
+    const ArrayLitf64 _lit64fB;
+    const uint32_t    _funCode;
+    const ArrayExp&   _pred;
+    const ArrayExp&   _a;
+    const ArrayExp&   _b;
 
 public:
-    CondFun(const PredicateFun&, CAER, CAER);
-    CondFun(const PredicateFun&, CAER, const int);
-    CondFun(const PredicateFun&, const int, CAER);
-    CondFun(const PredicateFun&, CAER, const float);
-    CondFun(const PredicateFun&, const float, CAER);
-    CondFun(const PredicateFun&, CAER, const double);
-    CondFun(const PredicateFun&, const double, CAER);
-    CondFun(const PredicateFun&, const int, const int);
-    CondFun(const PredicateFun&, const int, const float);
-    CondFun(const PredicateFun&, const int, const double);
-    CondFun(const PredicateFun&, const float, const int);
-    CondFun(const PredicateFun&, const float, const float);
-    CondFun(const PredicateFun&, const float, const double);
-    CondFun(const PredicateFun&, const double, const int);
-    CondFun(const PredicateFun&, const double, const float);
-    CondFun(const PredicateFun&, const double, const double);
+    TriFun(const uint32_t, const ArrayExp&, CAER, CAER);
+    TriFun(const uint32_t, const ArrayExp&, CAER, const uint32_t);
+    TriFun(const uint32_t, const ArrayExp&, CAER, const int32_t);
+    TriFun(const uint32_t, const ArrayExp&, CAER, const float);
+    TriFun(const uint32_t, const ArrayExp&, CAER, const double);
+    TriFun(const uint32_t, const ArrayExp&, const uint32_t, CAER);
+    TriFun(const uint32_t, const ArrayExp&, const int32_t, CAER);
+    TriFun(const uint32_t, const ArrayExp&, const float, CAER);
+    TriFun(const uint32_t, const ArrayExp&, const double, CAER);
+    TriFun(const uint32_t, const ArrayExp&, const uint32_t, const uint32_t);
+    TriFun(const uint32_t, const ArrayExp&, const uint32_t, const int32_t);
+    TriFun(const uint32_t, const ArrayExp&, const uint32_t, const float);
+    TriFun(const uint32_t, const ArrayExp&, const uint32_t, const double);
+    TriFun(const uint32_t, const ArrayExp&, const int32_t, const uint32_t);
+    TriFun(const uint32_t, const ArrayExp&, const int32_t, const int32_t);
+    TriFun(const uint32_t, const ArrayExp&, const int32_t, const float);
+    TriFun(const uint32_t, const ArrayExp&, const int32_t, const double);
+    TriFun(const uint32_t, const ArrayExp&, const float, const uint32_t);
+    TriFun(const uint32_t, const ArrayExp&, const float, const int32_t);
+    TriFun(const uint32_t, const ArrayExp&, const float, const float);
+    TriFun(const uint32_t, const ArrayExp&, const float, const double);
+    TriFun(const uint32_t, const ArrayExp&, const double, const uint32_t);
+    TriFun(const uint32_t, const ArrayExp&, const double, const int32_t);
+    TriFun(const uint32_t, const ArrayExp&, const double, const float);
+    TriFun(const uint32_t, const ArrayExp&, const double, const double);
     void accept(chai_internal::Stak<chai_internal::BC>&) const;
     void accept(std::stack< ArrayDim >&) const;
 };
 
-CondFun cond(const PredicateFun&, CAER, CAER);
-CondFun cond(const PredicateFun&, CAER, const int);
-CondFun cond(const PredicateFun&, const int, CAER);
-CondFun cond(const PredicateFun&, CAER, const float);
-CondFun cond(const PredicateFun&, const float, CAER);
-CondFun cond(const PredicateFun&, CAER, const double);
-CondFun cond(const PredicateFun&, const double, CAER);
-CondFun cond(const PredicateFun&, const int, const int);
-CondFun cond(const PredicateFun&, const int, const float);
-CondFun cond(const PredicateFun&, const int, const double);
-CondFun cond(const PredicateFun&, const float, const int);
-CondFun cond(const PredicateFun&, const float, const float);
-CondFun cond(const PredicateFun&, const float, const double);
-CondFun cond(const PredicateFun&, const double, const int);
-CondFun cond(const PredicateFun&, const double, const float);
-CondFun cond(const PredicateFun&, const double, const double);
+TriFun cond(const ArrayExp&, CAER, CAER);
+TriFun cond(const ArrayExp&, CAER, const uint32_t);
+TriFun cond(const ArrayExp&, CAER, const int32_t);
+TriFun cond(const ArrayExp&, CAER, const float);
+TriFun cond(const ArrayExp&, CAER, const double);
+TriFun cond(const ArrayExp&, const uint32_t, CAER);
+TriFun cond(const ArrayExp&, const int32_t, CAER);
+TriFun cond(const ArrayExp&, const float, CAER);
+TriFun cond(const ArrayExp&, const double, CAER);
+TriFun cond(const ArrayExp&, const uint32_t, const uint32_t);
+TriFun cond(const ArrayExp&, const uint32_t, const int32_t);
+TriFun cond(const ArrayExp&, const uint32_t, const float);
+TriFun cond(const ArrayExp&, const uint32_t, const double);
+TriFun cond(const ArrayExp&, const int32_t, const uint32_t);
+TriFun cond(const ArrayExp&, const int32_t, const int32_t);
+TriFun cond(const ArrayExp&, const int32_t, const float);
+TriFun cond(const ArrayExp&, const int32_t, const double);
+TriFun cond(const ArrayExp&, const float, const uint32_t);
+TriFun cond(const ArrayExp&, const float, const int32_t);
+TriFun cond(const ArrayExp&, const float, const float);
+TriFun cond(const ArrayExp&, const float, const double);
+TriFun cond(const ArrayExp&, const double, const uint32_t);
+TriFun cond(const ArrayExp&, const double, const int32_t);
+TriFun cond(const ArrayExp&, const double, const float);
+TriFun cond(const ArrayExp&, const double, const double);
 
 ////////////////////////////////////////
 // binary operations and functions
 
-#define DECL_ARRAY_BINOPFUN(NAME) \
-BinLitFun NAME (CAER, CAER); \
-BinLitFun NAME (CAER, const int); \
-BinLitFun NAME (const int, CAER); \
-BinLitFun NAME (CAER, const float); \
-BinLitFun NAME (const float, CAER); \
-BinLitFun NAME (CAER, const double); \
-BinLitFun NAME (const double, CAER);
+DuoFun operator&& (const ArrayExp&, const ArrayExp&);
+DuoFun operator|| (const ArrayExp&, const ArrayExp&);
 
+#define DECL_ARRAY_BINOPFUN(NAME) \
+DuoFun NAME (CAER, CAER); \
+DuoFun NAME (CAER, const uint32_t); \
+DuoFun NAME (const uint32_t, CAER); \
+DuoFun NAME (CAER, const int32_t); \
+DuoFun NAME (const int32_t, CAER); \
+DuoFun NAME (CAER, const float); \
+DuoFun NAME (const float, CAER); \
+DuoFun NAME (CAER, const double); \
+DuoFun NAME (const double, CAER);
+
+DECL_ARRAY_BINOPFUN(operator==)
+DECL_ARRAY_BINOPFUN(operator!=)
+DECL_ARRAY_BINOPFUN(operator<=)
+DECL_ARRAY_BINOPFUN(operator>=)
+DECL_ARRAY_BINOPFUN(operator<)
+DECL_ARRAY_BINOPFUN(operator>)
+
+DECL_ARRAY_BINOPFUN(abs_diff)
+DECL_ARRAY_BINOPFUN(add_sat)
+DECL_ARRAY_BINOPFUN(hadd)
+DECL_ARRAY_BINOPFUN(mul24)
+DECL_ARRAY_BINOPFUN(mul_hi)
+DECL_ARRAY_BINOPFUN(rhadd)
+DECL_ARRAY_BINOPFUN(rotate)
+DECL_ARRAY_BINOPFUN(sub_sat)
 DECL_ARRAY_BINOPFUN(operator+)
 DECL_ARRAY_BINOPFUN(operator-)
 DECL_ARRAY_BINOPFUN(operator*)
 DECL_ARRAY_BINOPFUN(operator/)
+DECL_ARRAY_BINOPFUN(operator%)
+DECL_ARRAY_BINOPFUN(operator<<)
+DECL_ARRAY_BINOPFUN(operator>>)
+DECL_ARRAY_BINOPFUN(operator&)
+DECL_ARRAY_BINOPFUN(operator|)
+DECL_ARRAY_BINOPFUN(operator^)
 DECL_ARRAY_BINOPFUN(max)
 DECL_ARRAY_BINOPFUN(min)
 DECL_ARRAY_BINOPFUN(maxmag)
@@ -371,6 +407,14 @@ DECL_ARRAY_BINOPFUN(islessgreater)
 ////////////////////////////////////////
 // random number generators
 
+enum RNGu32Variant {
+    UP_RNG_DEFAULT = 0
+};
+
+enum RNGi32Variant {
+    IP_RNG_DEFAULT = 0
+};
+
 enum RNGf32Variant {
     SP_RNG_DEFAULT = 0
 };
@@ -388,6 +432,8 @@ public: \
     RNG ## FP (const RNG ## FP ## Variant rngVariant); \
 };
  
+DECL_RNG(u32, uint32_t)
+DECL_RNG(i32, int32_t)
 DECL_RNG(f32, float)
 DECL_RNG(f64, double)
 
@@ -477,6 +523,8 @@ ARR(FP) rng_uniform_make(RNG ## FP & generator, \
 ARR(FP) rng_normal_make(RNG ## FP & generator, \
                         const size_t length);
 
+DECL_ARRAY(u32, uint32_t)
+DECL_ARRAY(i32, int32_t)
 DECL_ARRAY(f32, float)
 DECL_ARRAY(f64, double)
 

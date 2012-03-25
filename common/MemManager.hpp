@@ -77,6 +77,20 @@ private:
                              const size_t vectorLength,
                              double* ptr);
 
+    ArrayBuf* createArrayBuf(const AccessMode mode,
+                             const size_t packing,
+                             const size_t W,
+                             const size_t H,
+                             const size_t vectorLength,
+                             int32_t* ptr);
+
+    ArrayBuf* createArrayBuf(const AccessMode mode,
+                             const size_t packing,
+                             const size_t W,
+                             const size_t H,
+                             const size_t vectorLength,
+                             uint32_t* ptr);
+
     bool createArrayInternal(const uint32_t varNum,
                              const AccessMode mode,
                              const size_t packing,
@@ -87,7 +101,9 @@ private:
                              VectorTrace& vt,
                              const bool initBackMem,
                              const float val32,
-                             const double val64);
+                             const double val64,
+                             const int32_t val32i,
+                             const uint32_t val32u);
 
     bool createArrayInternal(const AstVariable* varPtr,
                              const AccessMode mode,
@@ -99,7 +115,9 @@ private:
                              VectorTrace& vt,
                              const bool initBackMem,
                              const float val32,
-                             const double val64);
+                             const double val64,
+                             const int32_t val32i,
+                             const uint32_t val32u);
 
 public:
     // interpreter does not have any OpenCL-ness
@@ -168,6 +186,22 @@ public:
                          const size_t vectorLength,
                          VectorTrace& vt,
                          const double val64);
+    bool createArrayTemp(const uint32_t varNum,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t vectorLength,
+                         VectorTrace& vt,
+                         const int32_t val32i);
+    bool createArrayTemp(const uint32_t varNum,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t vectorLength,
+                         VectorTrace& vt,
+                         const uint32_t val32u);
 
     // create memory on compute device (split variable)
     bool createArraySendData(const AstVariable* varPtr,
@@ -199,15 +233,31 @@ public:
                          const size_t vectorLength,
                          VectorTrace& vt,
                          const double val64);
+    bool createArrayTemp(const AstVariable* varPtr,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t vectorLength,
+                         VectorTrace& vt,
+                         const int32_t val32i);
+    bool createArrayTemp(const AstVariable* varPtr,
+                         const AccessMode mode,
+                         const size_t packing,
+                         const size_t W,
+                         const size_t H,
+                         const size_t vectorLength,
+                         VectorTrace& vt,
+                         const uint32_t val32u);
 
     // used by interpreter during operation dispatch
     BackMem* allocBackMem(const size_t W,
                           const size_t H,
-                          const bool isDP,
+                          const size_t precision,
                           const size_t vecSize);
     FrontMem* allocFrontMem(const size_t W,
                             const size_t H,
-                            const bool isDP,
+                            const size_t precision,
                             BackMem* parent,
                             const size_t vecIndex) const;
 

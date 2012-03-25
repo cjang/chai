@@ -1,6 +1,7 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <sstream>
+#include <stdint.h>
 
 #include "ByteCodes.hpp"
 #include "InterpAccum.hpp"
@@ -25,6 +26,7 @@
 #include "Interpreter.hpp"
 #include "Logger.hpp"
 #include "MemManager.hpp"
+#include "PrecType.hpp"
 #include "PrintBC.hpp"
 #include "Scheduler.hpp"
 
@@ -36,71 +38,148 @@ Interpreter::Interpreter(const size_t deviceCode)
     : DeviceBase(deviceCode),
       _genRNG()
 {
-    // internal
-    _opDisp.addOp(ByteCodes::convert_f32, new InterpConvert(false));
-    _opDisp.addOp(ByteCodes::convert_f64, new InterpConvert(true));
-    _opDisp.addOp(ByteCodes::scalar_f32, new InterpScalar(false));
-    _opDisp.addOp(ByteCodes::scalar_f64, new InterpScalar(true));
+    const size_t uintPrec = PrecType::UInt32;
+    const size_t intPrec = PrecType::Int32;
+    const size_t floatPrec = PrecType::Float;
+    const size_t doublePrec = PrecType::Double;
 
-    // arithmetic and predicate operators
-    _opDisp.addOp(ByteCodes::negate, new InterpFun1(_NEGATE_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorADD, new InterpFun2(_ADD_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorAND, new InterpFun2(_AND_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorDIV, new InterpFun2(_DIV_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorMUL, new InterpFun2(_MUL_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorOR, new InterpFun2(_OR_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorSUB, new InterpFun2(_SUB_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorEQ, new InterpFun2(_EQ_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorGE, new InterpFun2(_GE_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorGT, new InterpFun2(_GT_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorLE, new InterpFun2(_LE_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorLT, new InterpFun2(_LT_::singleton()));
-    _opDisp.addOp(ByteCodes::operatorNE, new InterpFun2(_NE_::singleton()));
-
-    // selection and gathering
-    _opDisp.addOp(ByteCodes::cond, new InterpCond);
-    _opDisp.addOp(ByteCodes::gather1_floor, new InterpGather(1));
-    _opDisp.addOp(ByteCodes::gather2_floor, new InterpGather(2));
-    _opDisp.addOp(ByteCodes::index1_f32, new InterpIdxdata(false, 1));
-    _opDisp.addOp(ByteCodes::index1_f64, new InterpIdxdata(true, 1));
-    _opDisp.addOp(ByteCodes::index2_f32, new InterpIdxdata(false, 2));
-    _opDisp.addOp(ByteCodes::index2_f64, new InterpIdxdata(true, 2));
-
-    // data creation
-    _opDisp.addOp(ByteCodes::make1_f32, new InterpMakedata);
-    _opDisp.addOp(ByteCodes::make1_f64, new InterpMakedata);
-    _opDisp.addOp(ByteCodes::make2_f32, new InterpMakedata);
-    _opDisp.addOp(ByteCodes::make2_f64, new InterpMakedata);
+    const uint32_t uintOne = 1;
+    const int32_t intOne = 1;
     const float floatOne = 1;
     const double doubleOne = 1;
-    _opDisp.addOp(ByteCodes::ones1_f32, new InterpLitdata(floatOne, 1));
-    _opDisp.addOp(ByteCodes::ones1_f64, new InterpLitdata(doubleOne, 1));
-    _opDisp.addOp(ByteCodes::ones2_f32, new InterpLitdata(floatOne, 2));
-    _opDisp.addOp(ByteCodes::ones2_f64, new InterpLitdata(doubleOne, 2));
+
+    const uint32_t uintZero = 0;
+    const int32_t intZero = 0;
     const float floatZero = 0;
     const double doubleZero = 0;
+
+    // internal
+    _opDisp.addOp(ByteCodes::convert_u32, new InterpConvert(uintPrec));
+    _opDisp.addOp(ByteCodes::convert_i32, new InterpConvert(intPrec));
+    _opDisp.addOp(ByteCodes::convert_f32, new InterpConvert(floatPrec));
+    _opDisp.addOp(ByteCodes::convert_f64, new InterpConvert(doublePrec));
+    _opDisp.addOp(ByteCodes::scalar_u32, new InterpScalar(uintPrec));
+    _opDisp.addOp(ByteCodes::scalar_i32, new InterpScalar(intPrec));
+    _opDisp.addOp(ByteCodes::scalar_f32, new InterpScalar(floatPrec));
+    _opDisp.addOp(ByteCodes::scalar_f64, new InterpScalar(doublePrec));
+
+    // arithmetic operators
+    _opDisp.addOp(ByteCodes::operatorUNARYMINUS,
+                  new InterpFun1(_UNARYMINUS_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorADD,
+                  new InterpFun2(_ADD_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorDIVIDE,
+                  new InterpFun2(_DIVIDE_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorMULTIPLY,
+                  new InterpFun2(_MULTIPLY_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorSUBTRACT,
+                  new InterpFun2(_SUBTRACT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorCOMPLEMENT,
+                  new InterpFun1(_COMPLEMENT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorNOT,
+                  new InterpFun1(_NOT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorMODULO,
+                  new InterpFun2(_MODULO_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorSHIFTLEFT,
+                  new InterpFun2(_SHIFTLEFT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorSHIFTRIGHT,
+                  new InterpFun2(_SHIFTRIGHT_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorBITWISEAND,
+                  new InterpFun2(_BITWISEAND_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorBITWISEOR,
+                  new InterpFun2(_BITWISEOR_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorBITWISEXOR,
+                  new InterpFun2(_BITWISEXOR_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorCONDEXPR,
+                  new InterpCond);
+
+    // predicate operators
+    _opDisp.addOp(ByteCodes::operatorLOGICALAND,
+                  new InterpFun2(_LOGICALAND_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorLOGICALOR,
+                  new InterpFun2(_LOGICALOR_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorEQUAL,
+                  new InterpFun2(_EQUAL_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorNOTEQUAL,
+                  new InterpFun2(_NOTEQUAL_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorGREATEREQUAL,
+                  new InterpFun2(_GREATEREQUAL_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorGREATERTHAN,
+                  new InterpFun2(_GREATERTHAN_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorLESSEQUAL,
+                  new InterpFun2(_LESSEQUAL_::singleton()));
+    _opDisp.addOp(ByteCodes::operatorLESSTHAN,
+                  new InterpFun2(_LESSTHAN_::singleton()));
+
+    // gathering
+    _opDisp.addOp(ByteCodes::gather1_floor, new InterpGather(1));
+    _opDisp.addOp(ByteCodes::gather2_floor, new InterpGather(2));
+    _opDisp.addOp(ByteCodes::index1_u32, new InterpIdxdata(uintPrec, 1));
+    _opDisp.addOp(ByteCodes::index1_i32, new InterpIdxdata(intPrec, 1));
+    _opDisp.addOp(ByteCodes::index1_f32, new InterpIdxdata(floatPrec, 1));
+    _opDisp.addOp(ByteCodes::index1_f64, new InterpIdxdata(doublePrec, 1));
+    _opDisp.addOp(ByteCodes::index2_u32, new InterpIdxdata(uintPrec, 2));
+    _opDisp.addOp(ByteCodes::index2_i32, new InterpIdxdata(intPrec, 2));
+    _opDisp.addOp(ByteCodes::index2_f32, new InterpIdxdata(floatPrec, 2));
+    _opDisp.addOp(ByteCodes::index2_f64, new InterpIdxdata(doublePrec, 2));
+
+    // data creation
+    _opDisp.addOp(ByteCodes::make1_u32, new InterpMakedata);
+    _opDisp.addOp(ByteCodes::make1_i32, new InterpMakedata);
+    _opDisp.addOp(ByteCodes::make1_f32, new InterpMakedata);
+    _opDisp.addOp(ByteCodes::make1_f64, new InterpMakedata);
+    _opDisp.addOp(ByteCodes::make2_u32, new InterpMakedata);
+    _opDisp.addOp(ByteCodes::make2_i32, new InterpMakedata);
+    _opDisp.addOp(ByteCodes::make2_f32, new InterpMakedata);
+    _opDisp.addOp(ByteCodes::make2_f64, new InterpMakedata);
+    _opDisp.addOp(ByteCodes::ones1_u32, new InterpLitdata(uintOne, 1));
+    _opDisp.addOp(ByteCodes::ones1_i32, new InterpLitdata(intOne, 1));
+    _opDisp.addOp(ByteCodes::ones1_f32, new InterpLitdata(floatOne, 1));
+    _opDisp.addOp(ByteCodes::ones1_f64, new InterpLitdata(doubleOne, 1));
+    _opDisp.addOp(ByteCodes::ones2_u32, new InterpLitdata(uintOne, 2));
+    _opDisp.addOp(ByteCodes::ones2_i32, new InterpLitdata(intOne, 2));
+    _opDisp.addOp(ByteCodes::ones2_f32, new InterpLitdata(floatOne, 2));
+    _opDisp.addOp(ByteCodes::ones2_f64, new InterpLitdata(doubleOne, 2));
+    _opDisp.addOp(ByteCodes::zeros1_u32, new InterpLitdata(uintZero, 1));
+    _opDisp.addOp(ByteCodes::zeros1_i32, new InterpLitdata(intZero, 1));
     _opDisp.addOp(ByteCodes::zeros1_f32, new InterpLitdata(floatZero, 1));
     _opDisp.addOp(ByteCodes::zeros1_f64, new InterpLitdata(doubleZero, 1));
+    _opDisp.addOp(ByteCodes::zeros2_u32, new InterpLitdata(uintZero, 2));
+    _opDisp.addOp(ByteCodes::zeros2_i32, new InterpLitdata(intZero, 2));
     _opDisp.addOp(ByteCodes::zeros2_f32, new InterpLitdata(floatZero, 2));
     _opDisp.addOp(ByteCodes::zeros2_f64, new InterpLitdata(doubleZero, 2));
 
     // read back data
+    _opDisp.addOp(ByteCodes::read_scalar_u32, new InterpReadout);
+    _opDisp.addOp(ByteCodes::read_scalar_i32, new InterpReadout);
     _opDisp.addOp(ByteCodes::read_scalar_f32, new InterpReadout);
     _opDisp.addOp(ByteCodes::read_scalar_f64, new InterpReadout);
+    _opDisp.addOp(ByteCodes::read1_u32, new InterpReadout);
+    _opDisp.addOp(ByteCodes::read1_i32, new InterpReadout);
     _opDisp.addOp(ByteCodes::read1_f32, new InterpReadout);
     _opDisp.addOp(ByteCodes::read1_f64, new InterpReadout);
+    _opDisp.addOp(ByteCodes::read2_u32, new InterpReadout);
+    _opDisp.addOp(ByteCodes::read2_i32, new InterpReadout);
     _opDisp.addOp(ByteCodes::read2_f32, new InterpReadout);
     _opDisp.addOp(ByteCodes::read2_f64, new InterpReadout);
 
     // random numbers
+    _opDisp.addOp(ByteCodes::rng_normal_make_u32,
+                  new InterpRNGnormal(uintPrec, _genRNG));
+    _opDisp.addOp(ByteCodes::rng_normal_make_i32,
+                  new InterpRNGnormal(intPrec, _genRNG));
     _opDisp.addOp(ByteCodes::rng_normal_make_f32,
-                  new InterpRNGnormal(false, _genRNG));
+                  new InterpRNGnormal(floatPrec, _genRNG));
     _opDisp.addOp(ByteCodes::rng_normal_make_f64,
-                  new InterpRNGnormal(true, _genRNG));
+                  new InterpRNGnormal(doublePrec, _genRNG));
+    _opDisp.addOp(ByteCodes::rng_uniform_make_u32,
+                  new InterpRNGuniform(uintPrec, _genRNG));
+    _opDisp.addOp(ByteCodes::rng_uniform_make_i32,
+                  new InterpRNGuniform(intPrec, _genRNG));
     _opDisp.addOp(ByteCodes::rng_uniform_make_f32,
-                  new InterpRNGuniform(false, _genRNG));
+                  new InterpRNGuniform(floatPrec, _genRNG));
     _opDisp.addOp(ByteCodes::rng_uniform_make_f64,
-                  new InterpRNGuniform(true, _genRNG));
+                  new InterpRNGuniform(doublePrec, _genRNG));
 
     // auto-tuned matrix multiply
     _opDisp.addOp(ByteCodes::matmul, new InterpMatmul);
@@ -188,6 +267,21 @@ Interpreter::Interpreter(const size_t deviceCode)
     _opDisp.addOp(ByteCodes::smoothstep,
                   new InterpFun3(_SMOOTHSTEP_::singleton()));
     _opDisp.addOp(ByteCodes::sign, new InterpFun1(_SIGN_::singleton()));
+
+    // integer functions
+    _opDisp.addOp(ByteCodes::abs, new InterpFun1(_ABS_::singleton()));
+    _opDisp.addOp(ByteCodes::abs_diff, new InterpFun2(_ABS_DIFF_::singleton()));
+    _opDisp.addOp(ByteCodes::add_sat, new InterpFun2(_ADD_SAT_::singleton()));
+    _opDisp.addOp(ByteCodes::clz, new InterpFun1(_CLZ_::singleton()));
+    _opDisp.addOp(ByteCodes::hadd, new InterpFun2(_HADD_::singleton()));
+    _opDisp.addOp(ByteCodes::mad24, new InterpFun3(_MAD24_::singleton()));
+    _opDisp.addOp(ByteCodes::mad_hi, new InterpFun3(_MAD_HI_::singleton()));
+    _opDisp.addOp(ByteCodes::mad_sat, new InterpFun3(_MAD_SAT_::singleton()));
+    _opDisp.addOp(ByteCodes::mul24, new InterpFun2(_MUL24_::singleton()));
+    _opDisp.addOp(ByteCodes::mul_hi, new InterpFun2(_MUL_HI_::singleton()));
+    _opDisp.addOp(ByteCodes::rhadd, new InterpFun2(_RHADD_::singleton()));
+    _opDisp.addOp(ByteCodes::rotate, new InterpFun2(_ROTATE_::singleton()));
+    _opDisp.addOp(ByteCodes::sub_sat, new InterpFun2(_SUB_SAT_::singleton()));
 
     // relational functions
     _opDisp.addOp(ByteCodes::isequal, new InterpFun2(_ISEQUAL_::singleton()));

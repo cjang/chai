@@ -8,10 +8,9 @@
 
 #include "BackMem.hpp"
 #include "chai/BC.hpp"
-#include "FrontMem.hpp"
-#include "MemManager.hpp"
 #include "chai/Stak.hpp"
 #include "FrontMem.hpp"
+#include "MemManager.hpp"
 #include "VectorTrace.hpp"
 
 namespace chai_internal {
@@ -48,8 +47,7 @@ protected:
     virtual void sub_eval(std::stack< std::vector< FrontMem* > >&) = 0;
 
     // all streams in a vector share the same precision and dimensions
-    bool isFloat(const size_t argStackIndex) const;
-    bool isDouble(const size_t argStackIndex) const;
+    size_t precision(const size_t argStackIndex) const;
     size_t W(const size_t argStackIndex) const;
     size_t H(const size_t argStackIndex) const;
     size_t frontSize(const size_t argStackIndex) const;
@@ -70,14 +68,18 @@ protected:
                     const size_t vecIndex) const;
     double* doublePtr(const size_t argStackIndex,
                       const size_t vecIndex) const;
+    int32_t* intPtr(const size_t argStackIndex,
+                    const size_t vecIndex) const;
+    uint32_t* uintPtr(const size_t argStackIndex,
+                      const size_t vecIndex) const;
 
     BackMem* allocBackMem(const size_t W,
                           const size_t H,
-                          const bool isDP) const;
+                          const size_t prec) const;
 
     FrontMem* allocFrontMem(const size_t W,
                             const size_t H,
-                            const bool isDP,
+                            const size_t prec,
                             BackMem* backMem,
                             const size_t vecIndex) const;
 

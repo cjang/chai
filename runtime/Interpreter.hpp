@@ -16,7 +16,7 @@ class Interpreter : public DeviceBase
     DispatchInterp _opDisp;
     MemManager*    _memMgr;
 
-    InterpRNG  _genRNG;
+    InterpRNG _genRNG;
 
 public:
     Interpreter(const size_t deviceCode);

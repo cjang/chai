@@ -185,6 +185,32 @@ FrontMem* ClientTrace::memalloc(const uint32_t variable,
 FrontMem* ClientTrace::memalloc(const uint32_t variable,
                                 const size_t W,
                                 const size_t H,
+                                uint32_t* defPtr)
+{
+    // memory manager sees this FrontMem when it allocates backing storage
+    // note this allocation occurs before scheduling so it is associated
+    // with the client application thread, not anything managed yet
+    FrontMem* m = new FrontMem(variable, W, H, defPtr);
+    _refs.checkout(m);
+    return m;
+}
+
+FrontMem* ClientTrace::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
+                                int32_t* defPtr)
+{
+    // memory manager sees this FrontMem when it allocates backing storage
+    // note this allocation occurs before scheduling so it is associated
+    // with the client application thread, not anything managed yet
+    FrontMem* m = new FrontMem(variable, W, H, defPtr);
+    _refs.checkout(m);
+    return m;
+}
+
+FrontMem* ClientTrace::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
                                 float* defPtr)
 {
     // memory manager sees this FrontMem when it allocates backing storage
@@ -199,6 +225,32 @@ FrontMem* ClientTrace::memalloc(const uint32_t variable,
                                 const size_t W,
                                 const size_t H,
                                 double* defPtr)
+{
+    // memory manager sees this FrontMem when it allocates backing storage
+    // note this allocation occurs before scheduling so it is associated
+    // with the client application thread, not anything managed yet
+    FrontMem* m = new FrontMem(variable, W, H, defPtr);
+    _refs.checkout(m);
+    return m;
+}
+
+FrontMem* ClientTrace::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
+                                const vector< uint32_t* >& defPtr)
+{
+    // memory manager sees this FrontMem when it allocates backing storage
+    // note this allocation occurs before scheduling so it is associated
+    // with the client application thread, not anything managed yet
+    FrontMem* m = new FrontMem(variable, W, H, defPtr);
+    _refs.checkout(m);
+    return m;
+}
+
+FrontMem* ClientTrace::memalloc(const uint32_t variable,
+                                const size_t W,
+                                const size_t H,
+                                const vector< int32_t* >& defPtr)
 {
     // memory manager sees this FrontMem when it allocates backing storage
     // note this allocation occurs before scheduling so it is associated

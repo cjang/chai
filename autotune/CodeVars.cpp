@@ -4,6 +4,7 @@
 
 #include "CodeType.hpp"
 #include "CodeVars.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -140,14 +141,9 @@ string GlobalVar::declaredName(void) const
     return ss.str();
 }
 
-bool GlobalVar::singlePrecision(void) const
+size_t GlobalVar::precision(void) const
 {
-    return sizeof(float) == _precision;
-}
-
-bool GlobalVar::doublePrecision(void) const
-{
-    return sizeof(double) == _precision;
+    return _precision;
 }
 
 // LocalVar
@@ -368,20 +364,11 @@ size_t PrivateVar::vectorLength(void) const
 {
     if (0 == _vectorLength)
     {
-        switch(_precision)
-        {
-            case (sizeof(float)) :
-                return 4;
-
-            case (sizeof(double)) :
-                return 2;
-        }
-
-        return 0; // should never happen
+        return PrecType::vecLength(_precision);
     }
     else
     {
-        return _vectorLength;
+         return _vectorLength;
     }
 }
 

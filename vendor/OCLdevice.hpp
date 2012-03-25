@@ -10,6 +10,7 @@
 
 #include "OCLinit.hpp"
 #include "MemalignSTL.hpp"
+#include "PrecType.hpp"
 
 namespace chai_internal {
 
@@ -217,16 +218,18 @@ class OCLHeapOfImages
 
     int create(const size_t width,  // texel dimensions (x4 or x2 for matrix)
                const size_t height, // texel dimensions
-               const OCLImageMode* mode,
+               const OCLImageMode& mode,
                const bool pinned,
                void* ptr,
-               const bool freePtr);
+               const bool freePtr,
+               const size_t precTypeSizeCode);
 
     int create(const size_t width,  // texel dimensions (x4 or x2 for matrix)
                const size_t height, // texel dimensions
-               const OCLImageMode* mode,
+               const OCLImageMode& mode,
                const bool pinned,
-               const size_t alignment);
+               const size_t alignment,
+               const size_t precTypeSizeCode);
 
     OCLHeapOfImages(const cl_context context,
                     const cl_command_queue queue);
@@ -236,17 +239,35 @@ public:
 
     size_t scavenge(void);
 
+    template <typename SCALAR>
     int createWithPointer(const size_t width,  // texel dimensions
                                                //     (x4 or x2 for matrix)
                           const size_t height, // texel dimensions
                           const OCLImageMode& mode,
-                          void* ptr);
+                          SCALAR* ptr)
+    {
+        return create( width,
+                       height,
+                       mode,
+                       false,
+                       ptr,
+                       false,
+                       PrecType::getSizeCode<SCALAR>() );
+    }
 
+    template <typename SCALAR>
     int createWithPointer(const size_t width,  // texel dimensions
                                                //     (x4 or x2 for matrix)
                           const size_t height, // texel dimensions
                           const OCLImageMode& mode,
-                          const void* ptr);
+                          const SCALAR* ptr)
+    {
+        return createWithPointer(
+                   width,
+                   height,
+                   mode,
+                   const_cast<SCALAR*>(ptr) );
+    }
 
     template <typename SCALAR>
     int createAllocate(const size_t width,  // texel dimensions
@@ -261,11 +282,12 @@ public:
                 && height == _height[i]
                 && mode.flags() == _access[i]->flags())
                 return i;
-        return create(width,
-                      height,
-                      &mode,
-                      false,
-                      alignMult * imgveclen<SCALAR>() * MEMORY_ALIGNMENT);
+        return create( width,
+                       height,
+                       mode,
+                       false,
+                       alignMult * imgveclen<SCALAR>() * MEMORY_ALIGNMENT,
+                       PrecType::getSizeCode<SCALAR>() );
     }
 
     template <typename SCALAR>
@@ -283,11 +305,12 @@ public:
                 && mode.flags() == _access[i]->flags()
                 && pinned == _pinned[i])
                 return i;
-        return create(width,
-                      height,
-                      &mode,
-                      pinned,
-                      alignMult * imgveclen<SCALAR>() * MEMORY_ALIGNMENT);
+        return create( width,
+                       height,
+                       mode,
+                       pinned,
+                       alignMult * imgveclen<SCALAR>() * MEMORY_ALIGNMENT,
+                       PrecType::getSizeCode<SCALAR>() );
     }
 
     template <typename SCALAR>

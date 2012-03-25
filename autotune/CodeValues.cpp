@@ -118,6 +118,36 @@ string ReinterpretValue::name(void) const
     return ss.str();
 }
 
+// ConvertValue
+ConvertValue::ConvertValue(const IValue& value,
+                           const size_t precision,
+                           const size_t vectorLength,
+                           const bool doApply)
+    : _precision(precision),
+      _vectorLength(vectorLength),
+      _value(value),
+      _doApply(doApply) { }
+
+string ConvertValue::name(void) const
+{
+    stringstream ss;
+
+    if (_doApply)
+    {
+        ss << "convert_"
+           << NameOf::privatevar(_precision, _vectorLength, true)
+           << "("
+           << _value.name()
+           << ")";
+    }
+    else
+    {
+        ss << _value.name();
+    }
+
+    return ss.str();
+}
+
 // DerefValue
 DerefValue::DerefValue(const IValue& value)
     : _value(value) { }
@@ -500,45 +530,64 @@ ConstantValue operator<< (const size_t left,
 // MADValue
 MADValue::MADValue(const IValue& a,
                    const IValue& b,
-                   const IValue& c)
+                   const IValue& c,
+                   const bool useMADFunction)
     : _as(),
       _bs(),
       _cs(),
       _a(a),
       _b(b),
-      _c(c) { }
+      _c(c),
+      _useMADFunction(useMADFunction) { }
 
 MADValue::MADValue(const string& a,
                    const string& b,
-                   const string& c)
+                   const string& c,
+                   const bool useMADFunction)
     : _as(a),
       _bs(b),
       _cs(c),
       _a(_as),
       _b(_bs),
-      _c(_cs) { }
+      _c(_cs),
+      _useMADFunction(useMADFunction) { }
 
 MADValue::MADValue(const string& a,
                    const string& b,
-                   const IValue& c)
+                   const IValue& c,
+                   const bool useMADFunction)
     : _as(a),
       _bs(b),
       _cs(),
       _a(_as),
       _b(_bs),
-      _c(c) { }
+      _c(c),
+      _useMADFunction(useMADFunction) { }
 
 string MADValue::name(void) const
 {
     stringstream ss;
 
-    ss << "mad("
-       << _a.name()
-       << ", "
-       << _b.name()
-       << ", "
-       << _c.name()
-       << ")";
+    if (_useMADFunction)
+    {
+        ss << "mad("
+           << _a.name()
+           << ", "
+           << _b.name()
+           << ", "
+           << _c.name()
+           << ")";
+    }
+    else
+    {
+        ss << "("
+           << _a.name()
+           << " * "
+           << _b.name()
+           << " + "
+           << _c.name()
+           << ")";
+    }
 
     return ss.str();
 }

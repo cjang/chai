@@ -92,8 +92,7 @@ public:
 
     std::string declaredName(void) const;
 
-    bool singlePrecision(void) const;
-    bool doublePrecision(void) const;
+    size_t precision(void) const;
 };
 
 // local memory

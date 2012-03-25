@@ -1,6 +1,7 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "InterpGather.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -15,8 +16,12 @@ void InterpGather::sub_eval(stack< vector< FrontMem* > >& outStack)
     swizzle(1);
     if (2 == _N) swizzle(2);
 
+    const size_t prec0 = precision(0);
+    const size_t prec1 = precision(1);
+    const size_t prec2 = (2 == _N) ? precision(2) : -1;
+
     // first allocate backing memory
-    BackMem* backMem = allocBackMem(W(0), H(0), isDouble(0));
+    BackMem* backMem = allocBackMem(W(0), H(0), prec0);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
@@ -24,85 +29,589 @@ void InterpGather::sub_eval(stack< vector< FrontMem* > >& outStack)
     // calculate and create fronts
     for (size_t i = 0; i < numTraces(); i++)
     {
-        FrontMem* m = allocFrontMem(W(0), H(0), isDouble(0), backMem, i);
+        FrontMem* m = allocFrontMem(W(0), H(0), prec0, backMem, i);
 
         frontMem.push_back(m);
 
         if (1 == _N)
         {
-            if (isDouble(0)) {
-                if (isDouble(1)) {
-                    gather1_floor(doublePtr(0, i), doublePtr(1, i),
-                                  m->doublePtr());
-                } else {
-                    gather1_floor(doublePtr(0, i), floatPtr(1, i),
-                                  m->doublePtr());
+            switch (prec0)
+            {
+            case (PrecType::UInt32) :
+                switch (prec1)
+                {
+                case (PrecType::UInt32) :
+                    gather1_floor(uintPtr(0, i), uintPtr(1, i),
+                                  m->uintPtr());
+                    break;
+                case (PrecType::Int32) :
+                    gather1_floor(uintPtr(0, i), intPtr(1, i),
+                                  m->uintPtr());
+                    break;
+                case (PrecType::Float) :
+                    gather1_floor(uintPtr(0, i), floatPtr(1, i),
+                                  m->uintPtr());
+                    break;
+                case (PrecType::Double) :
+                    gather1_floor(uintPtr(0, i), doublePtr(1, i),
+                                  m->uintPtr());
+                    break;
                 }
-            } else {
-                if (isDouble(1)) {
-                    gather1_floor(floatPtr(0, i), doublePtr(1, i),
+                break;
+            case (PrecType::Int32) :
+                switch (prec1)
+                {
+                case (PrecType::UInt32) :
+                    gather1_floor(intPtr(0, i), uintPtr(1, i),
+                                  m->intPtr());
+                    break;
+                case (PrecType::Int32) :
+                    gather1_floor(intPtr(0, i), intPtr(1, i),
+                                  m->intPtr());
+                    break;
+                case (PrecType::Float) :
+                    gather1_floor(intPtr(0, i), floatPtr(1, i),
+                                  m->intPtr());
+                    break;
+                case (PrecType::Double) :
+                    gather1_floor(intPtr(0, i), doublePtr(1, i),
+                                  m->intPtr());
+                    break;
+                }
+                break;
+            case (PrecType::Float) :
+                switch (prec1)
+                {
+                case (PrecType::UInt32) :
+                    gather1_floor(floatPtr(0, i), uintPtr(1, i),
                                   m->floatPtr());
-                } else {
+                    break;
+                case (PrecType::Int32) :
+                    gather1_floor(floatPtr(0, i), intPtr(1, i),
+                                  m->floatPtr());
+                    break;
+                case (PrecType::Float) :
                     gather1_floor(floatPtr(0, i), floatPtr(1, i),
                                   m->floatPtr());
+                    break;
+                case (PrecType::Double) :
+                    gather1_floor(floatPtr(0, i), doublePtr(1, i),
+                                  m->floatPtr());
+                    break;
                 }
+                break;
+            case (PrecType::Double) :
+                switch (prec1)
+                {
+                case (PrecType::UInt32) :
+                    gather1_floor(doublePtr(0, i), uintPtr(1, i),
+                                  m->doublePtr());
+                    break;
+                case (PrecType::Int32) :
+                    gather1_floor(doublePtr(0, i), intPtr(1, i),
+                                  m->doublePtr());
+                    break;
+                case (PrecType::Float) :
+                    gather1_floor(doublePtr(0, i), floatPtr(1, i),
+                                  m->doublePtr());
+                    break;
+                case (PrecType::Double) :
+                    gather1_floor(doublePtr(0, i), doublePtr(1, i),
+                                  m->doublePtr());
+                    break;
+                }
+                break;
             }
         }
 
         if (2 == _N)
         {
-            if (isDouble(0)) {
-                if (isDouble(1)) {
-                    if (isDouble(2)) {
-                        gather2_floor(doublePtr(0, i),
-                                      doublePtr(1, i),
-                                      doublePtr(2, i),
-                                      m->doublePtr());
-                    } else {
-                        gather2_floor(doublePtr(0, i),
-                                      doublePtr(1, i),
+            switch (prec0)
+            {
+            case (PrecType::UInt32) :
+                switch (prec1)
+                {
+                case (PrecType::UInt32) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(uintPtr(0, i),
+                                      uintPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(uintPtr(0, i),
+                                      uintPtr(1, i),
+                                      intPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(uintPtr(0, i),
+                                      uintPtr(1, i),
                                       floatPtr(2, i),
-                                      m->doublePtr());
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(uintPtr(0, i),
+                                      uintPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->uintPtr());
+                        break;
                     }
-                } else {
-                    if (isDouble(2)) {
-                        gather2_floor(doublePtr(0, i),
+                    break;
+                case (PrecType::Int32) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(uintPtr(0, i),
+                                      intPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(uintPtr(0, i),
+                                      intPtr(1, i),
+                                      intPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(uintPtr(0, i),
+                                      intPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(uintPtr(0, i),
+                                      intPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    }
+                    break;
+                case (PrecType::Float) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(uintPtr(0, i),
+                                      floatPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(uintPtr(0, i),
+                                      floatPtr(1, i),
+                                      intPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(uintPtr(0, i),
+                                      floatPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(uintPtr(0, i),
                                       floatPtr(1, i),
                                       doublePtr(2, i),
-                                      m->doublePtr());
-                    } else {
-                        gather2_floor(doublePtr(0, i),
-                                      floatPtr(1, i),
-                                      floatPtr(2, i),
-                                      m->doublePtr());
+                                      m->uintPtr());
+                        break;
                     }
+                    break;
+                case (PrecType::Double) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(uintPtr(0, i),
+                                      doublePtr(1, i),
+                                      uintPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(uintPtr(0, i),
+                                      doublePtr(1, i),
+                                      intPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(uintPtr(0, i),
+                                      doublePtr(1, i),
+                                      floatPtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(uintPtr(0, i),
+                                      doublePtr(1, i),
+                                      doublePtr(2, i),
+                                      m->uintPtr());
+                        break;
+                    }
+                    break;
                 }
-            } else {
-                if (isDouble(1)) {
-                    if (isDouble(2)) {
-                        gather2_floor(floatPtr(0, i),
-                                      doublePtr(1, i),
-                                      doublePtr(2, i),
-                                      m->floatPtr());
-                    } else {
-                        gather2_floor(floatPtr(0, i),
-                                      doublePtr(1, i),
+                break;
+            case (PrecType::Int32) :
+                switch (prec1)
+                {
+                case (PrecType::UInt32) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(intPtr(0, i),
+                                      uintPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(intPtr(0, i),
+                                      uintPtr(1, i),
+                                      intPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(intPtr(0, i),
+                                      uintPtr(1, i),
                                       floatPtr(2, i),
-                                      m->floatPtr());
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(intPtr(0, i),
+                                      uintPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->intPtr());
+                        break;
                     }
-                } else {
-                    if (isDouble(2)) {
-                        gather2_floor(floatPtr(0, i),
+                    break;
+                case (PrecType::Int32) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(intPtr(0, i),
+                                      intPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(intPtr(0, i),
+                                      intPtr(1, i),
+                                      intPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(intPtr(0, i),
+                                      intPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(intPtr(0, i),
+                                      intPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->intPtr());
+                        break;
+                    }
+                    break;
+                case (PrecType::Float) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(intPtr(0, i),
+                                      floatPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(intPtr(0, i),
+                                      floatPtr(1, i),
+                                      intPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(intPtr(0, i),
+                                      floatPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(intPtr(0, i),
                                       floatPtr(1, i),
                                       doublePtr(2, i),
-                                      m->floatPtr());
-                    } else {
-                        gather2_floor(floatPtr(0, i),
-                                      floatPtr(1, i),
-                                      floatPtr(2, i),
-                                      m->floatPtr());
+                                      m->intPtr());
+                        break;
                     }
+                    break;
+                case (PrecType::Double) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(intPtr(0, i),
+                                      doublePtr(1, i),
+                                      uintPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(intPtr(0, i),
+                                      doublePtr(1, i),
+                                      intPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(intPtr(0, i),
+                                      doublePtr(1, i),
+                                      floatPtr(2, i),
+                                      m->intPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(intPtr(0, i),
+                                      doublePtr(1, i),
+                                      doublePtr(2, i),
+                                      m->intPtr());
+                        break;
+                    }
+                    break;
                 }
+                break;
+            case (PrecType::Float) :
+                switch (prec1)
+                {
+                case (PrecType::UInt32) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(floatPtr(0, i),
+                                      uintPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(floatPtr(0, i),
+                                      uintPtr(1, i),
+                                      intPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(floatPtr(0, i),
+                                      uintPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(floatPtr(0, i),
+                                      uintPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    }
+                    break;
+                case (PrecType::Int32) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(floatPtr(0, i),
+                                      intPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(floatPtr(0, i),
+                                      intPtr(1, i),
+                                      intPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(floatPtr(0, i),
+                                      intPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(floatPtr(0, i),
+                                      intPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    }
+                    break;
+                case (PrecType::Float) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(floatPtr(0, i),
+                                      floatPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(floatPtr(0, i),
+                                      floatPtr(1, i),
+                                      intPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(floatPtr(0, i),
+                                      floatPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(floatPtr(0, i),
+                                      floatPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    }
+                    break;
+                case (PrecType::Double) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(floatPtr(0, i),
+                                      doublePtr(1, i),
+                                      uintPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(floatPtr(0, i),
+                                      doublePtr(1, i),
+                                      intPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(floatPtr(0, i),
+                                      doublePtr(1, i),
+                                      floatPtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(floatPtr(0, i),
+                                      doublePtr(1, i),
+                                      doublePtr(2, i),
+                                      m->floatPtr());
+                        break;
+                    }
+                    break;
+                }
+                break;
+            case (PrecType::Double) :
+                switch (prec1)
+                {
+                case (PrecType::UInt32) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(doublePtr(0, i),
+                                      uintPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(doublePtr(0, i),
+                                      uintPtr(1, i),
+                                      intPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(doublePtr(0, i),
+                                      uintPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(doublePtr(0, i),
+                                      uintPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    }
+                    break;
+                case (PrecType::Int32) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(doublePtr(0, i),
+                                      intPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(doublePtr(0, i),
+                                      intPtr(1, i),
+                                      intPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(doublePtr(0, i),
+                                      intPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(doublePtr(0, i),
+                                      intPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    }
+                    break;
+                case (PrecType::Float) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(doublePtr(0, i),
+                                      floatPtr(1, i),
+                                      uintPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(doublePtr(0, i),
+                                      floatPtr(1, i),
+                                      intPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(doublePtr(0, i),
+                                      floatPtr(1, i),
+                                      floatPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(doublePtr(0, i),
+                                      floatPtr(1, i),
+                                      doublePtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    }
+                    break;
+                case (PrecType::Double) :
+                    switch (prec2)
+                    {
+                    case (PrecType::UInt32) :
+                        gather2_floor(doublePtr(0, i),
+                                      doublePtr(1, i),
+                                      uintPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Int32) :
+                        gather2_floor(doublePtr(0, i),
+                                      doublePtr(1, i),
+                                      intPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Float) :
+                        gather2_floor(doublePtr(0, i),
+                                      doublePtr(1, i),
+                                      floatPtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    case (PrecType::Double) :
+                        gather2_floor(doublePtr(0, i),
+                                      doublePtr(1, i),
+                                      doublePtr(2, i),
+                                      m->doublePtr());
+                        break;
+                    }
+                    break;
+                }
+                break;
             }
         }
     }

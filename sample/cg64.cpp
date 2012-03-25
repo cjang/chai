@@ -41,6 +41,7 @@ int Conj_Grad_GPU_PS(int N, double *cpuA, double *cpux, double *cpub)
             residuals = newResiduals;
 
             double oldRRcpu = oldRR.read_scalar();
+cout << "oldRRcpu[" << iter << "] is " << oldRRcpu << endl;
             if (oldRRcpu <= TOLERANCE) {
                 break;
             }

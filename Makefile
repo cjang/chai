@@ -10,7 +10,10 @@ all : \
 	bytecode_ \
 	common_ \
 	interp_ \
-	jit_ \
+	jitast_ \
+	jitbc_ \
+	jitstmt_ \
+	jitx_ \
 	runtime_ \
 	api_ \
 	applib_ \
@@ -50,8 +53,17 @@ common_ : _installdirs
 interp_ : _installdirs
 	cd interp; make install; cd -
 
-jit_ : _installdirs
-	cd jit; make install; cd -
+jitast_ : _installdirs
+	cd jitast; make install; cd -
+
+jitbc_ : _installdirs
+	cd jitbc; make install; cd -
+
+jitstmt_ : _installdirs
+	cd jitstmt; make install; cd -
+
+jitx_ : _installdirs
+	cd jitx; make install; cd -
 
 kernel_ : _installdirs
 	cd kernel; make install; cd -
@@ -164,7 +176,10 @@ clean :
 	cd bytecode; make clean; cd -
 	cd common; make clean; cd -
 	cd interp; make clean; cd -
-	cd jit; make clean; cd -
+	cd jitast; make clean; cd -
+	cd jitbc; make clean; cd -
+	cd jitstmt; make clean; cd -
+	cd jitx; make clean; cd -
 	cd kernel; make clean; cd -
 	cd misc; make clean; cd -
 	cd runtime; make clean; cd -
@@ -180,7 +195,10 @@ clean :
 		bytecode/*.h* bytecode/*.c* \
 		common/*.h* common/*.c* \
 		interp/*.h* interp/*.c* \
-		jit/*.h* jit/*.c* \
+		jitast/*.h* jitast/*.c* \
+		jitbc/*.h* jitbc/*.c* \
+		jitstmt/*.h* jitstmt/*.c* \
+		jitx/*.h* jitx/*.c* \
 		kernel/*.h* kernel/*.c* \
 		misc/*.h* misc/*.c* \
 		runtime/*.h* runtime/*.c* \

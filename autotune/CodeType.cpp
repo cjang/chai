@@ -4,6 +4,7 @@
 
 #include "CodeType.hpp"
 #include "OCLhacks.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -20,30 +21,12 @@ void NameOf::memvar(ostream& os,
     if (! writable)
         os << "const ";
 
-    switch (precision)
-    {
-        case (0) :
-            os << "uint";
-            break;
-
-        case (1) :
-            os << "int";
-            break;
-
-        case (sizeof(float)) :
-            os << "float";
-            break;
-
-        case (sizeof(double)) :
-            os << "double";
-            break;
-    }
+    os << PrecType::getPrimitiveName(precision);
 
     switch (vectorLength)
     {
         case (0) :
-            if (sizeof(float) == precision) os << 4;
-            if (sizeof(double) == precision) os << 2;
+            os << PrecType::vecLength(precision);
             break;
 
         case (2) :
@@ -118,11 +101,13 @@ string pragma_extension(const size_t precision,
 
     switch (precision)
     {
-        case (sizeof(float)) :
+        case (PrecType::UInt32) :
+        case (PrecType::Int32) :
+        case (PrecType::Float) :
             // nothing required
             break;
 
-        case (sizeof(double)) :
+        case (PrecType::Double) :
             ss << OCLhacks::singleton().pragmaFP64(deviceIndex);
             break;
     }

@@ -41,10 +41,10 @@ void Function::addSplitArgument(const AstVariable* variable, Variable* obj)
     obj->setFunction(this);
 }
 
-void Function::addPrivate(FloatPt* obj)
+void Function::addPrivate(AddrMem* obj)
 {
     if (obj->fp64()) _fp64 = true;
-    _typeFloatPt.insert(obj);
+    _typeAddrMem.insert(obj);
     _privates.push_back(obj);
 
     _privateLookup[obj] = _privateLookup.size();
@@ -149,10 +149,10 @@ void Function::addArgument(const uint32_t variable, Image2D* obj)
     }
 }
 
-void Function::addArgument(const uint32_t variable, FloatPt* obj)
+void Function::addArgument(const uint32_t variable, AddrMem* obj)
 {
     if (obj->fp64()) _fp64 = true;
-    _typeFloatPt.insert(obj);
+    _typeAddrMem.insert(obj);
     addTraceArgument(variable, obj);
 }
 
@@ -173,10 +173,10 @@ void Function::addArgument(const AstVariable* variable, Image2D* obj)
     }
 }
 
-void Function::addArgument(const AstVariable* variable, FloatPt* obj)
+void Function::addArgument(const AstVariable* variable, AddrMem* obj)
 {
     if (obj->fp64()) _fp64 = true;
-    _typeFloatPt.insert(obj);
+    _typeAddrMem.insert(obj);
     addSplitArgument(variable, obj);
 }
 
@@ -186,14 +186,14 @@ void Function::addArgument(const AstVariable* variable, Integer* obj)
     addSplitArgument(variable, obj);
 }
 
-FloatPt* Function::getPrivateVar(const size_t precision,
+AddrMem* Function::getPrivateVar(const size_t precision,
                                  const size_t vectorLength)
 {
     const pair< size_t, size_t > key(precision, vectorLength);
 
     if (0 == _privateVars.count(key))
     {
-        FloatPt* newVar = new FloatPt(precision, vectorLength);
+        AddrMem* newVar = new AddrMem(precision, vectorLength);
         addPrivate(newVar);
         _privateVars[key] = newVar;
     }
@@ -201,11 +201,11 @@ FloatPt* Function::getPrivateVar(const size_t precision,
     return _privateVars[key];
 }
 
-FloatPt* Function::createPrivate(const uint32_t variable,
+AddrMem* Function::createPrivate(const uint32_t variable,
                                  const size_t precision,
                                  const size_t vectorLength)
 {
-    FloatPt* newVar = new FloatPt(precision, vectorLength);
+    AddrMem* newVar = new AddrMem(precision, vectorLength);
     if (newVar->fp64()) _fp64 = true;
 
     addPrivate(newVar);
@@ -216,11 +216,11 @@ FloatPt* Function::createPrivate(const uint32_t variable,
     return newVar;
 }
 
-FloatPt* Function::createPrivate(const AstVariable* variable,
+AddrMem* Function::createPrivate(const AstVariable* variable,
                                  const size_t precision,
                                  const size_t vectorLength)
 {
-    FloatPt* newVar = new FloatPt(precision, vectorLength);
+    AddrMem* newVar = new AddrMem(precision, vectorLength);
     if (newVar->fp64()) _fp64 = true;
 
     addPrivate(newVar);
@@ -291,6 +291,54 @@ Variable* Function::splitVar(const AstVariable* variable)
         return _splitVar[variable];
     }
     else if (_splitPrivate.count(variable))
+    {
+        return _splitPrivate[variable];
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+uint32_t Function::traceVarPrivate(Variable* obj)
+{
+    if (_privateTrace.count(obj))
+    {
+        return _privateTrace[obj];
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+Variable* Function::traceVarPrivate(const uint32_t variable)
+{
+    if (_tracePrivate.count(variable))
+    {
+        return _tracePrivate[variable];
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+const AstVariable* Function::splitVarPrivate(Variable* obj)
+{
+    if (_privateSplit.count(obj))
+    {
+        return _privateSplit[obj];
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+Variable* Function::splitVarPrivate(const AstVariable* variable)
+{
+    if (_splitPrivate.count(variable))
     {
         return _splitPrivate[variable];
     }
@@ -427,6 +475,11 @@ void Function::barrier(void)
     ss << "barrier(CLK_GLOBAL_MEM_FENCE) ;";
 
     _bodyText.push_back(ss.str());
+}
+
+size_t Function::loopIndexes(void) const
+{
+    return _loopIndexes;
 }
 
 size_t Function::loopBegin(const size_t startIndex, const size_t upperLimit)

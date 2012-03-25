@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_INTERP_CONVERT_HPP_
 #define _CHAI_INTERP_CONVERT_HPP_
@@ -8,17 +8,20 @@
 namespace chai_internal {
 
 ////////////////////////////////////////
-// convert_f32, convert_f64
+// convert_f32
+// convert_f64
+// convert_i32
+// convert_u32
 
 class InterpConvert : public BaseInterp
 {
-    const bool _isDP;
+    const size_t _precision;
 
 protected:
     void sub_eval(std::stack< std::vector< FrontMem* > >&);
 
 public:
-    InterpConvert(const bool isDP);
+    InterpConvert(const size_t precision);
 };
 
 }; // namespace chai_internal

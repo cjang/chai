@@ -1,6 +1,7 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "InterpConvert.hpp"
+#include "PrecType.hpp"
 
 using namespace std;
 
@@ -11,8 +12,10 @@ namespace chai_internal {
 
 void InterpConvert::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
+    const size_t prec0 = precision(0);
+
     // precision matches, no conversion
-    if (_isDP == isDouble(0))
+    if (_precision == prec0)
     {
         checkout(0);
         outStack.push(_argStack[0]);
@@ -24,7 +27,7 @@ void InterpConvert::sub_eval(stack< vector< FrontMem* > >& outStack)
     swizzle(0);
 
     // first allocate backing memory
-    BackMem* backMem = allocBackMem(W(0), H(0), ! isDouble(0));
+    BackMem* backMem = allocBackMem(W(0), H(0), _precision);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
@@ -32,19 +35,50 @@ void InterpConvert::sub_eval(stack< vector< FrontMem* > >& outStack)
     // calculate and create fronts
     for (size_t i = 0; i < numTraces(); i++)
     {
-        FrontMem* m = allocFrontMem(W(0), H(0), ! isDouble(0), backMem, i);
+        FrontMem* m = allocFrontMem(W(0), H(0), _precision, backMem, i);
 
         frontMem.push_back(m);
 
-        if (isDouble(0))
+        for (size_t j = 0; j < W(0) * H(0); j++)
         {
-            for (size_t j = 0; j < W(0) * H(0); j++)
-                m->floatPtr()[j] = static_cast<float>(doublePtr(0, i)[j]);
-        }
-        else
-        {
-            for (size_t j = 0; j < W(0) * H(0); j++)
-                m->doublePtr()[j] = static_cast<double>(floatPtr(0, i)[j]);
+            double value;
+            switch (prec0)
+            {
+                case (PrecType::UInt32) :
+                    value = uintPtr(0, i)[j];
+                    break;
+
+                case (PrecType::Int32) :
+                    value = intPtr(0, i)[j];
+                    break;
+
+                case (PrecType::Float) :
+                    value = floatPtr(0, i)[j];
+                    break;
+
+                case (PrecType::Double) :
+                    value = doublePtr(0, i)[j];
+                    break;
+            }
+
+            switch (_precision)
+            {
+                case (PrecType::UInt32) :
+                    m->uintPtr()[j] = value;
+                    break;
+
+                case (PrecType::Int32) :
+                    m->intPtr()[j] = value;
+                    break;
+
+                case (PrecType::Float) :
+                    m->floatPtr()[j] = value;
+                    break;
+
+                case (PrecType::Double) :
+                    m->doublePtr()[j] = value;
+                    break;
+            }
         }
     }
 
@@ -52,8 +86,8 @@ void InterpConvert::sub_eval(stack< vector< FrontMem* > >& outStack)
     outStack.push(frontMem);
 }
 
-InterpConvert::InterpConvert(const bool isDP)
+InterpConvert::InterpConvert(const size_t precision)
     : BaseInterp(0, 1),
-      _isDP(isDP) { }
+      _precision(precision) { }
 
 }; // namespace chai_internal

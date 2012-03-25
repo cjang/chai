@@ -75,12 +75,10 @@ static const PointerVariableDecl POINTER;
 static const ConstPointerVariableDecl CONST_POINTER;
 
 ////////////////////////////////////////
-// memory buffer
-class FloatPt : public Variable
+// memory buffer (addressable memory)
+class AddrMem : public Variable
 {
-    enum Type { SP, DP };
-    const Type _fpType;
-
+    const size_t _precision;
     const size_t _vectorLength;
 
     const bool _isConst;
@@ -88,24 +86,22 @@ class FloatPt : public Variable
 
     const AddressSpace& _addrSpace;
 
-    Type precisionToType(const size_t precision) const;
-
 public:
-    FloatPt(const size_t precision,
+    AddrMem(const size_t precision,
             const size_t vectorLength,
             const AddressSpace& qualifier = DEFAULT);
 
-    FloatPt(const size_t precision,
+    AddrMem(const size_t precision,
             const size_t vectorLength,
             const ConstVariableDecl& varDecl,
             const AddressSpace& qualifier = DEFAULT);
 
-    FloatPt(const size_t precision,
+    AddrMem(const size_t precision,
             const size_t vectorLength,
             const PointerVariableDecl& varDecl,
             const AddressSpace& qualifier = DEFAULT);
 
-    FloatPt(const size_t precision,
+    AddrMem(const size_t precision,
             const size_t vectorLength,
             const ConstPointerVariableDecl& varDecl,
             const AddressSpace& qualifier = DEFAULT);

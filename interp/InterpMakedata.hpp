@@ -8,7 +8,10 @@
 namespace chai_internal {
 
 ////////////////////////////////////////
-// make1_f32, make1_f64, make2_f32, make2_f64
+// make1_u32, make1_i64
+// make1_f32, make1_f64
+// make2_u32, make2_i64
+// make2_f32, make2_f64
 
 class InterpMakedata : public BaseInterp
 {

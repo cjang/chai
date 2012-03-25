@@ -63,6 +63,9 @@ public:
     using VectorLength::vectorLengthA;
     using VectorLength::vectorLengthB;
     using VectorLength::vectorLengthC;
+    using Precision::precisionA;
+    using Precision::precisionB;
+    using Precision::precisionC;
 
 protected:
     MatmulBase(void);
@@ -71,9 +74,18 @@ protected:
     bool validArrayType(const size_t precision,
                         const size_t vectorLength) const;
 
+    size_t maxPrecision(const size_t precisionA,
+                        const size_t precisionB) const;
+
+    size_t maxPrecision(const size_t precisionA,
+                        const size_t precisionB,
+                        const size_t precisionC) const;
+
     size_t effVectorLengthA(void) const;
     size_t effVectorLengthB(void) const;
     size_t effVectorLengthC(void) const;
+
+    bool useMADFunction(void) const;
 
 public:
     virtual std::string kernelForename(void) const = 0;
