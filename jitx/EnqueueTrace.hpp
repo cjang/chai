@@ -41,10 +41,12 @@ class EnqueueTrace : public VisitStmt,
     size_t       _lhsVectorLength;   // current statement
     size_t       _smallVectorLength; // current statement
     size_t       _largeVectorLength; // current statement
+    size_t       _lhsPrecision;      // current statement
     std::stack< Subscript* > _subs;
     std::stringstream        _rhsStmt;
     std::string              _component;
     bool         _scalarToScalar; // hack for scalar to scalar assignment
+    std::stack< size_t >     _repeatIdx;
 
     // recursive visiting down AST tree
     void descendAst(BaseAst&);
@@ -94,6 +96,7 @@ public:
     void visit(StmtCreateData&);
     void visit(StmtExtension&);
     void visit(StmtExtensionAuto&);
+    void visit(StmtGatherAuto&);
     void visit(StmtIdSpace&);
     void visit(StmtIndex&);
     void visit(StmtLiteral&);
@@ -102,8 +105,6 @@ public:
     void visit(StmtReadData&);
     void visit(StmtReduce&);
     void visit(StmtRepeat&);
-    void visit(StmtRNGrand&);
-    void visit(StmtRNGseed&);
     void visit(StmtSendData&);
     void visit(StmtSingle&);
 };

@@ -13,22 +13,22 @@
 namespace chai_internal {
 
 ////////////////////////////////////////
-// remove variables that have become
-// private registers
-// kernels
+// remove useless variables between
+// kernels that have become private
+// registers
 
 class TrimFat : public VisitStmt
 {
     // variables that are elided as private registers
-    const std::set< uint32_t > _useRegs;
-    const std::set< uint32_t > _useRegsWriteBack;
+    const std::set< uint32_t >           _traceUseRegs;
+    const std::set< uint32_t >           _traceUseRegsWriteBack;
 
     // create data statement variables
-    std::map< Stmt*, uint32_t > _createVars;
+    std::map< Stmt*, uint32_t >           _traceCreateVars;
 
 public:
-    TrimFat(const std::set< uint32_t >& useRegs,
-            const std::set< uint32_t >& useRegsWriteBack);
+    TrimFat(const std::set< uint32_t >& traceUseRegs,
+            const std::set< uint32_t >& traceUseRegsWriteBack);
 
     void edit(StmtIdSpace&);
 
@@ -37,6 +37,7 @@ public:
     void visit(StmtCreateData&);
     void visit(StmtExtension&);
     void visit(StmtExtensionAuto&);
+    void visit(StmtGatherAuto&);
     void visit(StmtIdSpace&);
     void visit(StmtIndex&);
     void visit(StmtLiteral&);
@@ -45,8 +46,6 @@ public:
     void visit(StmtReadData&);
     void visit(StmtReduce&);
     void visit(StmtRepeat&);
-    void visit(StmtRNGrand&);
-    void visit(StmtRNGseed&);
     void visit(StmtSendData&);
     void visit(StmtSingle&);
 };

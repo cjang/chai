@@ -1,6 +1,11 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
+#include <iostream> //FIXME
 #include <set>
+
+/*FIXME - remove this
+#include "AstAccum.hpp"
+*/
 
 #include "GroupTogether.hpp"
 #include "OCLhacks.hpp"
@@ -9,6 +14,7 @@
 #include "StmtCreateData.hpp"
 #include "StmtExtension.hpp"
 #include "StmtExtensionAuto.hpp"
+#include "StmtGatherAuto.hpp"
 #include "StmtIdSpace.hpp"
 #include "StmtIndex.hpp"
 #include "StmtLiteral.hpp"
@@ -17,8 +23,6 @@
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
-#include "StmtRNGrand.hpp"
-#include "StmtRNGseed.hpp"
 #include "StmtSendData.hpp"
 #include "StmtSingle.hpp"
 
@@ -197,7 +201,7 @@ bool GroupTogether::isEmpty(void) const
     return _togetherList.empty();
 }
 
-bool GroupTogether::isPragmas(void) const
+bool GroupTogether::isMetaKernel(void) const
 {
     // check for non-empty list with no dimensions yet
     return 0 == _streamW && 0 == _streamH && !_togetherList.empty();
@@ -222,10 +226,16 @@ void GroupTogether::boundIndex(const GroupTogether& t)
 
 void GroupTogether::boundIndex(const Stmt& s)
 {
-    boundIndex(s.lhsVariable()->W(), s.lhsVariable()->H());
+    return boundIndex(s.lhsVariable()->W(), s.lhsVariable()->H());
 }
 
 void GroupTogether::setIndex(const StmtReadData& s)
+{
+    _streamW = s.lhsVariable()->W();
+    _streamH = s.lhsVariable()->H();
+}
+
+void GroupTogether::setIndex(const StmtReduce& s)
 {
     _streamW = s.lhsVariable()->W();
     _streamH = s.lhsVariable()->H();
@@ -442,6 +452,7 @@ bool GroupTogether::checkBarrier(const set< AstVariable* >& rhsVars,
 
 GroupTogether::GroupTogether(void)
     : _togetherList(),
+      _scalarVectorLength(false),
       _constructorLHS(),
       _destructorLHS(),
       _streamW(0),
@@ -455,6 +466,7 @@ GroupTogether::GroupTogether(void)
 
 GroupTogether::GroupTogether(const GroupTogether& other)
     : _togetherList(other._togetherList),
+      _scalarVectorLength(other._scalarVectorLength),
       _constructorLHS(other._constructorLHS),
       _destructorLHS(other._destructorLHS),
       _streamW(other._streamW),
@@ -482,6 +494,7 @@ void GroupTogether::clear(void)
     _traceRHS.clear();
     _splitLHS.clear();
     _splitRHS.clear();
+    _scalarVectorLength = false;
     _constructorLHS.clear();
     _destructorLHS.clear();
     _streamW = 0;
@@ -528,24 +541,9 @@ const set< const AstVariable* >& GroupTogether::splitRHS(void) const
     return _splitRHS;
 }
 
-const set< uint32_t >& GroupTogether::traceTransposed(void) const
+bool GroupTogether::scalarVectorLength(void) const
 {
-    return _traceTransposed;
-}
-
-const set< const AstVariable* >& GroupTogether::splitTransposed(void) const
-{
-    return _splitTransposed;
-}
-
-const set< uint32_t >& GroupTogether::traceGathered(void) const
-{
-    return _traceGathered;
-}
-
-const set< const AstVariable* >& GroupTogether::splitGathered(void) const
-{
-    return _splitGathered;
+    return _scalarVectorLength;
 }
 
 bool GroupTogether::isReadOnly(const uint32_t variable,
@@ -930,27 +928,8 @@ bool GroupTogether::isPush(Stmt* s)
 
     if (stmtAdded)
     {
-        _traceTransposed.insert(s->transposeTraceVars().begin(),
-                                s->transposeTraceVars().end());
-
-        _traceGathered.insert(s->gatherTraceVars().begin(),
-                              s->gatherTraceVars().end());
-
-        for (set< AstVariable* >::const_iterator
-             it = s->transposeSplitVars().begin();
-             it != s->transposeSplitVars().end();
-             it++)
-        {
-            _splitTransposed.insert(*it);
-        }
-
-        for (set< AstVariable* >::const_iterator
-             it = s->gatherSplitVars().begin();
-             it != s->gatherSplitVars().end();
-             it++)
-        {
-            _splitGathered.insert(*it);
-        }
+        if (s->scalarVectorLength())
+            _scalarVectorLength = true;
     }
 
     return stmtAdded;
@@ -977,7 +956,7 @@ void GroupTogether::visit(StmtBarrier& s)
 void GroupTogether::visit(StmtCompound& s)
 {
     if (isSpecial()) return;
-    if (isPragmas()) return;
+    if (isMetaKernel()) return;
 
     _lexicalDepth++;
 
@@ -1051,6 +1030,13 @@ void GroupTogether::visit(StmtExtensionAuto& s)
     }
 }
 
+void GroupTogether::visit(StmtGatherAuto& s)
+{
+    if (isSpecial()) return;
+
+    if (! isCode()) pushList(s);
+}
+
 void GroupTogether::visit(StmtIdSpace& s)
 {
     // should never happen
@@ -1059,7 +1045,7 @@ void GroupTogether::visit(StmtIdSpace& s)
 void GroupTogether::visit(StmtIndex& s)
 {
     if (isSpecial()) return;
-    if (isPragmas()) return;
+    if (isMetaKernel()) return;
 
     boundIndex(s);
     pushList(s);
@@ -1068,7 +1054,7 @@ void GroupTogether::visit(StmtIndex& s)
 void GroupTogether::visit(StmtLiteral& s)
 {
     if (isSpecial()) return;
-    if (isPragmas()) return;
+    if (isMetaKernel()) return;
 
     boundIndex(s);
     pushList(s);
@@ -1122,9 +1108,29 @@ void GroupTogether::visit(StmtReadData& s)
 void GroupTogether::visit(StmtReduce& s)
 {
     if (isSpecial()) return;
-    if (isPragmas()) return;
+    if (isMetaKernel()) return;
 
-    boundIndex(s);
+/*FIXME - remove this
+    // any RNG variables inside reduction force kernel boundary
+    for (set< AstVariable* >::const_iterator
+         it = s.rhsVariable().begin();
+         it != s.rhsVariable().end();
+         it++)
+    {
+        AstVariable* v = *it;
+        if (v->getValueFromRNG() && v->getForceWriteback())
+        {
+            return;
+        }
+    }
+
+    if (s.accumPtr() && s.accumPtr()->getNotTogether())
+    {
+cerr << "GroupTogether::visit(StmtReduce& s) NOT TOGETHER" << endl;
+    }
+*/
+
+    setIndex(s);
     pushList(s);
 
     // reductions force kernel boundary
@@ -1134,7 +1140,7 @@ void GroupTogether::visit(StmtReduce& s)
 void GroupTogether::visit(StmtRepeat& s)
 {
     if (isSpecial()) return;
-    if (isPragmas()) return;
+    if (isMetaKernel()) return;
 
     _lexicalDepth++;
 
@@ -1148,22 +1154,6 @@ void GroupTogether::visit(StmtRepeat& s)
     pushList(s, tmpTogether);
 }
 
-void GroupTogether::visit(StmtRNGrand& s)
-{
-    if (isSpecial()) return;
-    if (isPragmas()) return;
-
-    boundIndex(s);
-    pushList(s);
-}
-
-void GroupTogether::visit(StmtRNGseed& s)
-{
-    if (isSpecial()) return;
-
-    if (! isCode()) pushList(s);
-}
-
 void GroupTogether::visit(StmtSendData& s)
 {
     if (isSpecial()) return;
@@ -1174,7 +1164,7 @@ void GroupTogether::visit(StmtSendData& s)
 void GroupTogether::visit(StmtSingle& s)
 {
     if (isSpecial()) return;
-    if (isPragmas()) return;
+    if (isMetaKernel()) return;
 
     boundIndex(s);
     pushList(s);

@@ -44,9 +44,6 @@ class MakeStmt : public VisitBCStmt,
     // keep track of LHS trace variables
     std::set< uint32_t > _lhsTraceVariables;
 
-    // keep track of RNG seeds
-    std::set< size_t > _rngSeeds;
-
     // keep track of objects during descent down RHS (clear each statement)
     std::set< BaseAst* > _trackAst;
     std::set< BaseAst* > _trackExtension; // language extension
@@ -59,8 +56,6 @@ class MakeStmt : public VisitBCStmt,
     std::set< BaseAst* > _trackReadData;
     enum TrackReduce { REDUCE_ACCUM, REDUCE_DOTPROD };
     std::map< BaseAst*, TrackReduce > _trackReduce;
-    enum TrackRNG { RNG_NORMAL, RNG_UNIFORM };
-    std::map< BaseAst*, TrackRNG > _trackRNG;
     std::set< BaseAst* > _trackSameDataAcrossTraces;
     std::set< BaseAst* > _trackSendData;
     std::set< BaseAst* > _trackTranspose;
@@ -68,13 +63,9 @@ class MakeStmt : public VisitBCStmt,
 
     // keep track of transposed array variables (clear each statement)
     std::vector< AstTranspose* > _transposeStack;
-    std::set< uint32_t >         _transposeTraceVar;
-    std::set< AstVariable* >     _transposeSplitVar;
 
-    // keep track of gathered array variables (clear each statement)
+    // keep track of ineligible gathered array variables (clear each statement)
     std::stack< AstGather* > _gatherStack;
-    std::set< uint32_t >     _gatherTraceVar;
-    std::set< AstVariable* > _gatherSplitVar;
 
     // keep track of array memory splits
     std::map< std::pair< uint32_t, uint32_t >, AstVariable* > _memSplit;
@@ -114,12 +105,19 @@ class MakeStmt : public VisitBCStmt,
     // is there a reduction statement inside a loop?
     bool _reductionInsideLoop;
 
+    // does this statement have a transpose or gather forcing vector length 1?
+    bool _scalarVectorLength;
+
+/*FIXME - remove this
+    // keep track of containing AST nodes that force writeback
+    std::stack< BaseAst* > _writebackStack;
+*/
+
     // number of containing non-matmul-argument transposes for an AST object
     size_t getTransposeCount(void) const;
 
     // special tracking for transposed and gathered variables
-    void insertTraceVar(const uint32_t varNum);
-    void insertSplitVar(AstVariable* varPtr);
+    void specialTrackVar(void);
 
     // add new statements
     void pushLexRoot(Stmt*);
@@ -130,8 +128,8 @@ class MakeStmt : public VisitBCStmt,
     // split statements
     void clearAst(void);
     void insertAst(BaseAst&);
-    void insertExtension(BaseAst&);
-    void insertIndex(BaseAst&);
+    void insertExtension(AstExtension&);
+    void insertIndex(AstIdxdata&);
     void insertLiteral(AstLitdata&);
     void insertLiteral(AstScalar&);
     void insertMatmul(AstMatmulMM&);
@@ -140,8 +138,6 @@ class MakeStmt : public VisitBCStmt,
     void insertReadData(AstReadout&);
     void insertReduce(AstAccum&);
     void insertReduce(AstDotprod&);
-    void insertRNG(AstRNGnormal&);
-    void insertRNG(AstRNGuniform&);
     void insertSameDataAcrossTraces(AstArrayMem&);
     void insertSameDataAcrossTraces(AstVariable&);
     void insertSendData(AstArrayMem&);

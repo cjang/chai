@@ -30,6 +30,7 @@ public:
     void visit(StmtCreateData&);
     void visit(StmtExtension&);
     void visit(StmtExtensionAuto&);
+    void visit(StmtGatherAuto&);
     void visit(StmtIdSpace&);
     void visit(StmtIndex&);
     void visit(StmtLiteral&);
@@ -38,8 +39,6 @@ public:
     void visit(StmtReadData&);
     void visit(StmtReduce&);
     void visit(StmtRepeat&);
-    void visit(StmtRNGrand&);
-    void visit(StmtRNGseed&);
     void visit(StmtSendData&);
     void visit(StmtSingle&);
 

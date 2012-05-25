@@ -27,15 +27,21 @@ class Function;
 // abstract base class for variables
 class Variable
 {
+    const size_t _precision;
+    const size_t _vectorLength;
+
     Function* _func;
 
 public:
-    Variable(void);
+    Variable(const size_t precision,
+             const size_t vectorLength);
     virtual ~Variable(void);
 
     void setFunction(Function*);
 
     void identifierName(std::ostream&) const;
+    size_t precision(void) const;
+    size_t vectorLength(void) const;
 
     virtual void declareType(std::ostream&) const = 0;
     virtual void convertType(std::ostream&) const = 0;
@@ -59,7 +65,9 @@ class Image2D : public Variable
     const ImageAccess& _imgAccess;
 
 public:
-    Image2D(const ImageAccess& rw);
+    Image2D(const size_t precision,
+            const size_t vectorLength,
+            const ImageAccess& rw);
 
     void declareType(std::ostream&) const;
     void convertType(std::ostream&) const;
@@ -78,9 +86,6 @@ static const ConstPointerVariableDecl CONST_POINTER;
 // memory buffer (addressable memory)
 class AddrMem : public Variable
 {
-    const size_t _precision;
-    const size_t _vectorLength;
-
     const bool _isConst;
     const bool _isPointer;
 

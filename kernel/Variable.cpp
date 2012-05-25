@@ -11,8 +11,11 @@ namespace chai_internal {
 ////////////////////////////////////////
 // abstract base class for variables
 
-Variable::Variable(void)
-    : _func(NULL) { }
+Variable::Variable(const size_t precision,
+                   const size_t vectorLength)
+    : _precision(precision),
+      _vectorLength(vectorLength),
+      _func(NULL) { }
 
 Variable::~Variable(void) { }
 
@@ -23,14 +26,24 @@ void Variable::setFunction(Function* funcPtr)
 
 void Variable::identifierName(ostream& os) const
 {
-    os << _func->varNameLookup(this) << " ";
+    os << _func->varNameLookup(this);
+}
+
+size_t Variable::precision(void) const
+{
+    return _precision;
+}
+
+size_t Variable::vectorLength(void) const
+{
+    return _vectorLength;
 }
 
 ////////////////////////////////////////
 // image sampler
 
 Sampler::Sampler(void)
-    : Variable() { }
+    : Variable(-1, -1) { }
 
 void Sampler::declareType(ostream& os) const
 {
@@ -45,8 +58,10 @@ void Sampler::convertType(ostream& os) const
 ////////////////////////////////////////
 // image texture
 
-Image2D::Image2D(const ImageAccess& rw)
-    : Variable(),
+Image2D::Image2D(const size_t precision,
+                 const size_t vectorLength,
+                 const ImageAccess& rw)
+    : Variable(precision, vectorLength),
       _imgAccess(rw) { }
 
 void Image2D::declareType(ostream& os) const
@@ -72,8 +87,7 @@ ConstPointerVariableDecl::ConstPointerVariableDecl(void) { }
 AddrMem::AddrMem(const size_t precision,
                  const size_t vectorLength,
                  const AddressSpace& qualifier)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+    : Variable(precision, vectorLength),
       _isConst(false),
       _isPointer(false),
       _addrSpace(qualifier) { }
@@ -82,8 +96,7 @@ AddrMem::AddrMem(const size_t precision,
                  const size_t vectorLength,
                  const ConstVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+    : Variable(precision, vectorLength),
       _isConst(true),
       _isPointer(false),
       _addrSpace(qualifier) { }
@@ -92,8 +105,7 @@ AddrMem::AddrMem(const size_t precision,
                  const size_t vectorLength,
                  const PointerVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+    : Variable(precision, vectorLength),
       _isConst(false),
       _isPointer(true),
       _addrSpace(qualifier) { }
@@ -102,15 +114,14 @@ AddrMem::AddrMem(const size_t precision,
                  const size_t vectorLength,
                  const ConstPointerVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+    : Variable(precision, vectorLength),
       _isConst(true),
       _isPointer(true),
       _addrSpace(qualifier) { }
 
 bool AddrMem::fp64(void) const
 {
-    return PrecType::Double == _precision;
+    return PrecType::Double == precision();
 }
 
 void AddrMem::declareType(ostream& os) const
@@ -119,9 +130,9 @@ void AddrMem::declareType(ostream& os) const
 
     if (_isConst) os << "const ";
 
-    os << PrecType::getPrimitiveName(_precision);
+    os << PrecType::getPrimitiveName(precision());
 
-    if (_vectorLength > 1) os << _vectorLength;
+    if (vectorLength() > 1) os << vectorLength();
 
     os << (_isPointer ? " * " : " ");
 }
@@ -130,9 +141,9 @@ void AddrMem::convertType(ostream& os) const
 {
     os << "(";
 
-    os << PrecType::getPrimitiveName(_precision);
+    os << PrecType::getPrimitiveName(precision());
 
-    if (_vectorLength > 1) os << _vectorLength;
+    if (vectorLength() > 1) os << vectorLength();
 
     os << ")";
 }
@@ -141,12 +152,14 @@ void AddrMem::convertType(ostream& os) const
 // integer scalar
 
 Integer::Integer(const AddressSpace& qualifier)
-    : _isConst(false),
+    : Variable(PrecType::Int32, 1),
+      _isConst(false),
       _addrSpace(qualifier) { }
 
 Integer::Integer(const ConstVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : _isConst(true),
+    : Variable(PrecType::Int32, 1),
+      _isConst(true),
       _addrSpace(qualifier) { }
 
 void Integer::declareType(ostream& os) const

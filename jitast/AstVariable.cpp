@@ -18,7 +18,14 @@ AstVariable::AstVariable(AstArrayMem* barg)
       _version(-1),
       _frontMem(barg->frontMem()),
       _kindOfVariable(SPLIT_ARRAY_MEMORY),
-      _sameDataAcrossTraces(barg->sameDataAcrossTraces())
+      _sameDataAcrossTraces(barg->sameDataAcrossTraces()),
+      _disableDotHack(false)
+/*FIXME - remove this,
+      _valueFromRNG(false)
+*/
+/*FIXME - remove this,
+      _forceWriteback(false)
+*/
 {
     pushArg(barg);
 }
@@ -32,7 +39,14 @@ AstVariable::AstVariable(BaseAst* barg,
       _version(-1),
       _frontMem(),
       _kindOfVariable(SPLIT_OPERATION),
-      _sameDataAcrossTraces(false)
+      _sameDataAcrossTraces(false),
+      _disableDotHack(false)
+/*FIXME - remove this,
+      _valueFromRNG(false)
+*/
+/*FIXME - remove this,
+      _forceWriteback(false)
+*/
 {
     pushArg(barg);
 }
@@ -49,7 +63,14 @@ AstVariable::AstVariable(BaseAst* barg,
       _version(version),
       _frontMem(frontMem),
       _kindOfVariable(TRACE_VARIABLE),
-      _sameDataAcrossTraces(MemManager::checkSameDataAcrossTraces(frontMem))
+      _sameDataAcrossTraces(MemManager::checkSameDataAcrossTraces(frontMem)),
+      _disableDotHack(false)
+/*FIXME - remove this,
+      _valueFromRNG(false)
+*/
+/*FIXME - remove this,
+      _forceWriteback(false)
+*/
 {
     pushArg(barg);
 }
@@ -116,6 +137,40 @@ bool AstVariable::isReadWrite(const bool appearsOnLHS,
         case (TRACE_VARIABLE) : return appearsOnLHS && appearsOnRHS;
     }
 }
+
+bool AstVariable::enableDotHack(void) const
+{
+    return ! _disableDotHack;
+}
+
+void AstVariable::disableDotHack(void)
+{
+    _disableDotHack = true;
+}
+
+/*FIXME - remove this
+bool AstVariable::getValueFromRNG(void) const
+{
+    return _valueFromRNG;
+}
+
+void AstVariable::setValueFromRNG(void)
+{
+    _valueFromRNG = true;
+}
+*/
+
+/*FIXME - remove this
+bool AstVariable::getForceWriteback(void) const
+{
+    return _forceWriteback;
+}
+
+void AstVariable::setForceWriteback(void)
+{
+    _forceWriteback = true;
+}
+*/
 
 void AstVariable::accept(VisitAst& v)
 {

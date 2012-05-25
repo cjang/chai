@@ -40,12 +40,19 @@ class Subscript
     bool         _outerProductRight;
     std::string  _gatherWidthIndex;
     std::string  _gatherHeightIndex;
+    size_t       _eligibleGatherN;
+    bool         _eligibleGatherXHasIndex;
+    bool         _eligibleGatherYHasIndex;
+    size_t       _eligibleGatherXVecOffset;
+    size_t       _eligibleGatherYVecOffset;
 
     // mixed vector lengths in statement
     size_t       _mixedVectorLength;
     size_t       _mixedComponentIdx;
 
     bool         _readScalar; // special case for read_scalar() variables
+
+    bool         _subscriptBrackets;
 
 protected:
     size_t varWidth(void) const;
@@ -60,9 +67,18 @@ protected:
     std::string getGatherWidthIndex(void) const;
     std::string getGatherHeightIndex(void) const;
 
+    bool isEligibleGather(void) const;
+    size_t eligibleGatherN(void) const;
+    bool eligibleGatherXHasIndex(void) const;
+    bool eligibleGatherYHasIndex(void) const;
+    size_t eligibleGatherXVecOffset(void) const;
+    size_t eligibleGatherYVecOffset(void) const;
+
     size_t getMixedVectorLength(void) const;
     size_t getMixedComponentIdx(void) const;
     size_t mixedIndexSub(std::ostream& os) const;
+
+    bool getSubscriptBrackets(void) const;
 
 public:
     Subscript(void);
@@ -85,6 +101,13 @@ public:
     void setOuterProductRight(void);
     void unsetOuterProduct(void);
 
+    void setEligibleGather(const size_t N,
+                           const bool xHasIndex,
+                           const bool yHasIndex,
+                           const size_t xVecOffset,
+                           const size_t yVecOffset);
+    void unsetEligibleGather(void);
+
     void setGatherWidthIndex(const std::string&);
     void setGatherHeightIndex(const std::string&);
     void unsetGatherIndex(void);
@@ -102,6 +125,9 @@ public:
     bool isMixedVectorLength(void) const;
     bool isMixedZero(void) const;
     void mixedComponentSub(std::ostream& os) const;
+
+    void enableSubscriptBrackets(void);
+    void disableSubscriptBrackets(void);
 
     virtual size_t boundingWidth(void) const = 0;
     virtual size_t boundingHeight(void) const = 0;

@@ -1075,13 +1075,113 @@ DEFN_ARRAY_BINOPFUN(islessgreater, islessgreater)
 // random number generators
 
 #define DEFN_RNG(FP, X) \
-RNG ## FP ::RNG ## FP (const RNG ## FP ## Variant rngVariant) \
-    : _rngVariant(rngVariant) { }
+RNG ## FP :: RNG ## FP (const RNGVariant variant, const X seed) \
+    : _rngVariant(variant), \
+      _rngSeed(seed) { } \
+\
+RNGVariant RNG ## FP ::rngVariant(void) const { \
+    return _rngVariant; } \
+\
+X RNG ## FP ::rngSeed(void) const { \
+    return _rngSeed; } \
+\
+void RNG ## FP ::incSeed(void) { \
+    _rngSeed++; }
 
 DEFN_RNG(u32, uint32_t)
-DEFN_RNG(i32, int32_t)
-DEFN_RNG(f32, float)
-DEFN_RNG(f64, double)
+DEFN_RNG(i32, uint32_t)
+DEFN_RNG(f32, uint32_t)
+DEFN_RNG(f64, uint64_t)
+
+#define DEFN_RNGFUN(FP, X) \
+RngFun::RngFun(RNG ## FP & generator, \
+               const size_t length, \
+               const size_t step, \
+               const X minLimit, \
+               const X maxLimit) \
+    : _length(length) \
+{ \
+    _rngBC.push(static_cast<double>(maxLimit)); \
+    _rngBC.push(static_cast<double>(minLimit)); \
+    _rngBC.push(static_cast<double>(step)); \
+    _rngBC.push(static_cast<double>(length)); \
+    _rngBC.push(static_cast<double>(generator.rngSeed())); \
+    _rngBC.push(static_cast<double>(generator.rngVariant())); \
+    _rngBC.push(ByteCodes::rng_uniform_make_ ## FP); \
+\
+    generator.incSeed(); \
+} \
+\
+RngFun::RngFun(RNG ## FP & generator, \
+               const size_t length) \
+    : _length(length) \
+{ \
+    _rngBC.push(static_cast<double>(length)); \
+    _rngBC.push(static_cast<double>(generator.rngSeed())); \
+    _rngBC.push(static_cast<double>(generator.rngVariant())); \
+    _rngBC.push(ByteCodes::rng_normal_make_ ## FP); \
+\
+    generator.incSeed(); \
+}
+
+DEFN_RNGFUN(u32, uint32_t)
+DEFN_RNGFUN(i32, int32_t)
+DEFN_RNGFUN(f32, float)
+DEFN_RNGFUN(f64, double)
+
+void RngFun::accept(Stak<BC>& v) const
+{
+    v.push(_rngBC);
+}
+
+void RngFun::accept(stack< ArrayDim >& v) const
+{
+    v.push( ArrayDim(_length, 1, 1) );
+}
+
+RngFun rng_uniform_make(RNGu32& generator,
+                        const size_t length,
+                        const size_t step)
+{
+    return RngFun(generator, length, step, 0, 0);
+}
+
+RngFun rng_uniform_make(RNGi32& generator,
+                        const size_t length,
+                        const size_t step)
+{
+    return RngFun(generator, length, step, 0, 0);
+}
+
+RngFun rng_uniform_make(RNGf32& generator,
+                        const size_t length,
+                        const size_t step,
+                        const float minLimit,
+                        const float maxLimit)
+{
+    return RngFun(generator, length, step, minLimit, maxLimit);
+}
+
+RngFun rng_uniform_make(RNGf64& generator,
+                        const size_t length,
+                        const size_t step,
+                        const float minLimit,
+                        const float maxLimit)
+{
+    return RngFun(generator, length, step, minLimit, maxLimit);
+}
+
+RngFun rng_normal_make(RNGf32& generator,
+                       const size_t length)
+{
+    return RngFun(generator, length);
+}
+
+RngFun rng_normal_make(RNGf64& generator,
+                       const size_t length)
+{
+    return RngFun(generator, length);
+}
 
 ////////////////////////////////////////
 // array variables
@@ -1487,38 +1587,6 @@ ARR(FP) ARR(FP)::ones(const size_t W, const size_t H) { \
     v.push(ByteCodes::ones2_ ## FP); \
     return a; } \
 \
-ARR(FP) ARR(FP)::rng_uniform_make(RNG ## FP & generator, \
-                                  const size_t length, \
-                                  const size_t step, \
-                                  const X minLimit, \
-                                  const X maxLimit) { \
-    ARR(FP) a; \
-    a.initClient(); \
-    a._W = length; \
-    a._H = 1; \
-    a._slots = 1; \
-    Stak<BC>& v = a._client->assignment(a._variable, a._version++); \
-    v.push(static_cast<double>(maxLimit)); \
-    v.push(static_cast<double>(minLimit)); \
-    v.push(static_cast<double>(step)); \
-    v.push(static_cast<double>(length)); \
-    v.push(static_cast<double>(generator._rngVariant)); \
-    v.push(ByteCodes::rng_uniform_make_ ## FP); \
-    return a; } \
-\
-ARR(FP) ARR(FP)::rng_normal_make(RNG ## FP & generator, \
-                                 const size_t length) { \
-    ARR(FP) a; \
-    a.initClient(); \
-    a._W = length; \
-    a._H = 1; \
-    a._slots = 1; \
-    Stak<BC>& v = a._client->assignment(a._variable, a._version++); \
-    v.push(static_cast<double>(length)); \
-    v.push(static_cast<double>(generator._rngVariant)); \
-    v.push(ByteCodes::rng_normal_make_ ## FP); \
-    return a; } \
-\
 ARR(FP) make1(const size_t W, X* cpu) { \
     return ARR(FP)::make1(W, cpu); } \
 \
@@ -1543,23 +1611,7 @@ ARR(FP) ones_ ## FP (const size_t W) { \
     return ARR(FP)::ones(W); } \
 \
 ARR(FP) ones_ ## FP (const size_t W, const size_t H) { \
-    return ARR(FP)::ones(W, H); } \
-\
-ARR(FP) rng_uniform_make(RNG ## FP & generator, \
-                         const size_t length, \
-                         const size_t step, \
-                         const X minLimit, \
-                         const X maxLimit) { \
-    return ARR(FP)::rng_uniform_make(generator, \
-                                     length, \
-                                     step, \
-                                     minLimit, \
-                                     maxLimit); } \
-\
-ARR(FP) rng_normal_make(RNG ## FP & generator, \
-                        const size_t length) { \
-    return ARR(FP)::rng_normal_make(generator, \
-                                    length); }
+    return ARR(FP)::ones(W, H); }
 
 DEFN_ARRAY(u32, uint32_t, PrecType::UInt32)
 DEFN_ARRAY(i32, int32_t, PrecType::Int32)

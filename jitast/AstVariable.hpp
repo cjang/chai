@@ -38,6 +38,19 @@ class AstVariable : public BaseAst
     const Kindness _kindOfVariable;
     const bool     _sameDataAcrossTraces;
 
+    // do not use dot() hack for scalars when operation split reduction
+    bool _disableDotHack;
+
+/*FIXME - remove this
+    // variable value comes from RNG
+    bool _valueFromRNG;
+*/
+
+/*FIXME - remove this
+    // force writeback when using registers
+    bool _forceWriteback;
+*/
+
 public:
     // new variable is split off array memory
     AstVariable(AstArrayMem* barg);
@@ -65,6 +78,19 @@ public:
     bool isReadOnly(const bool appearsOnLHS, const bool appearsOnRHS) const;
     bool isWriteOnly(const bool appearsOnLHS, const bool appearsOnRHS) const;
     bool isReadWrite(const bool appearsOnLHS, const bool appearsOnRHS) const;
+
+    bool enableDotHack(void) const;
+    void disableDotHack(void);
+
+/*FIXME - remove this
+    bool getValueFromRNG(void) const;
+    void setValueFromRNG(void);
+*/
+
+/*FIXME - remove this
+    bool getForceWriteback(void) const;
+    void setForceWriteback(void);
+*/
 
     void accept(VisitAst&);
 };

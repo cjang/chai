@@ -407,35 +407,99 @@ DECL_ARRAY_BINOPFUN(islessgreater)
 ////////////////////////////////////////
 // random number generators
 
-enum RNGu32Variant {
-    UP_RNG_DEFAULT = 0
-};
-
-enum RNGi32Variant {
-    IP_RNG_DEFAULT = 0
-};
-
-enum RNGf32Variant {
-    SP_RNG_DEFAULT = 0
-};
-
-enum RNGf64Variant {
-    DP_RNG_DEFAULT = 0
+enum RNGVariant
+{
+    RNG_PHILOX = 1230,
+    RNG_THREEFRY = 1231,
+    RNG_DEFAULT = RNG_PHILOX
 };
 
 #define DECL_RNG(FP, X) \
-class Array ## FP; \
 class RNG ## FP { \
-    friend class Array ## FP; \
-    const RNG ## FP ## Variant _rngVariant; \
+    const RNGVariant _rngVariant; \
+    X _rngSeed; \
 public: \
-    RNG ## FP (const RNG ## FP ## Variant rngVariant); \
+    RNG ## FP (const RNGVariant, const X); \
+    RNGVariant rngVariant(void) const; \
+    X rngSeed(void) const; \
+    void incSeed(void); \
 };
- 
+
 DECL_RNG(u32, uint32_t)
-DECL_RNG(i32, int32_t)
-DECL_RNG(f32, float)
-DECL_RNG(f64, double)
+DECL_RNG(i32, uint32_t)
+DECL_RNG(f32, uint32_t)
+DECL_RNG(f64, uint64_t)
+
+class RngFun : public ArrayExp
+{
+    const size_t _length;
+
+    chai_internal::Stak<chai_internal::BC> _rngBC;
+
+public:
+    // uniform
+    RngFun(RNGu32& generator,
+           const size_t length,
+           const size_t step,
+           const uint32_t minLimit,
+           const uint32_t maxLimit);
+
+    // uniform
+    RngFun(RNGi32& generator,
+           const size_t length,
+           const size_t step,
+           const int32_t minLimit,
+           const int32_t maxLimit);
+
+    // uniform
+    RngFun(RNGf32& generator,
+           const size_t length,
+           const size_t step,
+           const float minLimit,
+           const float maxLimit);
+
+    // uniform
+    RngFun(RNGf64& generator,
+           const size_t length,
+           const size_t step,
+           const double minLimit,
+           const double maxLimit);
+
+    // normal
+    RngFun(RNGu32& generator, const size_t length);
+    RngFun(RNGi32& generator, const size_t length);
+    RngFun(RNGf32& generator, const size_t length);
+    RngFun(RNGf64& generator, const size_t length);
+
+    void accept(chai_internal::Stak<chai_internal::BC>&) const;
+    void accept(std::stack< ArrayDim >&) const;
+};
+
+RngFun rng_uniform_make(RNGu32& generator,
+                        const size_t length,
+                        const size_t step);
+
+RngFun rng_uniform_make(RNGi32& generator,
+                        const size_t length,
+                        const size_t step);
+
+RngFun rng_uniform_make(RNGf32& generator,
+                        const size_t length,
+                        const size_t step,
+                        const float minLimit,
+                        const float maxLimit);
+
+RngFun rng_uniform_make(RNGf64& generator,
+                        const size_t length,
+                        const size_t step,
+                        const float minLimit,
+                        const float maxLimit);
+
+RngFun rng_normal_make(RNGf32& generator,
+                       const size_t length);
+
+RngFun rng_normal_make(RNGf64& generator,
+                       const size_t length);
 
 ////////////////////////////////////////
 // array variables
@@ -497,13 +561,6 @@ public: \
     static ARR(FP) zeros(const size_t W, const size_t H); \
     static ARR(FP) ones(const size_t W); \
     static ARR(FP) ones(const size_t W, const size_t H); \
-    static ARR(FP) rng_uniform_make(RNG ## FP & generator, \
-                                    const size_t length, \
-                                    const size_t step, \
-                                    const X minlimit, \
-                                    const X maxlimit); \
-    static ARR(FP) rng_normal_make(RNG ## FP & generator, \
-                                   const size_t length); \
 }; \
 ARR(FP) make1(const size_t W, X* cpu); \
 ARR(FP) make1(const size_t W, \
@@ -514,14 +571,7 @@ ARR(FP) make2(const size_t W, const size_t H, \
 ARR(FP) zeros_ ## FP (const size_t W); \
 ARR(FP) zeros_ ## FP (const size_t W, const size_t H); \
 ARR(FP) ones_ ## FP (const size_t W); \
-ARR(FP) ones_ ## FP (const size_t W, const size_t H); \
-ARR(FP) rng_uniform_make(RNG ## FP & generator, \
-                         const size_t length, \
-                         const size_t step, \
-                         const X minLimit, \
-                         const X maxLimit); \
-ARR(FP) rng_normal_make(RNG ## FP & generator, \
-                        const size_t length);
+ARR(FP) ones_ ## FP (const size_t W, const size_t H);
 
 DECL_ARRAY(u32, uint32_t)
 DECL_ARRAY(i32, int32_t)

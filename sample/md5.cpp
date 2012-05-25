@@ -177,6 +177,7 @@ int main(int argc, char *argv[])
         0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
         0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391 };
 
+    // little-endian byte order
     const uint32_t h0 = 0x67452301;
     const uint32_t h1 = 0xefcdab89;
     const uint32_t h2 = 0x98badcfe;

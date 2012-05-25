@@ -185,8 +185,8 @@ void WorkTrace::together(void)
         }
     }
 
-    set< uint32_t > registerVars;
-    set< uint32_t > registerVarsWriteBack;
+    set< uint32_t > traceRegisterVars;
+    set< uint32_t > traceRegisterVarsWriteBack;
 
     for (vector< Stmt* >::const_iterator
          it = newStmts.begin();
@@ -198,11 +198,13 @@ void WorkTrace::together(void)
         UseRegister useReg;
         useReg.edit(*xid);
 
-        registerVars.insert( xid->traceUseRegister().begin(),
-                             xid->traceUseRegister().end() );
+        traceRegisterVars.insert(
+            xid->traceUseRegister().begin(),
+            xid->traceUseRegister().end() );
 
-        registerVarsWriteBack.insert( xid->traceUseRegisterWriteBack().begin(),
-                                      xid->traceUseRegisterWriteBack().end() );
+        traceRegisterVarsWriteBack.insert(
+            xid->traceUseRegisterWriteBack().begin(),
+            xid->traceUseRegisterWriteBack().end() );
     }
 
     for (vector< Stmt* >::const_iterator
@@ -215,23 +217,24 @@ void WorkTrace::together(void)
         if (0 == xid->streamW() && 0 == xid->streamH())
         {
             // no code, only data movement
+
             // remove any create data for variables in registers
-            TrimFat trimFat(registerVars,
-                            registerVarsWriteBack);
+            TrimFat trimFat(traceRegisterVars,
+                            traceRegisterVarsWriteBack);
+
             trimFat.edit(*xid);
         }
         else
         {
             // must be code, need to build and run kernels
+
             for (set< uint32_t >::const_iterator
-                 it = registerVars.begin();
-                 it != registerVars.end();
+                 it = traceRegisterVars.begin();
+                 it != traceRegisterVars.end();
                  it++)
             {
-                if (! registerVarsWriteBack.count(*it))
-                {
+                if (! traceRegisterVarsWriteBack.count(*it))
                     xid->removeTraceArg(*it);
-                }
             }
         }
     }

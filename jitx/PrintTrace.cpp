@@ -9,6 +9,7 @@
 #include "StmtCreateData.hpp"
 #include "StmtExtension.hpp"
 #include "StmtExtensionAuto.hpp"
+#include "StmtGatherAuto.hpp"
 #include "StmtIdSpace.hpp"
 #include "StmtIndex.hpp"
 #include "StmtLiteral.hpp"
@@ -17,8 +18,6 @@
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
-#include "StmtRNGrand.hpp"
-#include "StmtRNGseed.hpp"
 #include "StmtSendData.hpp"
 #include "StmtSingle.hpp"
 
@@ -78,6 +77,15 @@ void PrintTrace::visit(StmtExtension& extStmt)
 void PrintTrace::visit(StmtExtensionAuto& extStmt)
 {
     indent() << "EXTENSIONAUTO " << extStmt.extensionName() << endl;
+}
+
+void PrintTrace::visit(StmtGatherAuto& gatStmt)
+{
+    indent() << "GATHERAUTO ";
+
+    visit(*gatStmt.dataPtr());
+
+    _os << endl;
 }
 
 void PrintTrace::visit(StmtIdSpace& idsStmt)
@@ -288,32 +296,6 @@ void PrintTrace::visit(StmtRepeat& repStmt)
             repStmt.stuffInside()->accept(*this);
         }
     }
-}
-
-void PrintTrace::visit(StmtRNGrand& rngStmt)
-{
-    indent() << "RNG ";
-
-    // only one of these will be true
-    if (rngStmt.normalPtr()) visit(*rngStmt.normalPtr());
-    if (rngStmt.uniformPtr()) visit(*rngStmt.uniformPtr());
-
-    _os << " TO ";
-
-    _os << rngStmt.lhsVariable()->W()
-        << "x"
-        << rngStmt.lhsVariable()->H()
-        << " ";
-
-    _descendVar = false;
-    visit(*rngStmt.lhsVariable());
-
-    _os << endl;
-}
-
-void PrintTrace::visit(StmtRNGseed& rngStmt)
-{
-    indent() << "RNGSEED " << rngStmt.length() << endl;
 }
 
 void PrintTrace::visit(StmtSendData& datStmt)

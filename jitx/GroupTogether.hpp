@@ -94,13 +94,7 @@ private:
     std::set< const AstVariable* > _splitLHS;
     std::set< const AstVariable* > _splitRHS;
 
-    // track variables that require transposed array subscripts
-    std::set< uint32_t >           _traceTransposed;
-    std::set< const AstVariable* > _splitTransposed;
-
-    // track variables that require gathered array subscripts
-    std::set< uint32_t >           _traceGathered;
-    std::set< const AstVariable* > _splitGathered;
+    bool _scalarVectorLength;
 
     // track variable lexical scope within kernel
     std::set< uint32_t > _constructorLHS;
@@ -124,13 +118,14 @@ private:
     bool isReduction(void);
     bool isSpecial(void);
     bool isEmpty(void) const;
-    bool isPragmas(void) const;
+    bool isMetaKernel(void) const;
     bool isCode(void) const;
 
     void boundIndex(const size_t w, const size_t h);
     void boundIndex(const GroupTogether&);
     void boundIndex(const Stmt&);
     void setIndex(const StmtReadData&);
+    void setIndex(const StmtReduce&);
 
     void pushList(Stmt&);
     void pushList(Stmt&, GroupTogether&);
@@ -160,11 +155,7 @@ public:
     const std::set< const AstVariable* >& splitLHS(void) const;
     const std::set< const AstVariable* >& splitRHS(void) const;
 
-    const std::set< uint32_t >& traceTransposed(void) const;
-    const std::set< const AstVariable* >& splitTransposed(void) const;
-
-    const std::set< uint32_t >& traceGathered(void) const;
-    const std::set< const AstVariable* >& splitGathered(void) const;
+    bool scalarVectorLength(void) const;
 
     // each kernel has different sideness to variable arguments
     bool isReadOnly(const uint32_t,
@@ -217,6 +208,7 @@ public:
     void visit(StmtCreateData&);
     void visit(StmtExtension&);
     void visit(StmtExtensionAuto&);
+    void visit(StmtGatherAuto&);
     void visit(StmtIdSpace&);
     void visit(StmtIndex&);
     void visit(StmtLiteral&);
@@ -225,8 +217,6 @@ public:
     void visit(StmtReadData&);
     void visit(StmtReduce&);
     void visit(StmtRepeat&);
-    void visit(StmtRNGrand&);
-    void visit(StmtRNGseed&);
     void visit(StmtSendData&);
     void visit(StmtSingle&);
 };

@@ -31,6 +31,7 @@
 #include "StmtCreateData.hpp"
 #include "StmtExtension.hpp"
 #include "StmtExtensionAuto.hpp"
+#include "StmtGatherAuto.hpp"
 #include "StmtIdSpace.hpp"
 #include "StmtIndex.hpp"
 #include "StmtLiteral.hpp"
@@ -39,8 +40,6 @@
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
-#include "StmtRNGrand.hpp"
-#include "StmtRNGseed.hpp"
 #include "StmtSendData.hpp"
 #include "StmtSingle.hpp"
 #include "UseRegister.hpp"
@@ -55,17 +54,17 @@ namespace chai_internal {
 
 void UseRegister::updateRW(const AstVariable* stmtLHS)
 {
-    // all trace variables in current statement
+    // all variables in current statement
     set< uint32_t > traceVars;
 
-    // LHS trace variable
+    // LHS variable
     if (stmtLHS->isTraceVariable())
     {
         const uint32_t varNum = stmtLHS->variable();
 
         traceVars.insert(varNum);
 
-        // LHS is always potential candidate for register use
+        // LHS is always a potential candidate for register use
         _traceInclude.insert(varNum);
 
         // write to LHS
@@ -75,16 +74,18 @@ void UseRegister::updateRW(const AstVariable* stmtLHS)
             _traceWrite[varNum] = 1;
     }
 
-    // RHS trace variables
+    // RHS variables
     set< uint32_t > traceRHS;
     for (set< const AstVariable* >::const_iterator
          it = _stmtRHS.begin();
          it != _stmtRHS.end();
          it++)
     {
-        if ((*it)->isTraceVariable())
+        const AstVariable* varPtr = *it;
+
+        if (varPtr->isTraceVariable())
         {
-            const uint32_t varNum = (*it)->variable();
+            const uint32_t varNum = varPtr->variable();
 
             traceVars.insert(varNum);
             traceRHS.insert(varNum);
@@ -120,10 +121,10 @@ void UseRegister::updateRW(const AstVariable* stmtLHS)
         const uint32_t varNum = *it;
 
         // first statement
-        if (0 == _firstIsAssign.count(varNum))
+        if (0 == _traceFirstIsAssign.count(varNum))
         {
             // variable appears on LHS only
-            _firstIsAssign[varNum] = 0 == traceRHS.count(varNum);
+            _traceFirstIsAssign[varNum] = 0 == traceRHS.count(varNum);
         }
     }
 }
@@ -147,9 +148,8 @@ void UseRegister::edit(StmtIdSpace& xid)
         (*it)->accept(*this);
     }
 
-    // candidate variables for private registers
+    // candidate trace variables for private registers
     set< uint32_t > traceCandidates;
-
     for (map< uint32_t, size_t >::const_iterator
          it = _traceRead.begin();
          it != _traceRead.end();
@@ -171,7 +171,7 @@ void UseRegister::edit(StmtIdSpace& xid)
         }
     }
 
-    // exclude variables inside reductions or gathers
+    // exclude trace variables inside reductions or gathers
     for (set< uint32_t >::const_iterator
          it = _traceExclude.begin();
          it != _traceExclude.end();
@@ -182,13 +182,18 @@ void UseRegister::edit(StmtIdSpace& xid)
 
     // only interested if first statement is an assignment
     for (map< uint32_t, bool >::const_iterator
-         it = _firstIsAssign.begin();
-         it != _firstIsAssign.end();
+         it = _traceFirstIsAssign.begin();
+         it != _traceFirstIsAssign.end();
          it++)
     {
         if (! (*it).second)
             traceCandidates.erase((*it).first);
     }
+
+/*FIXME - remove this
+    // RNG always use registers
+    traceCandidates.insert(_rngVariables.begin(), _rngVariables.end());
+*/
 
     set< const Stmt* > removeBarriers;
 
@@ -202,6 +207,7 @@ void UseRegister::edit(StmtIdSpace& xid)
 
         bool commonVarFound = false;
 
+        // trace variables
         for (set< uint32_t >::const_iterator
              jt = sb->traceVars().begin();
              jt != sb->traceVars().end();
@@ -240,13 +246,21 @@ void UseRegister::edit(StmtIdSpace& xid)
     }
 
     // not all registers are written back to global memory
-    set< uint32_t > writeBack;
+    set< uint32_t > traceWriteBack;
     for (set< uint32_t >::const_iterator
          it = traceCandidates.begin();
          it != traceCandidates.end();
          it++)
     {
         const uint32_t varNum = *it;
+
+/*FIXME - remove this
+        if (_forceWriteback.count(varNum))
+        {
+            traceWriteBack.insert(varNum);
+            continue;
+        }
+*/
 
         if (1 == _traceWrite[varNum] &&   // first assignment is only one
             0 == _traceReadWrite[varNum]) // variable value never changes
@@ -255,12 +269,20 @@ void UseRegister::edit(StmtIdSpace& xid)
         }
         else
         {
-            writeBack.insert(varNum);
+/*FIXME - remove this
+            // hack: assume variables with RNG are never written back to memory
+            if (0 == _rngVariables.count(varNum))
+            {
+*/
+                traceWriteBack.insert(varNum);
+/*FIXME - remove this
+            }
+*/
         }
     }
 
     // these variables will have registers
-    xid.traceUseRegister(traceCandidates, writeBack);
+    xid.traceUseRegister(traceCandidates, traceWriteBack);
 }
 
 ////////////////////////////////////////
@@ -385,22 +407,45 @@ void UseRegister::visit(AstVariable& v)
     // appears on RHS
     _stmtRHS.insert(&v);
 
-    // only interested in trace variables
-    if (v.isTraceVariable())
+/*FIXME - remove this
+    // hack: variables with RNG shouldn't be written back
+    if (v.isTraceVariable() && v.getValueFromRNG())
     {
-        const uint32_t varNum = v.variable();
+        _rngVariables.insert(v.variable());
+    }
+*/
 
-        // variables contained inside a reduction or gather
-        if (_trackContained.empty())
+/*FIXME - remove this
+    if (v.isTraceVariable() && v.getForceWriteback())
+    {
+        _forceWriteback.insert(v.variable());
+    }
+*/
+
+    // variables contained inside a reduction or gather
+    if (_trackContained.empty())
+    {
+        if (v.isTraceVariable())
+            _traceInclude.insert(v.variable());
+    }
+    else
+    {
+        // ignore pure stream variable inside reduction or gather
+        if (v.isTraceVariable())
         {
-            // candidate for using register
-            _traceInclude.insert(varNum);
+/*FIXME - remove this
+            // ...unless it has a value at least partially from RNG
+            if (! v.getValueFromRNG())
+*/
+                _traceExclude.insert(v.variable());
         }
-        else
-        {
-            // ignore pure stream variable inside reduction or gather
-            _traceExclude.insert(varNum);
-        }
+    }
+
+    // trace variables contained inside a loop
+    if (! _trackRepeat.empty())
+    {
+        if (v.isTraceVariable())
+            _traceExclude.insert(v.variable());
     }
 }
 
@@ -436,6 +481,11 @@ void UseRegister::visit(StmtExtension& s)
 }
 
 void UseRegister::visit(StmtExtensionAuto& s)
+{
+    // leave this alone, meta-kernel
+}
+
+void UseRegister::visit(StmtGatherAuto& s)
 {
     // leave this alone, meta-kernel
 }
@@ -486,18 +536,12 @@ void UseRegister::visit(StmtReduce& s)
 
 void UseRegister::visit(StmtRepeat& s)
 {
+    _trackRepeat.push(&s);
+
     // need to visit contained statements
     s.stuffInside()->accept(*this);
-}
 
-void UseRegister::visit(StmtRNGrand& s)
-{
-    // leave this alone, no GPU support for RNG
-}
-
-void UseRegister::visit(StmtRNGseed& s)
-{
-    // leave this alone, no GPU support for RNG
+    _trackRepeat.pop();
 }
 
 void UseRegister::visit(StmtSendData& s)

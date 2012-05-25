@@ -77,21 +77,6 @@ else
   echo -n ", use for AMD build"
 fi
 
-# default location for NVIDIA installation
-NVIDIA_INSTALLDIR=/usr/local/cuda
-
-# set the NVIDIA CUDA path
-if [ -d ${NVIDIA_INSTALLDIR} ]
-then
-  NVIDIA_CUDA=${NVIDIA_INSTALLDIR}
-  echo
-  echo -n "found "${NVIDIA_INSTALLDIR}", use for NVIDIA build"
-else
-  NVIDIA_CUDA=
-  echo
-  echo -n "NVIDIA CUDA not found in "${NVIDIA_INSTALLDIR}", skip NVIDIA build"
-fi
-
 # clear temporary file
 cp /dev/null configure.tmp
 
@@ -121,6 +106,21 @@ else
     echo
     echo -n "INTEL SDK not found in /opt, skip INTEL build"
   fi
+fi
+
+# default location for NVIDIA installation
+NVIDIA_INSTALLDIR=/usr/local/cuda
+
+# set the NVIDIA CUDA path
+if [ -d ${NVIDIA_INSTALLDIR} ]
+then
+  NVIDIA_CUDA=${NVIDIA_INSTALLDIR}
+  echo
+  echo -n "found "${NVIDIA_INSTALLDIR}", use for NVIDIA build"
+else
+  NVIDIA_CUDA=
+  echo
+  echo -n "NVIDIA CUDA not found in "${NVIDIA_INSTALLDIR}", skip NVIDIA build"
 fi
 
 echo
@@ -194,11 +194,21 @@ fi
 if [ ${INTEL_SDK} ]
 then
   ENV_FILE_INTEL="ENV.INTEL"
+  INTEL_SDK_UNSET_LD_LIBRARY_PATH=1
   INTEL_SDK_LIB_PATH=${INTEL_SDK}/usr/${LIB_ARCH_DIR}
   if [ `echo $LD_LIBRARY_PATH | grep ${INTEL_SDK_LIB_PATH} | wc -l` -eq 0 ]
   then
     echo export LD_LIBRARY_PATH=${INTEL_SDK_LIB_PATH}:$LD_LIBRARY_PATH > ${ENV_FILE_INTEL}
-  else
+    INTEL_SDK_UNSET_LD_LIBRARY_PATH=
+  fi
+  INTEL_SDK_LIB2_PATH=${INTEL_SDK_LIB_PATH}/OpenCL/vendors/intel
+  if [ `echo $LD_LIBRARY_PATH | grep ${INTEL_SDK_LIB2_PATH} | wc -l` -eq 0 ]
+  then
+    echo "export LD_LIBRARY_PATH=${INTEL_SDK_LIB2_PATH}:\$LD_LIBRARY_PATH" >> ${ENV_FILE_INTEL}
+    INTEL_SDK_UNSET_LD_LIBRARY_PATH=
+  fi
+  if [ ${INTEL_SDK_UNSET_LD_LIBRARY_PATH} ]
+  then
     echo export LD_LIBRARY_PATH=$LD_LIBRARY_PATH > ${ENV_FILE_INTEL}
   fi
   CHAI_BUILD_LIB=`pwd`/_install/lib

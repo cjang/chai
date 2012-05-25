@@ -84,6 +84,7 @@ OCLhacks::OCLhacks(void)
       _settingSearchTrials("SearchTrials"),
       _settingTimingTrials("TimingTrials"),
       _settingWatchdog("Watchdog"),
+      _settingWorkGroupSize("WorkGroupSize"),
       _firstEvergreen(-1)
 { }
 
@@ -121,13 +122,20 @@ void OCLhacks::initHacks(const OCLinit& oclInit,
     // @Corei7920@AMD    Evergreen FP64
     // @Corei7920@INTEL  Evergreen FP64
     //
-    // Compute devices may also have different auto-tuning settings.
+    // Compute devices have auto-tuning settings.
     //
     // #device         #settings
     // @HD5870         Paranoid=0.1 SearchTrials=5 TimingTrials=10 Watchdog=60
     // @GTX480         Paranoid=0.1 SearchTrials=5 TimingTrials=10 Watchdog=60
     // @Corei7920      Paranoid=0.1 SearchTrials=5 TimingTrials=10 Watchdog=120
     // @Corei7920@AMD  PragmaFP64=cl_amd_fp64
+    //
+    // Compute devices have scheduling settings.
+    //
+    // #device         #settings
+    // @HD5870         WorkGroupSize=64
+    // @GTX480         WorkGroupSize=32
+    // @Corei7920      WorkGroupSize=8
 
     string strT, deviceKey;
     vector< string > splitT, evergreenDevices;
@@ -441,6 +449,16 @@ size_t OCLhacks::timingTrials(const size_t deviceIdx)
         (_device2num.count(dv) && _device2num[dv].count(_settingTimingTrials))
             ? _device2num[dv][_settingTimingTrials]
             : 1; // one trial only
+}
+
+size_t OCLhacks::workGroupSize(const size_t deviceIdx)
+{
+    const string dv = deviceVendor(deviceIdx);
+
+    return
+        (_device2num.count(dv) && _device2num[dv].count(_settingWorkGroupSize))
+            ? _device2num[dv][_settingWorkGroupSize]
+            : 1; // one thread default
 }
 
 string OCLhacks::journalFile(const size_t deviceIdx)

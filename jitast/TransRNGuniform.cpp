@@ -12,17 +12,16 @@ namespace chai_internal {
 
 BaseAst* TransRNGuniform::sub_eval(void) const
 {
-    //const unsigned int seed = 0;
-    const unsigned int seed = random();
-    const size_t variant    = _argScalar[0]; // not used
-    const size_t len        = _argScalar[1];
-    const size_t step       = _argScalar[2];
-    const double minlimit   = _argScalar[3];
-    const double maxlimit   = _argScalar[4];
+    const int variant     = _argScalar[0];
+    const uint64_t seed   = _argScalar[1];
+    const size_t len      = _argScalar[2];
+    const size_t step     = _argScalar[3];
+    const double minlimit = _argScalar[4];
+    const double maxlimit = _argScalar[5];
 
     return
-        new AstRNGuniform(seed,
-                          variant,
+        new AstRNGuniform(variant,
+                          seed,
                           len,
                           step,
                           minlimit,
@@ -31,7 +30,7 @@ BaseAst* TransRNGuniform::sub_eval(void) const
 }
 
 TransRNGuniform::TransRNGuniform(const size_t precision)
-    : BaseTrans(5, 0),
+    : BaseTrans(6, 0),
       _precision(precision) { }
 
 }; // namespace chai_internal

@@ -17,12 +17,11 @@ namespace chai_internal {
 
 void InterpRNGnormal::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
-    //const unsigned int seed = 0;
-    const unsigned int seed = random();
     const size_t variant    = _argScalar[0]; // not used
-    const size_t len        = _argScalar[1];
+    const unsigned int seed = _argScalar[1]; // not used
+    const size_t len        = _argScalar[2];
 
-    _gen.seed(seed);
+    _gen.seed(random());
 
     // first allocate backing memory
     BackMem* backMem = allocBackMem(len, 1, _precision);
@@ -66,7 +65,7 @@ void InterpRNGnormal::sub_eval(stack< vector< FrontMem* > >& outStack)
 }
 
 InterpRNGnormal::InterpRNGnormal(const size_t precision, InterpRNG& gen)
-    : BaseInterp(2, 0),
+    : BaseInterp(3, 0),
       _precision(precision),
       _gen(gen) { }
 

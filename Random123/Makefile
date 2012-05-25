@@ -1,15 +1,10 @@
 include ../Makefile.config
 include ../Makefile.common
 
-USE_CFLAGS=$(SHARED_CFLAGS)
+USE_CFLAGS=$(SHARED_CFLAGS) -D__STDC_LIMIT_MACROS
 
 LIBRARY_OBJECT_CODE = \
-	Function.o \
-	Gathering.o \
-	KernelCache.o \
-	Qualifier.o \
-	Subscript.o \
-	Variable.o
+	Random123.o
 
 INTERNAL_HEADER_FILES = \
 	$(LIBRARY_OBJECT_CODE:.o=.hpp)

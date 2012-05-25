@@ -3,22 +3,44 @@
 #ifndef _CHAI_AST_GATHER_HPP_
 #define _CHAI_AST_GATHER_HPP_
 
+#include <set>
+#include <stdint.h>
+#include <vector>
+
 #include "BaseAst.hpp"
+#include "VisitAst.hpp"
 
 namespace chai_internal {
 
 ////////////////////////////////////////
 // gather1_floor, gather2_floor
 
-class AstGather : public BaseAst
+class AstGather : public BaseAst,
+                  public VisitAst
 {
     const size_t _N;
-    const size_t _dataW;
-    const size_t _dataH;
-    const size_t _idxW;
-    const size_t _idxH;
-    const size_t _idyW;
-    const size_t _idyH;
+
+    bool         _eligible;
+    AstVariable* _dataVariable;
+    bool         _xHasIndex;
+    bool         _yHasIndex;
+    size_t       _xOffset;
+    size_t       _yOffset;
+
+    size_t _countNode;
+    size_t _countFun2Add;
+    size_t _countFun2Sub;
+    size_t _countIdxdataWidth;  // 0 varies across rows
+    size_t _countIdxdataHeight; // 1 varies down columns
+    size_t _countScalar;
+    size_t _countVariable;
+    int    _countFloorValue;
+
+    void resetCount(void);
+    bool isOneVariable(void) const;
+    bool isStaticSubscript(const size_t index01) const;
+
+    void descendAst(BaseAst&);
 
 public:
     AstGather(BaseAst* bargData,
@@ -29,12 +51,37 @@ public:
               BaseAst* bargY);
 
     size_t N(void) const;
-    size_t dataW(void) const;
-    size_t dataH(void) const;
-    size_t idxW(void) const;
-    size_t idxH(void) const;
-    size_t idyW(void) const;
-    size_t idyH(void) const;
+
+    bool eligible(void) const;
+    AstVariable* dataVariable(void) const;
+    bool xHasIndex(void) const;
+    bool yHasIndex(void) const;
+    size_t xOffset(void) const;
+    size_t yOffset(void) const;
+
+    void visit(AstAccum&);
+    void visit(AstArrayMem&);
+    void visit(AstCond&);
+    void visit(AstConvert&);
+    void visit(AstDotprod&);
+    void visit(AstExtension&);
+    void visit(AstFun1&);
+    void visit(AstFun2&);
+    void visit(AstFun3&);
+    void visit(AstGather&);
+    void visit(AstIdxdata&);
+    void visit(AstLitdata&);
+    void visit(AstMakedata&);
+    void visit(AstMatmulMM&);
+    void visit(AstMatmulMV&);
+    void visit(AstMatmulVM&);
+    void visit(AstMatmulVV&);
+    void visit(AstReadout&);
+    void visit(AstRNGnormal&);
+    void visit(AstRNGuniform&);
+    void visit(AstScalar&);
+    void visit(AstTranspose&);
+    void visit(AstVariable&);
 
     void accept(VisitAst&);
 };

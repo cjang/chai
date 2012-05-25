@@ -1,5 +1,7 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
+#include "ByteCodes.hpp"
+#include "EditStak.hpp"
 #include "HashJIT.hpp"
 #include "BCStmtSingle.hpp"
 #include "PrintBC.hpp"
@@ -15,7 +17,19 @@ uint64_t BCStmtSingle::computeHash(VectorTrace& vt)
 
     v.push(_lhsVariable);
     //v.push(_lhsVersion); // loop rolling will not work if version included
-    _rhsBytecode.ascend(v);
+
+    // for RNG loop rolling, hash the seed argument with a zero
+    EditStak rngEdit;
+    rngEdit.nullifyOpArg(ByteCodes::rng_normal_make_u32, 1);
+    rngEdit.nullifyOpArg(ByteCodes::rng_normal_make_i32, 1);
+    rngEdit.nullifyOpArg(ByteCodes::rng_normal_make_f32, 1);
+    rngEdit.nullifyOpArg(ByteCodes::rng_normal_make_f64, 1);
+    rngEdit.nullifyOpArg(ByteCodes::rng_uniform_make_u32, 1);
+    rngEdit.nullifyOpArg(ByteCodes::rng_uniform_make_i32, 1);
+    rngEdit.nullifyOpArg(ByteCodes::rng_uniform_make_f32, 1);
+    rngEdit.nullifyOpArg(ByteCodes::rng_uniform_make_f64, 1);
+    _rhsBytecode.descend(rngEdit);
+    rngEdit.getBytecode().descend(v);
 
     if (-1 != v.ptrIndex())
     {

@@ -91,6 +91,11 @@ const set< uint32_t >& StmtBarrier::traceVars(void) const
     return _traceVars;
 }
 
+const set< const AstVariable* >& StmtBarrier::splitVars(void) const
+{
+    return _splitVars;
+}
+
 bool StmtBarrier::swappable(const Stmt& other) const
 {
     if (checkMatch(other.lhsVariable()))

@@ -29,6 +29,9 @@ class SingleTrace : public RefObj
     // array variables still in scope
     const std::set< uint32_t >       _liveVariables;
 
+    // RNG variables which violate referential transparency
+    const std::set< uint32_t >       _rngVariables;
+
     // left hand side
     std::vector< uint32_t >          _lhsVariable;
     std::vector< uint32_t >          _lhsVersion;

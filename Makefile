@@ -2,6 +2,7 @@ include Makefile.common
 include Makefile.config
 
 all : \
+	Random123_ \
 	misc_ \
 	vendor_ \
 	openclhack_ \
@@ -89,6 +90,15 @@ openclhack_ : _installdirs
 	fi
 	@if [ ! -d /usr/include/CL ]; \
 	then \
+	  if [ $(INTEL_SDK) ]; \
+	  then \
+	    echo "creating link to INTEL OpenCL header files"; \
+	    rm -f _install/.include/CL; \
+	    ln -s $(INTEL_SDK)/usr/include/CL _install/.include; \
+	  fi; \
+	fi
+	@if [ ! -d /usr/include/CL ]; \
+	then \
 	  if [ $(NVIDIA_CUDA) ]; \
 	  then \
 	    echo "creating link to NVIDIA OpenCL header files"; \
@@ -98,17 +108,14 @@ openclhack_ : _installdirs
 	fi
 	@if [ ! -d /usr/include/CL ]; \
 	then \
-	  if [ $(INTEL_SDK) ]; \
+	  if [ ! -h _install/.include/CL ]; \
 	  then \
-	    echo "creating link to INTEL OpenCL header files"; \
-	    rm -f _install/.include/CL; \
-	    ln -s $(INTEL_SDK)/include/CL _install/.include; \
+	    echo "no OpenCL found, build will fail"; \
 	  fi; \
 	fi
-	@if [ ! -d /usr/include/CL ]; \
-	then \
-	  echo "no OpenCL found, build will fail"; \
-	fi
+
+Random123_ : _installdirs
+	cd Random123; make install; cd -
 
 runtime_ : _installdirs
 	cd runtime; make install; cd -
@@ -182,6 +189,7 @@ clean :
 	cd jitx; make clean; cd -
 	cd kernel; make clean; cd -
 	cd misc; make clean; cd -
+	cd Random123; make clean; cd -
 	cd runtime; make clean; cd -
 	cd tools; make clean; cd -
 	cd vendor; make -f Makefile.AMD clean; cd -
@@ -201,6 +209,7 @@ clean :
 		jitx/*.h* jitx/*.c* \
 		kernel/*.h* kernel/*.c* \
 		misc/*.h* misc/*.c* \
+		Random123/*.h* Random123/*.c* \
 		runtime/*.h* runtime/*.c* \
 		tools/*.c* \
 		vendor/*.h* vendor/*.c*

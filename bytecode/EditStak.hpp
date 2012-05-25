@@ -4,6 +4,7 @@
 #define _CHAI_EDIT_STAK_HPP_
 
 #include <map>
+#include <set>
 #include <utility>
 
 #include "chai/BC.hpp"
@@ -21,6 +22,14 @@ class EditStak : public Visit<BC>
     // original variable -> replacement variable
     std::map< uint32_t, uint32_t > _replaceVar;
 
+    // original variable -> replacement bytecode
+    std::map< uint32_t, Stak<BC> > _replaceVarBC;
+
+    // for JIT hash codes of RNG statements
+    std::map< uint32_t, std::set< size_t > > _nullifyOpArg;
+    uint32_t _currentOpCode;
+    size_t   _currentArgIndex;
+
 public:
     EditStak(void);
 
@@ -28,6 +37,12 @@ public:
 
     void replaceVariable(const uint32_t fromVariable,
                          const uint32_t toVariable);
+
+    void replaceVariableBC(const uint32_t fromVariable,
+                           const Stak<BC>& toBC);
+
+    void nullifyOpArg(const uint32_t opCode,
+                      const size_t argIndex);
 
     bool changed(void) const;
 

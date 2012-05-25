@@ -35,6 +35,7 @@ extnop.amd : extension_library extnop.o
 
 BUILD_TARGETS = \
 	cg.x cg64.x \
+	filter.x \
 	index.x \
 	kirch.x \
 	loopsum_uni.x loopsum_vec.x loopsum_omp.x loopsum_pth.x \

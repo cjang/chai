@@ -56,6 +56,36 @@ string Subscript::getGatherHeightIndex(void) const
     return _gatherHeightIndex;
 }
 
+bool Subscript::isEligibleGather(void) const
+{
+    return -1 != _eligibleGatherN;
+}
+
+size_t Subscript::eligibleGatherN(void) const
+{
+    return _eligibleGatherN;
+}
+
+bool Subscript::eligibleGatherXHasIndex(void) const
+{
+    return _eligibleGatherXHasIndex;
+}
+
+bool Subscript::eligibleGatherYHasIndex(void) const
+{
+    return _eligibleGatherYHasIndex;
+}
+
+size_t Subscript::eligibleGatherXVecOffset(void) const
+{
+    return _eligibleGatherXVecOffset;
+}
+
+size_t Subscript::eligibleGatherYVecOffset(void) const
+{
+    return _eligibleGatherYVecOffset;
+}
+
 size_t Subscript::getMixedVectorLength(void) const
 {
     return _mixedVectorLength;
@@ -89,6 +119,11 @@ size_t Subscript::mixedIndexSub(ostream& os) const
     return largestWidth;
 }
 
+bool Subscript::getSubscriptBrackets(void) const
+{
+    return _subscriptBrackets;
+}
+
 Subscript::Subscript(void)
     : _blocking(NO_TILE_BLOCKING),
       _blockingEnabled(true),
@@ -101,9 +136,15 @@ Subscript::Subscript(void)
       _outerProductRight(false),
       _gatherWidthIndex(),
       _gatherHeightIndex(),
+      _eligibleGatherN(-1),
+      _eligibleGatherXHasIndex(false),
+      _eligibleGatherYHasIndex(false),
+      _eligibleGatherXVecOffset(0),
+      _eligibleGatherYVecOffset(0),
       _mixedVectorLength(-1),
       _mixedComponentIdx(-1),
-      _readScalar(false) { }
+      _readScalar(false),
+      _subscriptBrackets(true) { }
 
 Subscript::~Subscript(void) { }
 
@@ -206,6 +247,28 @@ void Subscript::unsetGatherIndex(void)
     _gatherHeightIndex.clear();
 }
 
+void Subscript::setEligibleGather(const size_t N,
+                                  const bool xHasIndex,
+                                  const bool yHasIndex,
+                                  const size_t xVecOffset,
+                                  const size_t yVecOffset)
+{
+    _eligibleGatherN = N;
+    _eligibleGatherXHasIndex = xHasIndex;
+    _eligibleGatherYHasIndex = yHasIndex;
+    _eligibleGatherXVecOffset = xVecOffset;
+    _eligibleGatherYVecOffset = yVecOffset;
+}
+
+void Subscript::unsetEligibleGather(void)
+{
+    _eligibleGatherN = -1;
+    _eligibleGatherXHasIndex = false;
+    _eligibleGatherYHasIndex = false;
+    _eligibleGatherXVecOffset = 0;
+    _eligibleGatherYVecOffset = 0;
+}
+
 void Subscript::setMixedVectorLength(const size_t vectorLength)
 {
     _mixedVectorLength = vectorLength;
@@ -283,6 +346,16 @@ void Subscript::mixedComponentSub(ostream& os) const
     }
 }
 
+void Subscript::enableSubscriptBrackets(void)
+{
+    _subscriptBrackets = true;
+}
+
+void Subscript::disableSubscriptBrackets(void)
+{
+    _subscriptBrackets = false;
+}
+
 void Subscript::arraySub(ostream& os) const
 {
     if (_blockingEnabled)
@@ -344,11 +417,11 @@ size_t FixedSubscript::boundingHeight(void) const
 
 void FixedSubscript::arraySub(ostream& os) const
 {
-    os << "[" << _offset;
+    os << (getSubscriptBrackets() ? "[" : "") << _offset;
 
     Subscript::arraySub(os);
 
-    os << "]";
+    os << (getSubscriptBrackets() ? "]" : "");
 
     mixedComponentSub(os);
 }
@@ -399,7 +472,7 @@ size_t ForLoopSubscript::boundingHeight(void) const
 
 void ForLoopSubscript::arraySub(ostream& os) const
 {
-    os << "[";
+    os << (getSubscriptBrackets() ? "[" : "");
 
     if (isOuterProductLeft())
     {
@@ -439,7 +512,7 @@ void ForLoopSubscript::arraySub(ostream& os) const
     }
 
     Subscript::arraySub(os);
-    os << "]";
+    os << (getSubscriptBrackets() ? "]" : "");
 
     mixedComponentSub(os);
 }
@@ -450,59 +523,93 @@ void ForLoopSubscript::widthIdx(ostream& os) const
                          ? _heightVar
                          : _widthVar;
 
-    stringstream ss;
-    if (isGatherIndex())
-        ss << "convert_int_rtn(" << getGatherWidthIndex() << ")";
-    else
-        ss << "i" << x;
-
     // This could be a problem if the vector length is not 1 and
     // a matrix is transposed.
     const size_t width = varWidth() / varVectorLength();
 
-    const size_t largestWidth = mixedIndexSub(ss);
+    if (isEligibleGather())
+    {
+        const size_t gatherX = eligibleGatherXVecOffset();
 
-    if (largestWidth <= width)
-        os << "(" << ss.str() << ")";
+        if (eligibleGatherXHasIndex())
+        {
+            os << "((i" << x << " + " << gatherX << ") % " << width << ")";
+        }
+        else
+        {
+            os << gatherX;
+        }
+    }
     else
-        os << "((" << ss.str() << ") % " << width << ")";
+    {
+        stringstream ss;
+
+        if (isGatherIndex())
+            ss << "convert_int_rtn(" << getGatherWidthIndex() << ")";
+        else
+            ss << "i" << x;
+
+        const size_t largestWidth = mixedIndexSub(ss);
+
+        if (largestWidth <= width && ! isGatherIndex())
+            os << "(" << ss.str() << ")";
+        else
+            os << "(" << ss.str() << " % " << width << ")";
+    }
 }
 
 void ForLoopSubscript::heightIdx(ostream& os) const
 {
-    if (isGatherIndex() && getGatherHeightIndex().empty())
+    const size_t y = isTransposed()
+                         ? _widthVar
+                         : _heightVar;
+
+    // This could be a problem if the vector length is not 1 and
+    // a matrix is transposed.
+    const size_t width = varWidth() / varVectorLength();
+    const size_t height = varHeight();
+
+    if (isEligibleGather())
     {
-        os << 0;
+        if (1 == eligibleGatherN())
+        {
+            os << 0;
+        }
+        else
+        {
+            const size_t gatherY = eligibleGatherYVecOffset();
+
+            if (eligibleGatherYHasIndex())
+            {
+                os << "((i" << y << " + " << gatherY << ") % " << height << ")";
+            }
+            else
+            {
+                os << gatherY;
+            }
+        }
     }
     else
     {
-        const size_t y = isTransposed()
-                             ? _widthVar
-                             : _heightVar;
-
         stringstream ss;
-        if (isGatherIndex())
+
+        if (isGatherIndex() && ! getGatherHeightIndex().empty())
             ss << "convert_int_rtn(" << getGatherHeightIndex() << ")";
         else
             ss << "i" << y;
-
-        // This could be a problem if the vector length is not 1 and
-        // a matrix is transposed.
-        const size_t width = varWidth() / varVectorLength();
-        const size_t height = varHeight();
 
         if (-1 != y)
         {
             if (isOuterProductLeft())
             {
-                if (boundingWidth() <= width)
+                if (boundingWidth() <= width && ! isGatherIndex())
                     os << ss.str();
                 else
                     os << "(" << ss.str() << " % " << width << ")";
             }
             else
             {
-                if (boundingHeight() <= height)
+                if (boundingHeight() <= height && ! isGatherIndex())
                     os << ss.str();
                 else
                     os << "(" << ss.str() << " % " << height << ")";
@@ -542,7 +649,7 @@ size_t StreamSubscript::boundingHeight(void) const
 
 void StreamSubscript::arraySub(ostream& os) const
 {
-    os << "[";
+    os << (getSubscriptBrackets() ? "[" : "");
 
     if (isOuterProductLeft())
     {
@@ -575,7 +682,7 @@ void StreamSubscript::arraySub(ostream& os) const
     }
 
     Subscript::arraySub(os);
-    os << "]";
+    os << (getSubscriptBrackets() ? "]" : "");
 
     mixedComponentSub(os);
 }
@@ -584,58 +691,93 @@ void StreamSubscript::widthIdx(ostream& os) const
 {
     const size_t x = isTransposed() ? 1 : 0;
 
-    stringstream ss;
-
-    if (isGatherIndex())
-        ss << "convert_int_rtn(" << getGatherWidthIndex() << ")";
-    else
-        ss << "get_global_id(" << x << ")";
-
     // More problems if a matrix is transposed and the vector length
     // is not 1... Just adding a transposed matrix to a normal one
     // is problematic.
     const size_t width = varWidth() / varVectorLength();
 
-    const size_t largestWidth = mixedIndexSub(ss);
+    if (isEligibleGather())
+    {
+        const size_t gatherX = eligibleGatherXVecOffset();
 
-    if (largestWidth <= width)
-        os << "(" << ss.str() << ")";
+        if (eligibleGatherXHasIndex())
+        {
+            os << "((get_global_id(" << x << ") + " << gatherX << ") % "
+               << width << ")";
+        }
+        else
+        {
+            os << gatherX;
+        }
+    }
     else
-        os << "((" << ss.str() << ") % " << width << ")";
+    {
+        stringstream ss;
+
+        if (isGatherIndex())
+            ss << "convert_int_rtn(" << getGatherWidthIndex() << ")";
+        else
+            ss << "get_global_id(" << x << ")";
+
+        const size_t largestWidth = mixedIndexSub(ss);
+
+        if (largestWidth <= width && ! isGatherIndex())
+            os << "(" << ss.str() << ")";
+        else
+            os << "((" << ss.str() << ") % " << width << ")";
+    }
 }
 
 void StreamSubscript::heightIdx(ostream& os) const
 {
-    if (isGatherIndex() && getGatherHeightIndex().empty())
+    const size_t y = isTransposed() ? 0 : 1;
+
+    // Problems if a matrix is transposed and the vector length
+    // is not 1... Just adding a transposed matrix to a normal one
+    // is problematic.
+    const size_t width = varWidth() / varVectorLength();
+    const size_t height = varHeight();
+
+    if (isEligibleGather())
     {
-        os << 0;
+        if (1 == eligibleGatherN())
+        {
+            os << 0;
+        }
+        else
+        {
+            const size_t gatherY = eligibleGatherYVecOffset();
+
+            if (eligibleGatherYHasIndex())
+            {
+                os << "((get_global_id(" << y << ") + " << gatherY
+                   << ") % " << height << ")";
+            }
+            else
+            {
+                os << gatherY;
+            }
+        }
     }
     else
     {
-        const size_t y = isTransposed() ? 0 : 1;
-
         stringstream ss;
-        if (isGatherIndex())
+
+        if (isGatherIndex() && ! getGatherHeightIndex().empty())
             ss << "convert_int_rtn(" << getGatherHeightIndex() << ")";
         else
             ss << "get_global_id(" << y << ")";
 
-        // Problems if a matrix is transposed and the vector length
-        // is not 1... Just adding a transposed matrix to a normal one
-        // is problematic.
-        const size_t width = varWidth() / varVectorLength();
-        const size_t height = varHeight();
-
         if (isOuterProductLeft())
         {
-            if (boundingWidth() <= width)
+            if (boundingWidth() <= width && ! isGatherIndex())
                 os << ss.str();
             else
                 os << "(" << ss.str() << " % " << width << ")";
         }
         else
         {
-            if (boundingHeight() <= height)
+            if (boundingHeight() <= height && ! isGatherIndex())
                 os << ss.str();
             else
                 os << "(" << ss.str() << " % " << height << ")";

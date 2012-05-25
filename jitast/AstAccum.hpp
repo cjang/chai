@@ -17,6 +17,10 @@ class AstAccum : public BaseAst
     const size_t _argW;
     const size_t _argH;
 
+/*FIXME - remove this
+    bool _notTogether;
+*/
+
 public:
     AstAccum(BaseAst* barg,
              const bool takeAvg);
@@ -25,6 +29,11 @@ public:
 
     size_t argW(void) const;
     size_t argH(void) const;
+
+/*FIXME - remove this
+    bool getNotTogether(void) const;
+    void setNotTogether(void);
+*/
 
     void accept(VisitAst&);
 };

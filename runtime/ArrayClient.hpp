@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <pthread.h>
+#include <set>
 #include <stdint.h>
 #include <vector>
 

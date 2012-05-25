@@ -33,6 +33,7 @@
 #include "StmtCreateData.hpp"
 #include "StmtExtension.hpp"
 #include "StmtExtensionAuto.hpp"
+#include "StmtGatherAuto.hpp"
 #include "StmtIndex.hpp"
 #include "StmtLiteral.hpp"
 #include "StmtMatmul.hpp"
@@ -40,8 +41,6 @@
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
-#include "StmtRNGrand.hpp"
-#include "StmtRNGseed.hpp"
 #include "StmtSendData.hpp"
 #include "StmtSingle.hpp"
 
@@ -69,42 +68,13 @@ size_t MakeStmt::getTransposeCount(void) const
     return transposeCount;
 }
 
-void MakeStmt::insertTraceVar(const uint32_t varNum)
+void MakeStmt::specialTrackVar(void)
 {
-    // support for transposed array subscripts, force vector length to 1
-    if (0 == _transposeTraceVar.count(varNum))
+    if ( 1 == (getTransposeCount() % 2) || // odd number means transposed
+         ! _gatherStack.empty() )          // ineligible gather
     {
-        // number of containing transpose AST objects, excluding matmul()
-        // arguments
-        const size_t transposeCount = getTransposeCount();
-
-        // odd number of transposes means variable is transposed
-        if (1 == (transposeCount % 2))
-            _transposeTraceVar.insert(varNum);
+        _scalarVectorLength = true; // force vector length to 1
     }
-
-    // support for gathered array subscripts, force vector length to 1
-    if (! _gatherStack.empty())
-        _gatherTraceVar.insert(varNum);
-}
-
-void MakeStmt::insertSplitVar(AstVariable* varPtr)
-{
-    // support for transposed array subscripts, force vector length to 1
-    if (0 == _transposeSplitVar.count(varPtr))
-    {
-        // number of containing transpose AST objects, excluding matmul()
-        // arguments
-        const size_t transposeCount = getTransposeCount();
-
-        // odd number of transposes means variable is transposed
-        if (1 == (transposeCount % 2))
-            _transposeSplitVar.insert(varPtr);
-    }
-
-    // support for gathered array subscripts, force vector length to 1
-    if (! _gatherStack.empty())
-        _gatherSplitVar.insert(varPtr);
 }
 
 ////////////////////////////////////////
@@ -119,11 +89,7 @@ void MakeStmt::pushLexScope(Stmt* s)
 {
     _lexScope.top()->push_back(s);
 
-    s->transposeVars(_transposeTraceVar,
-                     _transposeSplitVar);
-
-    s->gatherVars(_gatherTraceVar,
-                  _gatherSplitVar);
+    s->scalarVectorLength(_scalarVectorLength);
 }
 
 void MakeStmt::pushLexScope(vector< Stmt* >* vs)
@@ -143,26 +109,25 @@ void MakeStmt::popLexScope(void)
 void MakeStmt::clearAst(void)
 {
     _trackAst.clear();
-    _trackIndex.clear();
     _trackExtension.clear();
+    _trackIndex.clear();
     _trackLiteral.clear();
     _trackMatmul.clear();
     _trackMatmulArgs.clear(); // for moving transpose AST objects into kernel
     _trackReadData.clear();
     _trackReduce.clear();
-    _trackRNG.clear();
     _trackSameDataAcrossTraces.clear();
     _trackSendData.clear();
     _trackTranspose.clear();
     _trackVar.clear();
 
     _transposeStack.clear();
-    _transposeTraceVar.clear();
-    _transposeSplitVar.clear();
-
     while (! _gatherStack.empty()) _gatherStack.pop();
-    _gatherTraceVar.clear();
-    _gatherSplitVar.clear();
+    _scalarVectorLength = false;
+
+/*FIXME - remove this
+    while (! _writebackStack.empty()) _writebackStack.pop();
+*/
 }
 
 void MakeStmt::insertAst(BaseAst& v)
@@ -170,12 +135,12 @@ void MakeStmt::insertAst(BaseAst& v)
     _trackAst.insert(&v);
 }
 
-void MakeStmt::insertExtension(BaseAst& v)
+void MakeStmt::insertExtension(AstExtension& v)
 {
     _trackExtension.insert(&v);
 }
 
-void MakeStmt::insertIndex(BaseAst& v)
+void MakeStmt::insertIndex(AstIdxdata& v)
 {
     _trackIndex.insert(&v);
 }
@@ -234,16 +199,6 @@ void MakeStmt::insertReduce(AstDotprod& v)
     _trackReduce[&v] = REDUCE_DOTPROD;
 }
 
-void MakeStmt::insertRNG(AstRNGnormal& v)
-{
-    _trackRNG[&v] = RNG_NORMAL;
-}
-
-void MakeStmt::insertRNG(AstRNGuniform& v)
-{
-    _trackRNG[&v] = RNG_UNIFORM;
-}
-
 void MakeStmt::insertSameDataAcrossTraces(AstArrayMem& v)
 {
     _trackSameDataAcrossTraces.insert(&v);
@@ -276,8 +231,8 @@ void MakeStmt::insertVar(AstVariable& v)
 }
 
 void MakeStmt::splitAst(BaseAst& v,
-                          const size_t argIndex,
-                          const SplitContext force)
+                        const size_t argIndex,
+                        const SplitContext force)
 {
     // send data splits
     if ( 0 != _trackSendData.count(v.getArg(argIndex)) )
@@ -340,8 +295,8 @@ void MakeStmt::splitAst(BaseAst& v,
             v.replaceArg(argIndex, _memSplit[memKey]);
         }
 
-        // check for transposed array subscripts for this variable
-        insertSplitVar(_memSplit[memKey]);
+        // check for transposed and gathered array subscripts
+        specialTrackVar();
     }
 
     // operation splits
@@ -480,6 +435,7 @@ void MakeStmt::splitAst(BaseAst& v,
         {
             // new reduction to scalar statement
             StmtReduce* redStmt;
+
             switch (_trackReduce[v.getArg(argIndex)])
             {
                 case (REDUCE_ACCUM) :
@@ -496,6 +452,8 @@ void MakeStmt::splitAst(BaseAst& v,
                                           v.getArg(argIndex) ) );
                     break;
             }
+
+            newVar->disableDotHack();
 
             // add into current list
             pushLexScope(redStmt);
@@ -518,13 +476,13 @@ void MakeStmt::splitAst(BaseAst& v,
         // replace this argument with the new variable
         v.replaceArg(argIndex, newVar);
 
-        // check for transposed array subscripts for this variable
-        insertSplitVar(newVar);
+        // check for transposed and gathered array subscripts
+        specialTrackVar();
     }
 }
 
 void MakeStmt::splitAst(BaseAst& v,
-                          const SplitContext force)
+                        const SplitContext force)
 {
     // check all AST stream arguments
     for (size_t i = 0; i < v.numArg(); i++)
@@ -543,7 +501,7 @@ void MakeStmt::descendAst(BaseAst& v)
 // create converted trace
 
 MakeStmt::MakeStmt(vector< Stmt* >& lexRoot,
-                       VectorTrace& vt)
+                   VectorTrace& vt)
     : _vt(vt),
       _lexRoot(lexRoot),
       _lexScope(),
@@ -633,10 +591,34 @@ void MakeStmt::visit(AstAccum& v)
 {
     insertAst(v); // reduction: mean, sum
     insertReduce(v);
+
+/*FIXME - remove this
+    _writebackStack.push(&v);
+*/
+
     descendAst(v);
+
+/*FIXME - remove this
+    _writebackStack.pop();
+*/
+
     splitAst(v);
     if (! _repScope.empty())
         _reductionInsideLoop = true;
+
+/*FIXME - remove this
+    for (set< AstVariable* >::const_iterator
+         it = v.rhsVariable().begin();
+         it != v.rhsVariable().end();
+         it++)
+    {
+        if ((*it)->getValueFromRNG() && (*it)->getForceWriteback())
+        {
+            v.setNotTogether();
+            break;
+        }
+    }
+*/
 }
 
 void MakeStmt::visit(AstArrayMem& v)
@@ -650,12 +632,14 @@ void MakeStmt::visit(AstArrayMem& v)
 void MakeStmt::visit(AstCond& v)
 {
     descendAst(v);
+
     splitAst(v);
 }
 
 void MakeStmt::visit(AstConvert& v)
 {
     descendAst(v);
+
     _lhsConvert = &v; // to limit array memory splits
     splitAst(v);
 }
@@ -664,7 +648,16 @@ void MakeStmt::visit(AstDotprod& v)
 {
     insertAst(v); // reduction: dot_product
     insertReduce(v);
+
+/*FIXME - remove this
+    _writebackStack.push(&v);
+*/
     descendAst(v);
+
+/*FIXME - remove this
+    _writebackStack.pop();
+*/
+
     splitAst(v);
     if (! _repScope.empty())
         _reductionInsideLoop = true;
@@ -674,7 +667,16 @@ void MakeStmt::visit(AstExtension& v)
 {
     insertAst(v); // language extension is always separate kernel
     insertExtension(v);
+
+/*FIXME - remove this
+    _writebackStack.push(&v);
+*/
+
     descendAst(v);
+
+/*FIXME - remove this
+    _writebackStack.pop();
+*/
 
     splitAst(v, FORCE_EXTENSION);
     if (! _repScope.empty())
@@ -684,29 +686,50 @@ void MakeStmt::visit(AstExtension& v)
 void MakeStmt::visit(AstFun1& v)
 {
     descendAst(v);
+
     splitAst(v);
 }
 
 void MakeStmt::visit(AstFun2& v)
 {
     descendAst(v);
+
     splitAst(v);
 }
 
 void MakeStmt::visit(AstFun3& v)
 {
     descendAst(v);
+
     splitAst(v);
 }
 
 void MakeStmt::visit(AstGather& v)
 {
-    _gatherStack.push(&v);
+    if (! v.eligible())
+    {
+        _gatherStack.push(&v);
+    }
+    else
+    {
+        pushLexRoot(
+            new StmtGatherAuto(v.dataVariable()) );
+    }
+
+/*FIXME - remove this
+    _writebackStack.push(&v);
+*/
 
     descendAst(v);
+
+/*FIXME - remove this
+    _writebackStack.pop();
+*/
+
     splitAst(v);
 
-    _gatherStack.pop();
+    if (! v.eligible())
+        _gatherStack.pop();
 }
 
 void MakeStmt::visit(AstIdxdata& v)
@@ -734,7 +757,16 @@ void MakeStmt::visit(AstMatmulMM& v)
 {
     insertAst(v); // reduction: special case of XGEMM
     insertMatmul(v);
+
+/*FIXME - remove this
+    _writebackStack.push(&v);
+*/
+
     descendAst(v);
+
+/*FIXME - remove this
+    _writebackStack.pop();
+*/
 
     // incorporate transposed A argument into matmul AST object
     if (_trackTranspose.count(v.getArg(0)))
@@ -776,7 +808,16 @@ void MakeStmt::visit(AstMatmulMV& v)
 {
     insertAst(v); // reduction: matmul matrix*vector lifted to XGEMM
     insertMatmul(v);
+
+/*FIXME - remove this
+    _writebackStack.push(&v);
+*/
+
     descendAst(v);
+
+/*FIXME - remove this
+    _writebackStack.pop();
+*/
 
     // incorporate transposed A argument into matmul AST object
     if (_trackTranspose.count(v.getArg(0)))
@@ -818,7 +859,16 @@ void MakeStmt::visit(AstMatmulVM& v)
 {
     insertAst(v); // reduction: matmul vector*matrix lifted to XGEMM
     insertMatmul(v);
+
+/*FIXME - remove this
+    _writebackStack.push(&v);
+*/
+
     descendAst(v);
+
+/*FIXME - remove this
+    _writebackStack.pop();
+*/
 
     // incorporate transposed A argument into matmul AST object
     if (_trackTranspose.count(v.getArg(0)))
@@ -863,8 +913,20 @@ void MakeStmt::visit(AstMatmulVV& v)
     AstTranspose outerProductLeft(v.getArg(0));
 
     _transposeStack.push_back(&outerProductLeft);
+
+/*FIXME - remove this
+    _writebackStack.push(&v);
+*/
+
+    descendAst(v);
+
+/*FIXME - remove this
+    _writebackStack.pop();
+*/
+
     v.getArg(0)->accept(*this); // left argument is really transposed
     splitAst(v, 0);
+
     _transposeStack.pop_back();
 
     v.getArg(1)->accept(*this);
@@ -878,18 +940,32 @@ void MakeStmt::visit(AstReadout& v)
 
 void MakeStmt::visit(AstRNGnormal& v)
 {
-    insertRNG(v);
+/*FIXME - remove this
+    _lhsRoot->setValueFromRNG();
+*/
 
-    // assignment to LHS variable
-    _assignedVars.insert(_lhsRoot->variable());
+/*FIXME - remove this
+    if (! _repScope.empty())
+    {
+        // RNG is inside a rolled loop
+        v.setInsideRolledLoop();
+    }
+*/
 }
 
 void MakeStmt::visit(AstRNGuniform& v)
 {
-    insertRNG(v);
+/*FIXME - remove this
+    _lhsRoot->setValueFromRNG();
+*/
 
-    // assignment to LHS variable
-    _assignedVars.insert(_lhsRoot->variable());
+/*FIXME - remove this
+    if (! _repScope.empty())
+    {
+        // RNG is inside a rolled loop
+        v.setInsideRolledLoop();
+    }
+*/
 }
 
 void MakeStmt::visit(AstScalar& v)
@@ -903,7 +979,16 @@ void MakeStmt::visit(AstTranspose& v)
 
     _transposeStack.push_back(&v);
 
+/*FIXME - remove this
+    _writebackStack.push(&v);
+*/
+
     descendAst(v);
+
+/*FIXME - remove this
+    _writebackStack.pop();
+*/
+
     splitAst(v);
 
     _transposeStack.pop_back();
@@ -1133,48 +1218,6 @@ void MakeStmt::visit(AstVariable& v)
             }
             pushLexScope(redStmt);
         }
-        else if ( 0 != _trackRNG.count(v.getArg(0)) )
-        {
-            // new random number generator statement
-            StmtRNGrand* rngStmt;
-            switch (_trackRNG[v.getArg(0)])
-            {
-                case (RNG_NORMAL) :
-                    rngStmt = new StmtRNGrand(
-                                      &v,
-                                      static_cast< AstRNGnormal* >(
-                                          v.getArg(0) ));
-                    if (_constructorLHS) rngStmt->setConstructorLHS();
-                    if (_destructorLHS) rngStmt->setDestructorLHS();
-                    break;
-
-                case (RNG_UNIFORM) :
-                    rngStmt = new StmtRNGrand(
-                                      &v,
-                                      static_cast< AstRNGuniform* >(
-                                          v.getArg(0) ));
-                    if (_constructorLHS) rngStmt->setConstructorLHS();
-                    if (_destructorLHS) rngStmt->setDestructorLHS();
-                    break;
-            }
-
-            // add into current list
-            if (createData) pushLexScope(createData);
-            pushLexScope(rngStmt);
-
-            // new random seed statement
-            const size_t seedLen = v.W();
-            if (0 == _rngSeeds.count(seedLen))
-            {
-                _rngSeeds.insert(seedLen);
-
-                StmtRNGseed* rngSeed = new StmtRNGseed(seedLen);
-                if (_constructorLHS) rngSeed->setConstructorLHS();
-                if (_destructorLHS) rngSeed->setDestructorLHS();
-
-                pushLexRoot(rngSeed);
-            }
-        }
         else if ( 0 != _trackLiteral.count(v.getArg(0)) )
         {
             // There is an issue here. Literal data and scalars are not the
@@ -1346,8 +1389,15 @@ void MakeStmt::visit(AstVariable& v)
         if (v.isSameDataAcrossTraces())
             insertSameDataAcrossTraces(v);
 
-        // check if this variable requires transposed array subscript
-        insertTraceVar(v.variable());
+        // check for transposed and gathered array subscripts
+        specialTrackVar();
+
+/*FIXME - remove this
+        if (! _writebackStack.empty())
+        {
+            v.setForceWriteback();
+        }
+*/
     }
 }
 

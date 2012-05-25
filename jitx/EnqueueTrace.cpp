@@ -1,8 +1,10 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <iostream>
+#include <limits.h>
 #include <set>
 #include <sstream>
+#include <vector>
 
 #include "AstAccum.hpp"
 #include "AstArrayMem.hpp"
@@ -46,6 +48,7 @@
 #include "StmtCreateData.hpp"
 #include "StmtExtension.hpp"
 #include "StmtExtensionAuto.hpp"
+#include "StmtGatherAuto.hpp"
 #include "StmtIdSpace.hpp"
 #include "StmtIndex.hpp"
 #include "StmtLiteral.hpp"
@@ -54,8 +57,6 @@
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
-#include "StmtRNGrand.hpp"
-#include "StmtRNGseed.hpp"
 #include "StmtSendData.hpp"
 #include "StmtSingle.hpp"
 #include "Variable.hpp"
@@ -129,7 +130,7 @@ size_t EnqueueTrace::getVectorLength(const uint32_t varNum)
                                      _xid->getPrecision(varNum) );
 
     // apply transposed array subscript constraint to memory buffers only
-    return (0 != vlen && (_xid->anyTransposed() || _xid->anyGathered()))
+    return ( 0 != vlen && _xid->scalarVectorLength() )
                ? 1
                : vlen;
 }
@@ -139,7 +140,7 @@ size_t EnqueueTrace::getVectorLength(const AstVariable* varPtr)
     const size_t vlen = _jitMemo.getVectorLength( varPtr );
 
     // apply transposed array subscript constraint to memory buffers only
-    return (0 != vlen && (_xid->anyTransposed() || _xid->anyGathered()))
+    return ( 0 != vlen && _xid->scalarVectorLength() )
                ? 1
                : vlen;
 }
@@ -248,6 +249,21 @@ void EnqueueTrace::visit(AstFun2& v)
 {
     if (v.fun().infix()) // overloaded operator with two arguments
     {
+        const string opStr = v.fun().str();
+
+        // relational operators return integers, convert back to floating point
+        const bool isRelOp = ("==" == opStr ||
+                              ">=" == opStr ||
+                              ">"  == opStr ||
+                              "<=" == opStr ||
+                              "<"  == opStr ||
+                              "!=" == opStr);
+
+        if (isRelOp)
+        {
+            _rhsStmt << "((0 == ";
+        }
+
         _rhsStmt << "(";
         v.getArg(0)->accept(*this); // left
         _rhsStmt << " "
@@ -255,6 +271,17 @@ void EnqueueTrace::visit(AstFun2& v)
                  << " ";
         v.getArg(1)->accept(*this); // right
         _rhsStmt << ")";
+
+        if (isRelOp)
+        {
+            _rhsStmt << ") ? ("
+                     << PrecType::getPrimitiveName(v.precision());
+            if (1 != _lhsVectorLength) _rhsStmt << _lhsVectorLength;
+            _rhsStmt << ")(0) : ("
+                     << PrecType::getPrimitiveName(v.precision());
+            if (1 != _lhsVectorLength) _rhsStmt << _lhsVectorLength;
+            _rhsStmt << ")(1))";
+        }
     }
     else // function call with two arguments
     {
@@ -280,31 +307,97 @@ void EnqueueTrace::visit(AstFun3& v)
 
 void EnqueueTrace::visit(AstGather& v)
 {
-    // save RHS statement so far
-    const string saveRHS = _rhsStmt.str();
-
-    // width index
-    _rhsStmt.str(string());
-    v.getArg(1)->accept(*this);
-    _subs.top()->setGatherWidthIndex(_rhsStmt.str());
-
-    // height index
-    if (2 == v.N())
+    if (v.eligible()) // gathering is eligible for texture sampling
     {
-        _rhsStmt.str(string());
-        v.getArg(2)->accept(*this);
-        _subs.top()->setGatherHeightIndex(_rhsStmt.str());
+        const AstVariable* varPtr = v.dataVariable();
+        const uint32_t varNum = varPtr->variable();
+
+        const size_t vecLen = varPtr->isTraceVariable()
+                                  ? getVectorLength(varNum)
+                                  : getVectorLength(varPtr);
+
+        const size_t effVecLen = 0 == vecLen
+                                     ? PrecType::vecLength(v.precision())
+                                     : vecLen;
+
+        const size_t gatherVarNum = varPtr->isTraceVariable()
+                                        ? _func->gatherVariable(
+                                                     varNum,
+                                                     effVecLen,
+                                                     v.W(),
+                                                     v.H() )
+                                        : _func->gatherVariable(
+                                                     varPtr,
+                                                     effVecLen,
+                                                     v.W(),
+                                                     v.H() );
+
+        vector< size_t > componentNums, subscriptNums;
+
+        for (size_t i = 0; i < effVecLen; i++)
+        {
+            componentNums.push_back( (v.xOffset() + i) % effVecLen );
+
+            subscriptNums.push_back( _func->gatherSubscript(
+                                                gatherVarNum,
+                                                v.N(),
+                                                v.xHasIndex(),
+                                                v.yHasIndex(),
+                                                (v.xOffset() + i) % v.W(),
+                                                v.yOffset() ) );
+        }
+
+        _rhsStmt << "(";
+
+        _rhsStmt << PrecType::getPrimitiveName(v.precision());
+
+        if (_lhsVectorLength > 1)
+            _rhsStmt << _lhsVectorLength;
+
+        _rhsStmt << ")(";
+
+        for (size_t i = 0; i < effVecLen; i++)
+        {
+            const size_t subNum = subscriptNums[i];
+            const size_t comNum = componentNums[i];
+
+            Variable* subVar = _func->gatherVarFromSubscript(subNum);
+            subVar->identifierName(_rhsStmt);
+            _rhsStmt << subNum << ".s" << comNum;
+
+            if (i < effVecLen - 1) _rhsStmt << ", ";
+        }
+
+        _rhsStmt << ")";
     }
+    else              // gathering using vector length 1
+    {
+        // save RHS statement so far
+        const string saveRHS = _rhsStmt.str();
 
-    // restore RHS
-    _rhsStmt.str(string());
-    _rhsStmt << saveRHS;
+        // width index
+        _rhsStmt.str(string());
+        v.getArg(1)->accept(*this);
+        _subs.top()->setGatherWidthIndex(_rhsStmt.str());
 
-    // gather data using explicit width and height subscript
-    v.getArg(0)->accept(*this);
+        // height index
+        if (2 == v.N())
+        {
+            _rhsStmt.str(string());
+            v.getArg(2)->accept(*this);
+            _subs.top()->setGatherHeightIndex(_rhsStmt.str());
+        }
 
-    // restore the subscript to normal
-    _subs.top()->unsetGatherIndex();
+        // restore RHS
+        _rhsStmt.str(string());
+        _rhsStmt << saveRHS;
+
+        // gather data using explicit width and height subscript
+        v.getArg(0)->accept(*this);
+
+        // restore the subscript to normal
+        _subs.top()->unsetGatherIndex();
+    }
 }
 
 void EnqueueTrace::visit(AstIdxdata& v)
@@ -414,12 +507,25 @@ void EnqueueTrace::visit(AstIdxdata& v)
 
 void EnqueueTrace::visit(AstLitdata& v)
 {
+    if (1 != _lhsVectorLength)
+    {
+        _rhsStmt << "("
+                 << PrecType::getPrimitiveName(_lhsPrecision)
+                 << _lhsVectorLength
+                 << ")(";
+    }
+
     switch (v.precision())
     {
         case (PrecType::UInt32) : _rhsStmt << v.uintValue(); break;
         case (PrecType::Int32) : _rhsStmt << v.intValue(); break;
         case (PrecType::Float) : _rhsStmt << v.floatValue(); break;
         case (PrecType::Double) : _rhsStmt << v.doubleValue(); break;
+    }
+
+    if (1 != _lhsVectorLength)
+    {
+        _rhsStmt << ")";
     }
 }
 
@@ -467,22 +573,72 @@ void EnqueueTrace::visit(AstReadout& v)
 
 void EnqueueTrace::visit(AstRNGnormal& v)
 {
-    // FIXME - RNG support is TBD
+    _func->rngVecType(v.precision(),
+                      _lhsVectorLength);
+    _func->rngVariant(v.rngVariant());
+
+    _subs.top()->setVariable(v.W(), v.H(), _lhsVectorLength);
+
+    _rhsStmt << _func->rngNormal( v.precision(),
+                                  _lhsVectorLength,
+                                  v.rngVariant(),
+                                  v.rngSeed(),
+                                  *_subs.top(),
+                                  (_repeatIdx.empty()
+                                       ? -1
+                                       : _repeatIdx.top()) );
 }
 
 void EnqueueTrace::visit(AstRNGuniform& v)
 {
-    // FIXME - RNG support is TBD
+    _func->rngVecType(v.precision(),
+                      _lhsVectorLength);
+    _func->rngVariant(v.rngVariant());
+
+    _subs.top()->setVariable(v.W(), v.H(), _lhsVectorLength);
+
+    const double intervalLength = v.maxlimit() - v.minlimit();
+    const bool needScaling = intervalLength != 1.0f;
+    const bool needShifting = v.minlimit() != 0.0f;
+
+    _rhsStmt << "("
+             << _func->rngUniform( v.precision(),
+                                   _lhsVectorLength,
+                                   v.rngVariant(),
+                                   v.rngSeed(),
+                                   *_subs.top(),
+                                   (_repeatIdx.empty()
+                                        ? -1
+                                        : _repeatIdx.top()) );
+
+    if (needScaling) _rhsStmt << " * " << intervalLength;
+
+    if (needShifting) _rhsStmt << " + " << v.minlimit();
+
+    _rhsStmt << ")";
 }
 
 void EnqueueTrace::visit(AstScalar& v)
 {
+    if (1 != _lhsVectorLength)
+    {
+        _rhsStmt << "("
+                 << PrecType::getPrimitiveName(_lhsPrecision)
+                 << _lhsVectorLength
+                 << ")(";
+    }
+
     switch (v.precision())
     {
         case (PrecType::UInt32) : _rhsStmt << v.uintValue(); break;
         case (PrecType::Int32) : _rhsStmt << v.intValue(); break;
         case (PrecType::Float) : _rhsStmt << v.floatValue(); break;
         case (PrecType::Double) : _rhsStmt << v.doubleValue(); break;
+    }
+
+    if (1 != _lhsVectorLength)
+    {
+        _rhsStmt << ")";
     }
 }
 
@@ -554,7 +710,7 @@ void EnqueueTrace::visit(AstVariable& v)
     // vector elements for RHS 1x1 variables due to standard vector length
     // (note: only applying hack for global memory buffers)
     string reducePrefix, reduceSuffix;
-    if (specialCaseReadScalar && 1 != vecLen)
+    if (specialCaseReadScalar && 1 != vecLen && v.enableDotHack())
     {
         reducePrefix = (2 == standardVectorLength)
                            ? "dot((double2)(1.0f), "
@@ -792,6 +948,19 @@ void EnqueueTrace::visit(StmtExtensionAuto& s)
         _failure = true;
 }
 
+void EnqueueTrace::visit(StmtGatherAuto& s)
+{
+    if (_failure) return;
+    if (_printer) _printer->visit(s);
+
+    const size_t deviceIdx = _memMgr.getDeviceIndex();
+
+    if (OCLhacks::singleton().supportImages(deviceIdx))
+    {
+        _jitMemo.eligibleGather(s.dataPtr(), *_xid);
+    }
+}
+
 void EnqueueTrace::visit(StmtIdSpace& s)
 {
     if (_failure) return;
@@ -845,7 +1014,7 @@ void EnqueueTrace::visit(StmtIdSpace& s)
                     if (0 == vlen)
                         _func->addArgument(
                             varNum,
-                            new Image2D(READONLY) );
+                            new Image2D(prec, vlen, READONLY) );
                     else
                         _func->addArgument(
                             varNum,
@@ -856,7 +1025,7 @@ void EnqueueTrace::visit(StmtIdSpace& s)
                     if (0 == vlen)
                         _func->addArgument(
                             varNum,
-                            new Image2D(WRITEONLY) );
+                            new Image2D(prec, vlen, WRITEONLY) );
                     else
                         _func->addArgument(
                             varNum,
@@ -886,7 +1055,7 @@ void EnqueueTrace::visit(StmtIdSpace& s)
                     if (0 == vlen)
                         _func->addArgument(
                             varPtr,
-                            new Image2D(READONLY) );
+                            new Image2D(prec, vlen, READONLY) );
                     else
                         _func->addArgument(
                             varPtr,
@@ -897,7 +1066,7 @@ void EnqueueTrace::visit(StmtIdSpace& s)
                     if (0 == vlen)
                         _func->addArgument(
                             varPtr,
-                            new Image2D(WRITEONLY) );
+                            new Image2D(prec, vlen, WRITEONLY) );
                     else
                         _func->addArgument(
                             varPtr,
@@ -990,6 +1159,36 @@ void EnqueueTrace::visit(StmtIdSpace& s)
             {
                 (*it)->accept(*this);
             }
+
+            // same data across traces suppresses data tile part of subscript
+            set< uint32_t > traceSuppressTile = _func->gatherTraceVar();
+            set< uint32_t > suppressTile;
+            for (set< uint32_t >::const_iterator
+                 it = traceSuppressTile.begin();
+                 it != traceSuppressTile.end();
+                 it++)
+            {
+                const uint32_t varNum = *it;
+
+                const vector< size_t >
+                    frontIndex = _vt.memallocFrontIndex( varNum );
+
+                set< size_t > frontSet;
+
+                for (vector< size_t >::const_iterator
+                     it = frontIndex.begin();
+                     it != frontIndex.end();
+                     it++)
+                {
+                    frontSet.insert(*it);
+                }
+
+                if (1 == frontSet.size())
+                    suppressTile.insert(varNum);
+            }
+
+            // gather variable declarations
+            _func->gatherDecl(*_subs.top(), suppressTile);
 
             // (UseRegister) write registers back to trace memory variables
             for (set< uint32_t >::const_iterator
@@ -1088,10 +1287,11 @@ void EnqueueTrace::visit(StmtIndex& s)
 
     // LHS variable must be a memory buffer. It must be writable. The only
     // way it could be an image is if it were also an argument to matmul().
-    // Then is would also appear on the RHS. So it must also be readable.
+    // Then it would also appear on the RHS. So it must also be readable.
     // As it must be readable and writable, it can not be an image. This
     // implies the vector length can never be zero.
     _lhsVectorLength = getVectorLength(s.lhsVariable());
+    _lhsPrecision = s.lhsVariable()->precision();
 
     // stream dimensions come from the left hand side
     const size_t lhsWidth = s.lhsVariable()->W();
@@ -1183,10 +1383,11 @@ void EnqueueTrace::visit(StmtLiteral& s)
 
     // LHS variable must be a memory buffer. It must be writable. The only
     // way it could be an image is if it were also an argument to matmul().
-    // Then is would also appear on the RHS. So it must also be readable.
+    // Then it would also appear on the RHS. So it must also be readable.
     // As it must be readable and writable, it can not be an image. This
     // implies the vector length can never be zero.
     _lhsVectorLength = getVectorLength(s.lhsVariable());
+    _lhsPrecision = s.lhsVariable()->precision();
 
     // stream dimensions come from the left hand side
     const size_t lhsWidth = s.lhsVariable()->W();
@@ -2300,10 +2501,11 @@ void EnqueueTrace::visit(StmtReduce& s)
 
     // LHS variable must be a memory buffer. It must be writable. The only
     // way it could be an image is if it were also an argument to matmul().
-    // Then is would also appear on the RHS. So it must also be readable.
+    // Then it would also appear on the RHS. So it must also be readable.
     // As it must be readable and writable, it can not be an image. This
     // implies the vector length can never be zero.
     _lhsVectorLength = getVectorLength(s.lhsVariable());
+    _lhsPrecision = s.lhsVariable()->precision();
 
     // vector length for private reduction variable
     size_t redVecLen = _minVectorLength;
@@ -2521,29 +2723,15 @@ void EnqueueTrace::visit(StmtRepeat& s)
     if (_printer) _printer->visit(s);
 
     // begin loop
-    _func->loopBegin(0, s.numReps());
+    const size_t loopIdx = _func->loopBegin(0, s.numReps());
+    _repeatIdx.push(loopIdx);
 
     // descend into body of loop
     s.stuffInside()->accept(*this);
 
     // end loop
     _func->loopEnd();
-}
-
-void EnqueueTrace::visit(StmtRNGrand& s)
-{
-    if (_failure) return;
-    if (_printer) _printer->visit(s);
-
-    _failure = true;
-}
-
-void EnqueueTrace::visit(StmtRNGseed& s)
-{
-    if (_failure) return;
-    if (_printer) _printer->visit(s);
-
-    _failure = true;
+    _repeatIdx.pop();
 }
 
 void EnqueueTrace::visit(StmtSendData& s)
@@ -2575,10 +2763,11 @@ void EnqueueTrace::visit(StmtSingle& s)
 
     // LHS variable must be a memory buffer. It must be writable. The only
     // way it could be an image is if it were also an argument to matmul().
-    // Then is would also appear on the RHS. So it must also be readable.
+    // Then it would also appear on the RHS. So it must also be readable.
     // As it must be readable and writable, it can not be an image. This
     // implies the vector length can never be zero.
     _lhsVectorLength = getVectorLength(s.lhsVariable());
+    _lhsPrecision = s.lhsVariable()->precision();
 
     // RHS variable vector lengths
     _smallVectorLength = _largeVectorLength = _lhsVectorLength;

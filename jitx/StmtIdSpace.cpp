@@ -37,10 +37,7 @@ StmtIdSpace::StmtIdSpace(const GroupTogether& together,
       _traceRHS(together.traceRHS()),
       _splitLHS(together.splitLHS()),
       _splitRHS(together.splitRHS()),
-      _traceTransposed(together.traceTransposed()),
-      _splitTransposed(together.splitTransposed()),
-      _traceGathered(together.traceGathered()),
-      _splitGathered(together.splitGathered()),
+      _scalarVectorLength(together.scalarVectorLength()),
       _streamW(together.streamW()),
       _streamH(together.streamH()),
       _hashCode(vt.hashCode()),
@@ -97,11 +94,11 @@ const set< uint32_t >& StmtIdSpace::traceUseRegisterWriteBack(void) const
     return _traceUseRegisterWriteBack;
 }
 
-void StmtIdSpace::traceUseRegister(const set< uint32_t >& varsUseRegisters,
-                                   const set< uint32_t >& varsWriteBack)
+void StmtIdSpace::traceUseRegister(const set< uint32_t >& useRegisters,
+                                   const set< uint32_t >& writeBack)
 {
-    _traceUseRegister = varsUseRegisters;
-    _traceUseRegisterWriteBack = varsWriteBack;
+    _traceUseRegister = useRegisters;
+    _traceUseRegisterWriteBack = writeBack;
 }
 
 void StmtIdSpace::removeTraceArg(const uint32_t varNum)
@@ -119,34 +116,9 @@ const set< const AstVariable* >& StmtIdSpace::splitArgs(void) const
     return _splitArgs;
 }
 
-bool StmtIdSpace::anyTransposed(void) const
+bool StmtIdSpace::scalarVectorLength(void) const
 {
-    return ! _traceTransposed.empty() || ! _splitTransposed.empty();
-}
-
-bool StmtIdSpace::traceTransposed(const uint32_t varNum) const
-{
-    return _traceTransposed.count(varNum);
-}
-
-bool StmtIdSpace::splitTransposed(const AstVariable* varPtr) const
-{
-    return _splitTransposed.count(varPtr);
-}
-
-bool StmtIdSpace::anyGathered(void) const
-{
-    return ! _traceGathered.empty() || ! _splitGathered.empty();
-}
-
-bool StmtIdSpace::traceGathered(const uint32_t varNum) const
-{
-    return _traceGathered.count(varNum);
-}
-
-bool StmtIdSpace::splitGathered(const AstVariable* varPtr) const
-{
-    return _splitGathered.count(varPtr);
+    return _scalarVectorLength;
 }
 
 bool StmtIdSpace::isReadOnly(const uint32_t variable) const

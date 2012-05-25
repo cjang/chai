@@ -10,6 +10,7 @@ class StmtCompound;
 class StmtCreateData;
 class StmtExtension;
 class StmtExtensionAuto;
+class StmtGatherAuto;
 class StmtIdSpace;
 class StmtIndex;
 class StmtLiteral;
@@ -18,8 +19,6 @@ class StmtMatmulAuto;
 class StmtReadData;
 class StmtReduce;
 class StmtRepeat;
-class StmtRNGrand;
-class StmtRNGseed;
 class StmtSendData;
 class StmtSingle;
 
@@ -35,6 +34,7 @@ struct VisitStmt
     virtual void visit(StmtCreateData&) = 0;
     virtual void visit(StmtExtension&) = 0;
     virtual void visit(StmtExtensionAuto&) = 0;
+    virtual void visit(StmtGatherAuto&) = 0;
     virtual void visit(StmtIdSpace&) = 0;
     virtual void visit(StmtIndex&) = 0;
     virtual void visit(StmtLiteral&) = 0;
@@ -43,8 +43,6 @@ struct VisitStmt
     virtual void visit(StmtReadData&) = 0;
     virtual void visit(StmtReduce&) = 0;
     virtual void visit(StmtRepeat&) = 0;
-    virtual void visit(StmtRNGrand&) = 0;
-    virtual void visit(StmtRNGseed&) = 0;
     virtual void visit(StmtSendData&) = 0;
     virtual void visit(StmtSingle&) = 0;
 };

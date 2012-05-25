@@ -8,20 +8,34 @@ namespace chai_internal {
 // rng_uniform_make_u32, rng_uniform_make_i32
 // rng_uniform_make_f32, rng_uniform_make_f64
 
-AstRNGuniform::AstRNGuniform(const unsigned int seed,
-                             const size_t variant,
+AstRNGuniform::AstRNGuniform(const int variant,
+                             const uint64_t seed,
                              const size_t len,
                              const size_t step,
                              const double minlimit,
                              const double maxlimit,
                              const size_t precision)
     : BaseAst(len, 1, precision),
-      _seed(seed),
-      _variant(variant),
+      _rngVariant(variant),
+      _rngSeed(seed),
       _step(step),
       _minlimit(minlimit),
       _maxlimit(maxlimit),
-      _precision(precision) { }
+      _precision(precision)
+/*FIXME - remove this,
+      _insideRolledLoop(false)
+*/
+ { }
+
+int AstRNGuniform::rngVariant(void) const
+{
+    return _rngVariant;
+}
+
+uint64_t AstRNGuniform::rngSeed(void) const
+{
+    return _rngSeed;
+}
 
 size_t AstRNGuniform::step(void) const
 {
@@ -37,6 +51,18 @@ double AstRNGuniform::maxlimit(void) const
 {
     return _maxlimit;
 }
+
+/*FIXME - remove this
+bool AstRNGuniform::getInsideRolledLoop(void) const
+{
+    return _insideRolledLoop;
+}
+
+void AstRNGuniform::setInsideRolledLoop(void)
+{
+    _insideRolledLoop = true;
+}
+*/
 
 void AstRNGuniform::accept(VisitAst& v)
 {

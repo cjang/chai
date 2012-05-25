@@ -22,22 +22,32 @@ namespace chai_internal {
 class UseRegister : public VisitAst,
                     public VisitStmt
 {
-    // count of trace variable reads and writes
-    std::map< uint32_t, size_t > _traceRead;
-    std::map< uint32_t, size_t > _traceWrite;
-    std::map< uint32_t, size_t > _traceReadWrite;
+    // count of variable reads and writes
+    std::map< uint32_t, size_t >           _traceRead;
+    std::map< uint32_t, size_t >           _traceWrite;
+    std::map< uint32_t, size_t >           _traceReadWrite;
 
     // first statement must be assignment with LHS only (initialize accum)
-    std::map< uint32_t, bool > _firstIsAssign;
+    std::map< uint32_t, bool > _traceFirstIsAssign;
 
     // variables inside reductions or gathers must be memory access
     std::set< uint32_t > _traceInclude;
-
-    // variables inside reductions or gathers must be memory access
     std::set< uint32_t > _traceExclude;
+
+/*FIXME - remove this
+    // RNG
+    std::set< uint32_t > _rngVariables;
+*/
+
+/*FIXME - remove this
+    std::set< uint32_t > _forceWriteback;
+*/
 
     // keep track of reductions and gathers when descending AST
     std::stack< const BaseAst* > _trackContained;
+
+    // keep track of loops for candidate private registers
+    std::stack< const StmtRepeat* > _trackRepeat;
 
     // memory barriers that may be removed
     std::set< const StmtBarrier* > _trackBarriers;
@@ -83,6 +93,7 @@ public:
     void visit(StmtCreateData&);
     void visit(StmtExtension&);
     void visit(StmtExtensionAuto&);
+    void visit(StmtGatherAuto&);
     void visit(StmtIdSpace&);
     void visit(StmtIndex&);
     void visit(StmtLiteral&);
@@ -91,8 +102,6 @@ public:
     void visit(StmtReadData&);
     void visit(StmtReduce&);
     void visit(StmtRepeat&);
-    void visit(StmtRNGrand&);
-    void visit(StmtRNGseed&);
     void visit(StmtSendData&);
     void visit(StmtSingle&);
 };

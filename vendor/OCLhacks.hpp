@@ -32,6 +32,7 @@ class OCLhacks
     const std::string _settingSearchTrials;
     const std::string _settingTimingTrials;
     const std::string _settingWatchdog;
+    const std::string _settingWorkGroupSize;
 
     const OCLinit* _oclInit;
 
@@ -77,6 +78,7 @@ public:
     double watchdogSecs(const size_t deviceIdx);
     size_t searchTrials(const size_t deviceIdx);
     size_t timingTrials(const size_t deviceIdx);
+    size_t workGroupSize(const size_t deviceIdx);
     std::string journalFile(const size_t deviceIdx);
     std::string pragmaFP64(const size_t deviceIdx);
 

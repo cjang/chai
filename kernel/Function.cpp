@@ -4,6 +4,7 @@
 
 #include "Function.hpp"
 #include "OCLhacks.hpp"
+#include "PrecType.hpp"
 #include "Qualifier.hpp"
 
 using namespace std;
@@ -94,6 +95,8 @@ Function::Function(const size_t deviceIndex,
 
 Function::~Function(void)
 {
+    delete _sampler;
+
     for (vector< Variable* >::const_iterator
          it = _arguments.begin();
          it != _arguments.end();
@@ -145,7 +148,6 @@ void Function::addArgument(const uint32_t variable, Image2D* obj)
     if (! _sampler)
     {
         _sampler = new Sampler;
-        _privates.push_back(_sampler);
     }
 }
 
@@ -169,7 +171,6 @@ void Function::addArgument(const AstVariable* variable, Image2D* obj)
     if (! _sampler)
     {
         _sampler = new Sampler;
-        _privates.push_back(_sampler);
     }
 }
 
@@ -229,6 +230,278 @@ AddrMem* Function::createPrivate(const AstVariable* variable,
     _privateSplit[newVar] = variable;
 
     return newVar;
+}
+
+size_t Function::gatherVariable(const uint32_t varNum,
+                                const size_t vectorLength,
+                                const size_t width,
+                                const size_t height)
+{
+    return _gathering.gatherVariable(varNum, vectorLength, width, height);
+}
+
+size_t Function::gatherVariable(const AstVariable* varPtr,
+                                const size_t vectorLength,
+                                const size_t width,
+                                const size_t height)
+{
+    return _gathering.gatherVariable(varPtr, vectorLength, width, height);
+}
+
+size_t Function::gatherSubscript(const size_t variableNumber,
+                                 const size_t N,
+                                 const bool xHasIndex,
+                                 const bool yHasIndex,
+                                 const size_t xOffset,
+                                 const size_t yOffset)
+{
+    return _gathering.gatherSubscript(variableNumber,
+                                      N,
+                                      xHasIndex,
+                                      yHasIndex,
+                                      xOffset,
+                                      yOffset);
+}
+
+Variable* Function::gatherVarFromSubscript(const size_t subNum)
+{
+    const uint32_t varNum = _gathering.traceVarFromSubscript(subNum);
+
+    if (-1 != varNum)
+        return traceVar(varNum);
+    else
+        return splitVar(_gathering.splitVarFromSubscript(subNum));
+}
+
+set< uint32_t > Function::gatherTraceVar(void)
+{
+    set< uint32_t > s;
+
+    for (size_t i = 0; i < _gathering.numberSubscripts(); i++)
+    {
+        const uint32_t varNum = _gathering.traceVarFromSubscript(i);
+
+        if (-1 != varNum)
+            s.insert(varNum);
+    }
+
+    return s;
+}
+
+void Function::gatherDecl(Subscript& subObj,
+                          const set< uint32_t >& traceSuppressTile)
+{
+    for (size_t i = 0; i < _gathering.numberSubscripts(); i++)
+    {
+        subObj.setEligibleGather(
+                   _gathering.nFromSubscript(i),
+                   _gathering.xHasIndexFromSubscript(i),
+                   _gathering.yHasIndexFromSubscript(i),
+                   _gathering.xVecOffsetFromSubscript(i),
+                   _gathering.yVecOffsetFromSubscript(i) );
+
+        Variable* vArg = gatherVarFromSubscript(i);
+
+        const size_t prec = vArg->precision();
+        const size_t vlen = vArg->vectorLength();
+
+        const size_t effVLen = 0 == vlen ? PrecType::vecLength(prec) : vlen;
+
+        const AddrMem vGather(prec, effVLen, CONST);
+
+        const size_t width = _gathering.widthFromSubscript(i);
+        const size_t height = _gathering.widthFromSubscript(i);
+
+        subObj.setVariable(width, height, effVLen);
+
+        stringstream ss;
+
+        vGather.declareType(ss);
+        vArg->identifierName(ss);
+        ss << i << " = ";
+
+        if (0 == vlen)
+        {
+            const uint32_t varNum = _gathering.traceVarFromSubscript(i);
+
+            const bool suppressTile = -1 == varNum
+                                          ? false
+                                          : traceSuppressTile.count(varNum);
+
+            switch (prec)
+            {
+                case (PrecType::UInt32) :
+                    ss << "read_imageui(";
+                    break;
+
+                case (PrecType::Int32) :
+                    ss << "read_imagei(";
+                    break;
+
+                case (PrecType::Float) :
+                    ss << "read_imagef(";
+                    break;
+
+                case (PrecType::Double) :
+                    ss << "as_double2(read_imageui(";
+                    break;
+            }
+
+            vArg->identifierName(ss);
+            ss << ", sampler, (int2)(";
+            subObj.widthIdx(ss);
+            ss << ", ";
+            if (suppressTile) subObj.disableBlocking();
+            subObj.heightIdx(ss);
+            if (suppressTile) subObj.enableBlocking();
+            switch (prec)
+            {
+                case (PrecType::UInt32) :
+                    ss << "))";
+                    break;
+
+                case (PrecType::Int32) :
+                    ss << "))";
+                    break;
+
+                case (PrecType::Float) :
+                    ss << "))";
+                    break;
+
+                case (PrecType::Double) :
+                    ss << ")))";
+                    break;
+            }
+        }
+        else
+        {
+            vArg->identifierName(ss);
+            subObj.arraySub(ss);
+        }
+
+        ss << ";";
+
+        _gatherText.push_back(ss.str());
+
+        subObj.unsetEligibleGather();
+    }
+}
+
+void Function::rngVecType(const size_t prec,
+                          const size_t vlen)
+{
+    switch (prec)
+    {
+        case (PrecType::UInt32) :
+        case (PrecType::Int32) :
+        case (PrecType::Float) :
+            _random123.prec32();
+            break;
+
+        case (PrecType::Double) :
+            _random123.prec64();
+            break;
+    }
+
+    stringstream ss;
+
+    switch (vlen)
+    {
+        case (1) :
+        case (2) :
+            _random123.vlen2();
+            break;
+
+        case (4) :
+            _random123.vlen4();
+            break;
+    }
+}
+
+void Function::rngVariant(const int variant)
+{
+    switch (variant)
+    {
+        case (1230) :
+            _random123.philox();
+            break;
+
+        case (1231) :
+            _random123.threefry();
+            break;
+    }
+}
+
+string Function::rngUniform(const size_t prec,
+                            const size_t vlen,
+                            const int variant,
+                            const uint64_t seed,
+                            Subscript& tid,
+                            const size_t repeatIdx) const
+{
+    stringstream ss;
+
+    switch (variant)
+    {
+        case (1230) :
+            ss << "philox";
+            break;
+
+        case (1231) :
+            ss << "threefry";
+            break;
+    }
+
+    ss << "_uniform_" << prec << "_" << vlen << "(";
+
+    tid.disableSubscriptBrackets();
+    tid.arraySub(ss);
+    tid.enableSubscriptBrackets();
+
+    ss << ", " << seed;
+
+    if (-1 != repeatIdx)
+        ss << " + i" << repeatIdx;
+
+    ss << ")";
+
+    return ss.str();
+}
+
+string Function::rngNormal(const size_t prec,
+                           const size_t vlen,
+                           const int variant,
+                           const uint64_t seed,
+                           Subscript& tid,
+                           const size_t repeatIdx) const
+{
+    stringstream ss;
+
+    switch (variant)
+    {
+        case (1230) :
+            ss << "philox";
+            break;
+
+        case (1231) :
+            ss << "threefry";
+            break;
+    }
+
+    ss << "_normal_" << prec << "_" << vlen << "(";
+
+    tid.disableSubscriptBrackets();
+    tid.arraySub(ss);
+    tid.enableSubscriptBrackets();
+
+    ss << ", " << seed;
+
+    if (-1 != repeatIdx)
+        ss << " + i" << repeatIdx;
+
+    ss << ")";
+
+    return ss.str();
 }
 
 const vector< Variable* >& Function::arguments(void) const
@@ -532,6 +805,9 @@ void Function::print(vector< string >& outText)
         ss.str(string());
     }
 
+    // RNG
+    _random123.print(ss);
+
     ss << KERNEL << "void " << _functionName << "(" << endl;
     outText.push_back(ss.str());
     ss.str(string());
@@ -567,6 +843,29 @@ void Function::print(vector< string >& outText)
     ss.str(string());
 
     indentMore();
+
+    // image sampler
+    if (_sampler)
+    {
+        indent(ss);
+        _sampler->declareType(ss);
+        ss << "sampler = CLK_FILTER_NEAREST | "
+                        "CLK_NORMALIZED_COORDS_FALSE | "
+                        "CLK_ADDRESS_NONE;" << endl;
+        outText.push_back(ss.str());
+        ss.str(string());
+    }
+
+    // gather variables
+    for (vector< string >::const_iterator
+         it = _gatherText.begin();
+         it != _gatherText.end();
+         it++)
+    {
+        indent(ss) << (*it) << endl;
+        outText.push_back(ss.str());
+        ss.str(string());
+    }
 
     // private variables declared at top function body
     for (vector< Variable* >::const_iterator

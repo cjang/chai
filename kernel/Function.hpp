@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include "Gathering.hpp"
+#include "Random123.hpp"
 #include "Subscript.hpp"
 #include "Variable.hpp"
 
@@ -62,12 +64,21 @@ class Function
     std::map< const AstVariable*, Variable* > _splitPrivate;
     std::map< Variable*, const AstVariable* > _privateSplit;
 
+    // gathering
+    Gathering _gathering;
+
     // variable name lookup (just makes them easier to read)
     std::map< const Variable*, size_t > _argumentLookup;
     std::map< const Variable*, size_t > _privateLookup;
 
     // body of function
     std::vector< std::string > _bodyText;
+
+    // gather declarations
+    std::vector< std::string > _gatherText;
+
+    // RNG
+    Random123 _random123;
 
     // indentation
     size_t _indentStops;
@@ -117,6 +128,47 @@ public:
     AddrMem* createPrivate(const AstVariable*,
                            const size_t precision,
                            const size_t vectorLength);
+
+    size_t gatherVariable(const uint32_t varNum,
+                          const size_t vectorLength,
+                          const size_t width,
+                          const size_t height);
+
+    size_t gatherVariable(const AstVariable* varPtr,
+                          const size_t vectorLength,
+                          const size_t width,
+                          const size_t height);
+
+    size_t gatherSubscript(const size_t variableNumber,
+                           const size_t N,
+                           const bool xHasIndex,
+                           const bool yHasIndex,
+                           const size_t xOffset,
+                           const size_t yOffset);
+
+    Variable* gatherVarFromSubscript(const size_t subNum);
+
+    std::set< uint32_t > gatherTraceVar(void);
+    void gatherDecl(Subscript& subObj,
+                    const std::set< uint32_t >& traceSuppressTile);
+
+    void rngVecType(const size_t prec,
+                    const size_t vlen);
+    void rngVariant(const int variant);
+
+    std::string rngUniform(const size_t prec,
+                           const size_t vlen,
+                           const int variant,
+                           const uint64_t seed,
+                           Subscript& tid,
+                           const size_t repeatIdx) const;
+
+    std::string rngNormal(const size_t prec,
+                          const size_t vlen,
+                          const int variant,
+                          const uint64_t seed,
+                          Subscript& tid,
+                          const size_t repeatIdx) const;
 
     const std::vector< Variable* >& arguments(void) const;
 

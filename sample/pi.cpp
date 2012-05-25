@@ -14,12 +14,12 @@ using namespace std;
 // http://www.stanford.edu/class/ee380/Abstracts/070926-PeakStream.pdf
 //
 
-#define NSET 1000000         // number of monte carlo trials
+#define NSET 1000000              // number of monte carlo trials
 
 Arrayf32
 compute_pi(void)
 {
-    RNGf32 G(SP_RNG_DEFAULT); // create an RNG
+    RNGf32 G(RNG_DEFAULT, 271828); // create an RNG
     Arrayf32 X = rng_uniform_make(G, NSET, 1, 0.0, 1.0);
     Arrayf32 Y = rng_uniform_make(G, NSET, 1, 0.0, 1.0);
     Arrayf32 distance_from_zero = sqrt(X * X + Y * Y);

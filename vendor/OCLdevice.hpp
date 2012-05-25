@@ -46,6 +46,29 @@ static const OCLWriteMode WRITE;
 static const OCLReadWriteMode READWRITE;
 
 ////////////////////////////////////////
+// one queue per device
+
+class OCLDeviceEventQueue
+{
+    friend class OCLdevice;
+
+    Type<cl_event>::aligned_vector _oldEvents;
+    Type<cl_event>::aligned_vector _newEvents;
+
+    OCLDeviceEventQueue(void);
+
+public:
+    ~OCLDeviceEventQueue(void);
+
+    const cl_event* getEvents(void) const;
+    size_t sizeEvents(void) const;
+    void moveEvents(void);
+
+    void pushEvent(const cl_event);
+    bool waitEvents(void);
+};
+
+////////////////////////////////////////
 // heap of memory buffers
 
 class OCLHeapOfMemoryBuffers
@@ -63,8 +86,7 @@ class OCLHeapOfMemoryBuffers
     std::vector<size_t>               _size;
     std::vector<size_t>               _refcnt;
 
-    Type<cl_event>::aligned_vector    _writeEvents;
-    Type<cl_event>::aligned_vector    _readEvents;
+    OCLDeviceEventQueue&              _devQueue;
 
     int create(const size_t size,
                const OCLBufferMode* mode,
@@ -78,7 +100,8 @@ class OCLHeapOfMemoryBuffers
                const size_t alignment);
 
     OCLHeapOfMemoryBuffers(const cl_context context,
-                           const cl_command_queue queue);
+                           const cl_command_queue queue,
+                           OCLDeviceEventQueue& devQueue);
 
 public:
     ~OCLHeapOfMemoryBuffers(void);
@@ -151,11 +174,12 @@ public:
                                                offset * sizeof(SCALAR),
                                                length * sizeof(SCALAR),
                                                _ptrs[index],
-                                               0,
-                                               NULL,
+                                               _devQueue.sizeEvents(),
+                                               _devQueue.getEvents(),
                                                &event))
             return false;
-        _writeEvents.push_back(event);
+        _devQueue.moveEvents();
+        _devQueue.pushEvent(event);
         return true;
     }
 
@@ -171,16 +195,14 @@ public:
                                               offset * sizeof(SCALAR),
                                               length * sizeof(SCALAR),
                                               _ptrs[index],
-                                              0,
-                                              NULL,
+                                              _devQueue.sizeEvents(),
+                                              _devQueue.getEvents(),
                                               &event))
             return false;
-        _readEvents.push_back(event);
+        _devQueue.moveEvents();
+        _devQueue.pushEvent(event);
         return true;
     }
-
-    bool waitWrite(void);
-    bool waitRead(void);
 
     void checkout(const size_t index);
     void release(const size_t index);
@@ -201,20 +223,19 @@ class OCLHeapOfImages
 {
     friend class OCLdevice;
 
-    const cl_context                  _context;
-    const cl_command_queue            _queue;
+    const cl_context                 _context;
+    const cl_command_queue           _queue;
 
-    Type<void*>::aligned_vector       _ptrs;
-    std::vector<bool>                 _freePtr;
-    Type<cl_mem>::aligned_vector      _handles;
-    std::vector<const OCLImageMode*>  _access;
-    std::vector<bool>                 _pinned;
-    std::vector<size_t>               _width;
-    std::vector<size_t>               _height;
-    std::vector<size_t>               _refcnt;
+    Type<void*>::aligned_vector      _ptrs;
+    std::vector<bool>                _freePtr;
+    Type<cl_mem>::aligned_vector     _handles;
+    std::vector<const OCLImageMode*> _access;
+    std::vector<bool>                _pinned;
+    std::vector<size_t>              _width;
+    std::vector<size_t>              _height;
+    std::vector<size_t>              _refcnt;
 
-    Type<cl_event>::aligned_vector    _writeEvents;
-    Type<cl_event>::aligned_vector    _readEvents;
+    OCLDeviceEventQueue&             _devQueue;
 
     int create(const size_t width,  // texel dimensions (x4 or x2 for matrix)
                const size_t height, // texel dimensions
@@ -232,7 +253,8 @@ class OCLHeapOfImages
                const size_t precTypeSizeCode);
 
     OCLHeapOfImages(const cl_context context,
-                    const cl_command_queue queue);
+                    const cl_command_queue queue,
+                    OCLDeviceEventQueue& devQueue);
 
 public:
     ~OCLHeapOfImages(void);
@@ -336,11 +358,12 @@ public:
                                               0,
                                               0,
                                               _ptrs[index],
-                                              0,
-                                              NULL,
+                                              _devQueue.sizeEvents(),
+                                              _devQueue.getEvents(),
                                               &event))
             return false;
-        _writeEvents.push_back(event);
+        _devQueue.moveEvents();
+        _devQueue.pushEvent(event);
         return true;
     }
 
@@ -367,16 +390,14 @@ public:
                                              0,
                                              0,
                                              _ptrs[index],
-                                             0,
-                                             NULL,
+                                             _devQueue.sizeEvents(),
+                                             _devQueue.getEvents(),
                                              &event))
             return false;
-        _readEvents.push_back(event);
+        _devQueue.moveEvents();
+        _devQueue.pushEvent(event);
         return true;
     }
-
-    bool waitWrite(void);
-    bool waitRead(void);
 
     void checkout(const size_t index);
     void release(const size_t index);
@@ -411,7 +432,7 @@ class OCLHeapOfKernels
     std::vector< size_t >                       _kernelRefcnt;
     std::map< std::string, std::set< size_t > > _kernelMap;
 
-    Type< cl_event >::aligned_vector            _events;
+    OCLDeviceEventQueue&                        _devQueue;
 
     int create(const std::vector<std::string>& source,
                const std::string& options,
@@ -422,7 +443,8 @@ class OCLHeapOfKernels
 
     OCLHeapOfKernels(const cl_device_id device,
                      const cl_context context,
-                     const cl_command_queue queue);
+                     const cl_command_queue queue,
+                     OCLDeviceEventQueue& devQueue);
 
 public:
     ~OCLHeapOfKernels(void);
@@ -435,11 +457,9 @@ public:
     int create(const std::vector<std::string>& source,
                const std::string& kernelName);
 
-    bool enqueue(const size_t index,
-                 const std::vector<size_t>& global,
-                 const std::vector<size_t>& local);
-
-    bool wait(void);
+    bool enqueueKernel(const size_t index,
+                       const std::vector<size_t>& global,
+                       const std::vector<size_t>& local);
 
     // global memory or image
     bool setArgGlobal(const size_t index,
@@ -483,6 +503,7 @@ class OCLdevice
     OCLinit&               _base;
     const size_t           _deviceIndex;
 
+    OCLDeviceEventQueue    _devQueue;
     OCLHeapOfMemoryBuffers _bufHeap;
     OCLHeapOfImages        _imgHeap;
     OCLHeapOfKernels       _krnlHeap;
@@ -515,6 +536,8 @@ public:
     void statusOp(const bool);
 
     void scavenge(void);
+
+    bool waitEvents(void);
 
     size_t deviceIndex(void) const;
 };

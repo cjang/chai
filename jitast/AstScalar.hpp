@@ -31,6 +31,8 @@ public:
     float floatValue(void) const;
     double doubleValue(void) const;
 
+    int floorValue(void) const;
+
     void accept(VisitAst&);
 };
 

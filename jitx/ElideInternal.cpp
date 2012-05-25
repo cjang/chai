@@ -32,6 +32,7 @@
 #include "StmtCreateData.hpp"
 #include "StmtExtension.hpp"
 #include "StmtExtensionAuto.hpp"
+#include "StmtGatherAuto.hpp"
 #include "StmtIdSpace.hpp"
 #include "StmtIndex.hpp"
 #include "StmtLiteral.hpp"
@@ -40,8 +41,6 @@
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
-#include "StmtRNGrand.hpp"
-#include "StmtRNGseed.hpp"
 #include "StmtSendData.hpp"
 #include "StmtSingle.hpp"
 
@@ -279,7 +278,7 @@ void ElideInternal::visit(AstVariable& v)
     {
         const uint32_t varNum = v.variable();
 
-        if (0 != _candidates.count(varNum))
+        if (_candidates.count(varNum))
         {
             _trackVar[ &v ] = varNum;
         }
@@ -332,6 +331,11 @@ void ElideInternal::visit(StmtExtension& s)
 }
 
 void ElideInternal::visit(StmtExtensionAuto& s)
+{
+    // leave this alone, meta-kernel
+}
+
+void ElideInternal::visit(StmtGatherAuto& s)
 {
     // leave this alone, meta-kernel
 }
@@ -396,16 +400,21 @@ void ElideInternal::visit(StmtRepeat& s)
 {
     // need to edit elided variables in contained statements
     s.stuffInside()->accept(*this);
-}
 
-void ElideInternal::visit(StmtRNGrand& s)
-{
-    // leave this alone, no GPU support for RNG
-}
-
-void ElideInternal::visit(StmtRNGseed& s)
-{
-    // leave this alone, no GPU support for RNG
+/*FIXME - remove this
+    // any RNG variables inside reduction must be memory objects
+    for (set< AstVariable* >::const_iterator
+         it = s.rhsVariable().begin();
+         it != s.rhsVariable().end();
+         it++)
+    {
+        AstVariable* v = *it;
+        if (v->getValueFromRNG() && v->getForceWriteback())
+        {
+            keepVariable(v);
+        }
+    }
+*/
 }
 
 void ElideInternal::visit(StmtSendData& s)

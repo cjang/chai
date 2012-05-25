@@ -36,8 +36,8 @@ private:
     std::vector< Stmt* > _stmts;
 
     // trace/split variables
-    std::set< uint32_t >                 _traceArgs;
-    const std::set< const AstVariable* > _splitArgs;
+    std::set< uint32_t >           _traceArgs;
+    std::set< const AstVariable* > _splitArgs;
 
     // track variable sideness
     const std::set< uint32_t >           _traceLHS;
@@ -45,13 +45,8 @@ private:
     const std::set< const AstVariable* > _splitLHS;
     const std::set< const AstVariable* > _splitRHS;
 
-    // track transposed variables (vector length 1 for array subscripts)
-    const std::set< uint32_t >           _traceTransposed;
-    const std::set< const AstVariable* > _splitTransposed;
-
-    // track gathered variables (vector length 1 for array subscripts)
-    const std::set< uint32_t >           _traceGathered;
-    const std::set< const AstVariable* > _splitGathered;
+    // transposed and gathered variables can force vector length 1
+    const bool _scalarVectorLength;
 
     // index space dimensions
     const size_t _streamW;
@@ -61,8 +56,8 @@ private:
     std::map< uint32_t, size_t > _traceReadoutDim;
 
     // these variables will have registers
-    std::set< uint32_t > _traceUseRegister;
-    std::set< uint32_t > _traceUseRegisterWriteBack;
+    std::set< uint32_t >           _traceUseRegister;
+    std::set< uint32_t >           _traceUseRegisterWriteBack;
 
     const uint64_t _hashCode;
     const size_t   _numTraces;
@@ -85,20 +80,15 @@ public:
 
     const std::set< uint32_t >& traceUseRegister(void) const;
     const std::set< uint32_t >& traceUseRegisterWriteBack(void) const;
-    void traceUseRegister(const std::set< uint32_t >& varsUseRegisters,
-                          const std::set< uint32_t >& varsWriteBack);
+    void traceUseRegister(const std::set< uint32_t >& useRegisters,
+                          const std::set< uint32_t >& writeBack);
 
     void removeTraceArg(const uint32_t varNum);
+
     const std::set< uint32_t >& traceArgs(void) const;
     const std::set< const AstVariable* >& splitArgs(void) const;
 
-    bool anyTransposed(void) const;
-    bool traceTransposed(const uint32_t varNum) const;
-    bool splitTransposed(const AstVariable* varPtr) const;
-
-    bool anyGathered(void) const;
-    bool traceGathered(const uint32_t varNum) const;
-    bool splitGathered(const AstVariable* varPtr) const;
+    bool scalarVectorLength(void) const;
 
     bool isReadOnly(const uint32_t) const;
     bool isReadOnly(const AstVariable*) const;

@@ -12,12 +12,13 @@
 #include "BCStmtRepeat.hpp"
 #include "BCStmtSingle.hpp"
 #include "ByteTrace.hpp"
+#include "chai/Stak.hpp"
 
 using namespace std;
 
 namespace chai_internal {
 
-size_t ByteTrace::liftConstants(void)
+void ByteTrace::liftConstants(void)
 {
     map< uint32_t, size_t > varConstructorIndex;
     map< uint32_t, size_t > varDestructorIndex;
@@ -47,7 +48,6 @@ size_t ByteTrace::liftConstants(void)
 
     // RHS hash code -> variables
     map< uint64_t, set< uint32_t > > constantHash;
-    map< uint64_t, set< uint32_t > > rngmakeHash;
 
     // only interested in variables without dependencies on other variables
     for (map< uint32_t, vector< size_t > >::const_iterator
@@ -80,7 +80,7 @@ size_t ByteTrace::liftConstants(void)
                      v.opCodes().count(ByteCodes::rng_uniform_make_f32) ||
                      v.opCodes().count(ByteCodes::rng_uniform_make_f64) )
                 {
-                    rngmakeHash[ v.code() ].insert( (*it).first );
+                    // RNG violates referential transparency
                 }
                 else
                 {
@@ -126,77 +126,6 @@ size_t ByteTrace::liftConstants(void)
         }
     }
 
-    // representative variables
-    set< uint32_t > rngmakeReps;
-
-    // affected variables
-    set< uint32_t > rngmakeVars;
-
-    // variable replacement
-    map< uint32_t, uint32_t > rngmakeMap;
-
-    // construct map of RNG make variable replacement
-    for (map< uint64_t, set< uint32_t > >::const_iterator
-         it = rngmakeHash.begin();
-         it != rngmakeHash.end();
-         it++)
-    {
-        // don't care about the hash code, only needed it to map the variables
-
-        uint32_t previous = -1;
-
-        bool overlap = false;
-
-        // look for special case only - contiguous disjoint lexical scopes
-        for (set< uint32_t >::const_iterator
-             jt = (*it).second.begin();
-             jt != (*it).second.end();
-             jt++)
-        {
-            if (-1 == previous)
-            {
-                previous = *jt;
-            }
-            else
-            {
-                // check for overlap in lexical scope
-                if (varDestructorIndex[previous] > varConstructorIndex[*jt])
-                {
-                    overlap = true;
-                    break;
-                }
-                else
-                {
-                    previous = *jt;
-                }
-            }
-        }
-
-        if (! overlap)
-        {
-            // all variables can be represented by one
-
-            uint32_t firstVar = -1;
-
-            // this is the reduce part, picking a representative variable
-            for (set< uint32_t >::const_iterator
-                 jt = (*it).second.begin();
-                 jt != (*it).second.end();
-                 jt++)
-            {
-                if (-1 == firstVar)
-                {
-                    firstVar = *jt;
-                    rngmakeReps.insert( *jt );
-                }
-
-                editVars.replaceVariable( *jt, firstVar );
-                rngmakeMap[ *jt ] = firstVar;
-                rngmakeVars.insert( *jt );
-            }
-        }
-    }
-
     // new statement vector
     vector< BCStmt* > newStatements;
 
@@ -223,22 +152,6 @@ size_t ByteTrace::liftConstants(void)
         _statements[ varAssignIndex[variable].front() ] = NULL;
     }
 
-    // next are representative RNG make variables
-    for (set< uint32_t >::const_iterator
-         it = rngmakeReps.begin();
-         it != rngmakeReps.end();
-         it++)
-    {
-        const uint32_t variable = *it;
-
-        // constructor
-        newStatements.push_back(
-            _statements[ varConstructorIndex[variable] ] );
-
-        // do not delete this statement
-        _statements[ varConstructorIndex[variable] ] = NULL;
-    }
-
     // append the original statements, replacing variables as we go
     for (size_t i = 0; i < _statements.size(); i++)
     {
@@ -253,25 +166,6 @@ size_t ByteTrace::liftConstants(void)
             if (constantVars.count(variable))
             {
                 continue;
-            }
-
-            // statements for affected RNG make variables
-            if (rngmakeVars.count(variable))
-            {
-                // skip constructors and destructors
-                if (0 == version || -1 == version)
-                {
-                    continue;
-                }
-                else
-                {
-                    // from earlier selection, there are no RHS variables
-                    // only need to change LHS variable
-                    newStatements.push_back(
-                        new BCStmtSingle(i, _vt, rngmakeMap[variable]) );
-
-                    continue;
-                }
             }
 
             editVars.clear();
@@ -312,25 +206,6 @@ size_t ByteTrace::liftConstants(void)
         }
     }
 
-    // destructors for representative RNG make variables
-    for (set< uint32_t >::const_iterator
-         it = rngmakeReps.begin();
-         it != rngmakeReps.end();
-         it++)
-    {
-        const uint32_t variable = *it;
-
-        if (varDestructorIndex.count(variable))
-        {
-            // destructor
-            newStatements.push_back(
-                _statements[ varDestructorIndex[variable] ] );
-
-            // do not delete this statement
-            _statements[ varDestructorIndex[variable] ] = NULL;
-        }
-    }
-
     // release unused statements
     for (vector< BCStmt* >::const_iterator
          it = _statements.begin();
@@ -342,11 +217,9 @@ size_t ByteTrace::liftConstants(void)
 
     // replace statements with transformed new version
     _statements = newStatements;
-
-    return constantReps.size() + rngmakeReps.size();
 }
 
-size_t ByteTrace::rollLoops(void)
+void ByteTrace::rollLoops(void)
 {
     size_t numPasses = 0;
 
@@ -528,8 +401,6 @@ size_t ByteTrace::rollLoops(void)
         else
             break; // stop search
     }
-
-    return numPasses;
 }
 
 void ByteTrace::optimizeBytecode(void)

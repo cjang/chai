@@ -43,6 +43,66 @@ int OCLReadWriteMode::flags(const int extra) const
 }
 
 ////////////////////////////////////////
+// one queue per device
+
+OCLDeviceEventQueue::OCLDeviceEventQueue(void)
+    : _oldEvents(),
+      _newEvents() { }
+
+OCLDeviceEventQueue::~OCLDeviceEventQueue(void)
+{
+    waitEvents();
+}
+
+const cl_event* OCLDeviceEventQueue::getEvents(void) const
+{
+    return 0 == _newEvents.size() ? NULL
+                                  : &_newEvents[0];
+}
+
+size_t OCLDeviceEventQueue::sizeEvents(void) const
+{
+    return _newEvents.size();
+}
+
+void OCLDeviceEventQueue::moveEvents(void)
+{
+    for (size_t i = 0; i < _newEvents.size(); i++)
+    {
+        _oldEvents.push_back(_newEvents[i]);
+    }
+
+    _newEvents.clear();
+}
+
+void OCLDeviceEventQueue::pushEvent(const cl_event event)
+{
+    _newEvents.push_back(event);
+}
+
+bool OCLDeviceEventQueue::waitEvents(void)
+{
+    if (0 == _newEvents.size())
+        return true;
+
+    bool isOK = CL_SUCCESS == clWaitForEvents(sizeEvents(),
+                                              getEvents());
+
+    for (size_t i = 0; i < _oldEvents.size(); i++)
+        if (CL_SUCCESS != clReleaseEvent(_oldEvents[i]))
+            isOK = false;
+
+    for (size_t i = 0; i < _newEvents.size(); i++)
+        if (CL_SUCCESS != clReleaseEvent(_newEvents[i]))
+            isOK = false;
+
+    _oldEvents.clear();
+    _newEvents.clear();
+
+    return isOK;
+}
+
+////////////////////////////////////////
 // HeapOfMemoryBuffers
 
 int OCLHeapOfMemoryBuffers::create(const size_t size,
@@ -100,14 +160,15 @@ int OCLHeapOfMemoryBuffers::create(const size_t size,
 }
 
 OCLHeapOfMemoryBuffers::OCLHeapOfMemoryBuffers(const cl_context context,
-                                               const cl_command_queue queue)
+                                               const cl_command_queue queue,
+                                               OCLDeviceEventQueue& devQueue)
     : _context(context),
-      _queue(queue) { }
+      _queue(queue),
+      _devQueue(devQueue) { }
 
 OCLHeapOfMemoryBuffers::~OCLHeapOfMemoryBuffers(void)
 {
-    waitWrite();
-    waitRead();
+    _devQueue.waitEvents();
 
     for (size_t i = 0; i < _handles.size(); i++)
     {
@@ -148,40 +209,6 @@ size_t OCLHeapOfMemoryBuffers::scavenge(void)
     }
 
     return totalCount;
-}
-
-bool OCLHeapOfMemoryBuffers::waitWrite(void)
-{
-    if (0 == _writeEvents.size())
-        return true;
-
-    bool isOK = CL_SUCCESS == clWaitForEvents(_writeEvents.size(),
-                                              &_writeEvents[0]);
-
-    for (size_t i = 0; i < _writeEvents.size(); i++)
-        if (CL_SUCCESS != clReleaseEvent(_writeEvents[i]))
-            isOK = false;
-
-    _writeEvents.clear();
-
-    return isOK;
-}
-
-bool OCLHeapOfMemoryBuffers::waitRead(void)
-{
-    if (0 == _readEvents.size())
-        return true;
-
-    bool isOK = CL_SUCCESS == clWaitForEvents(_readEvents.size(),
-                                              &_readEvents[0]);
-
-    for (size_t i = 0; i < _readEvents.size(); i++)
-        if (CL_SUCCESS != clReleaseEvent(_readEvents[i]))
-            isOK = false;
-
-    _readEvents.clear();
-
-    return isOK;
 }
 
 void OCLHeapOfMemoryBuffers::checkout(const size_t index)
@@ -312,15 +339,15 @@ int OCLHeapOfImages::create(const size_t width,
 }
 
 OCLHeapOfImages::OCLHeapOfImages(const cl_context context,
-                                 const cl_command_queue queue)
+                                 const cl_command_queue queue,
+                                 OCLDeviceEventQueue& devQueue)
     : _context(context),
-      _queue(queue)
-{ }
+      _queue(queue),
+      _devQueue(devQueue) { }
 
 OCLHeapOfImages::~OCLHeapOfImages(void)
 {
-    waitWrite();
-    waitRead();
+    _devQueue.waitEvents();
 
     for (size_t i = 0; i < _handles.size(); i++)
     {
@@ -362,40 +389,6 @@ size_t OCLHeapOfImages::scavenge(void)
     }
 
     return totalCount;
-}
-
-bool OCLHeapOfImages::waitWrite(void)
-{
-    if (0 == _writeEvents.size())
-        return true;
-
-    bool isOK = CL_SUCCESS == clWaitForEvents(_writeEvents.size(),
-                                              &_writeEvents[0]);
-
-    for (size_t i = 0; i < _writeEvents.size(); i++)
-        if (CL_SUCCESS != clReleaseEvent(_writeEvents[i]))
-            isOK = false;
-
-    _writeEvents.clear();
-
-    return isOK;
-}
-
-bool OCLHeapOfImages::waitRead(void)
-{
-    if (0 == _readEvents.size())
-        return true;
-
-    bool isOK = CL_SUCCESS == clWaitForEvents(_readEvents.size(),
-                                              &_readEvents[0]);
-
-    for (size_t i = 0; i < _readEvents.size(); i++)
-        if (CL_SUCCESS != clReleaseEvent(_readEvents[i]))
-            isOK = false;
-
-    _readEvents.clear();
-
-    return isOK;
 }
 
 void OCLHeapOfImages::checkout(const size_t index)
@@ -552,14 +545,17 @@ int OCLHeapOfKernels::create( const size_t progIdx,
 
 OCLHeapOfKernels::OCLHeapOfKernels( const cl_device_id device,
                                     const cl_context context,
-                                    const cl_command_queue queue )
+                                    const cl_command_queue queue,
+                                    OCLDeviceEventQueue& devQueue )
     : _device(device),
       _context(context),
-      _queue(queue)
-{ }
+      _queue(queue),
+      _devQueue(devQueue) { }
 
 OCLHeapOfKernels::~OCLHeapOfKernels(void)
 {
+    _devQueue.waitEvents();
+
     for (size_t i = 0; i < _kernelHandle.size(); i++)
         clReleaseKernel(_kernelHandle[i]);
 
@@ -709,9 +705,9 @@ int OCLHeapOfKernels::create( const vector< string >& source,
     return retIdx;
 }
 
-bool OCLHeapOfKernels::enqueue( const size_t index,
-                                const vector< size_t >& global,
-                                const vector< size_t >& local )
+bool OCLHeapOfKernels::enqueueKernel( const size_t index,
+                                      const vector< size_t >& global,
+                                      const vector< size_t >& local )
 {
     const size_t dim = global.size();
 
@@ -719,7 +715,6 @@ bool OCLHeapOfKernels::enqueue( const size_t index,
         return false;
 
     cl_event event;
-
     if (CL_SUCCESS == clEnqueueNDRangeKernel(
                           _queue,
                           _kernelHandle[index],
@@ -727,37 +722,18 @@ bool OCLHeapOfKernels::enqueue( const size_t index,
                           NULL,
                           &global[0],
                           &local[0],
-                          0,
-                          NULL,
+                          _devQueue.sizeEvents(),
+                          _devQueue.getEvents(),
                           &event ))
     {
-        _events.push_back(event);
+        _devQueue.moveEvents();
+        _devQueue.pushEvent(event);
         return true;
     }
     else
     {
         return false;
     }
-}
-
-bool OCLHeapOfKernels::wait(void)
-{
-    if (0 == _events.size())
-        return true;
-
-    bool isOK = CL_SUCCESS == clWaitForEvents(
-                                  _events.size(),
-                                  &_events[0] );
-
-    for (size_t i = 0; i < _events.size(); i++)
-    {
-        if (CL_SUCCESS != clReleaseEvent(_events[i]))
-            isOK = false;
-    }
-
-    _events.clear();
-
-    return isOK;
 }
 
 bool OCLHeapOfKernels::setArgGlobal( const size_t index,
@@ -794,11 +770,11 @@ OCLdevice::OCLdevice(OCLinit& base,
                      const size_t deviceIndex)
     : _base(base),
       _deviceIndex(deviceIndex),
-      _bufHeap(context(), queue()),
-      _imgHeap(context(), queue()),
-      _krnlHeap(device(), context(), queue()),
-      _statusOp(false)
-{ }
+      _devQueue(),
+      _bufHeap(context(), queue(), _devQueue),
+      _imgHeap(context(), queue(), _devQueue),
+      _krnlHeap(device(), context(), queue(), _devQueue),
+      _statusOp(false) { }
 
 cl_platform_id& OCLdevice::platform(void)
 {
@@ -877,6 +853,11 @@ void OCLdevice::scavenge(void)
     const size_t krnlcnt = kernels().scavenge();
 }
 
+bool OCLdevice::waitEvents(void)
+{
+    return _devQueue.waitEvents();
+}
+
 size_t OCLdevice::deviceIndex(void) const
 {
     return _deviceIndex;
@@ -891,8 +872,7 @@ OCLkernel::OCLkernel(OCLdevice& cdev)
       _global(),
       _local(),
       _argIndex(0),
-      _statusOp(false)
-{ }
+      _statusOp(false) { }
 
 OCLkernel::OCLkernel(OCLdevice& cdev,
                      const string& kernelName,
@@ -997,19 +977,14 @@ OCLFlush::OCLFlush(void) { }
 OCLdevice& operator << (OCLdevice& cdev,
                         const OCLFlush&)
 {
-    const bool s0 = cdev.buffers().waitWrite();
-    const bool s1 = cdev.images().waitWrite();
-    const bool s2 = cdev.kernels().wait();
-    cdev.statusOp(s0 && s1 && s2);
+    cdev.statusOp(cdev.waitEvents());
     return cdev;
 }
 
 OCLdevice& operator >> (OCLdevice& cdev,
                         const OCLFlush&)
 {
-    const bool s0 = cdev.buffers().waitRead();
-    const bool s1 = cdev.images().waitRead();
-    cdev.statusOp(s0 && s1);
+    cdev.statusOp(cdev.waitEvents());
     return cdev;
 }
 
@@ -1019,9 +994,9 @@ OCLdevice& operator << (OCLdevice& cdev,
                         OCLkernel& ckernel)
 {
     cdev.statusOp(cdev.kernels()
-                      .enqueue(ckernel.index(),
-                               ckernel.global(),
-                               ckernel.local()));
+                      .enqueueKernel(ckernel.index(),
+                                     ckernel.global(),
+                                     ckernel.local()));
     ckernel.clearDim();
     ckernel.clearArgIndex();
     return cdev;

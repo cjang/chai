@@ -6,6 +6,7 @@
 #include "Logger.hpp"
 #include "MemalignSTL.hpp"
 #include "MemManager.hpp"
+#include "OCLhacks.hpp"
 #include "PrecType.hpp"
 
 using namespace std;
@@ -904,8 +905,8 @@ void MemManager::swizzle(BackMem* backMem)
     LOGGER(ss.str())
 #endif
 
-    // only need to move data if using an OpenCL compute device that is remote
-    if (_deviceCode >= GPU_OPENCL && !_deviceIsCPU)
+    // only need to move data if using an OpenCL compute device
+    if (_deviceCode >= GPU_OPENCL)
     {
         pthread_mutex_lock(&_memMutex);
 
@@ -1876,19 +1877,66 @@ bool MemManager::enqueueKernel(VectorTrace& vt,
         return false;
     }
 
-    // index space
-    *kernelObj << OCLWorkIndex(globalWidth, 1);
+    // optimal work group size heuristic
+    const size_t wgSize = OCLhacks::singleton().workGroupSize(_deviceIndex);
+
+    // index space width
+    size_t localWidth = wgSize;
+    while (true)
+    {
+        if (0 == globalWidth % localWidth)
+        {
+            // this work group size fits
+            break;
+        }
+
+        if (0 == localWidth % 2)
+        {
+            // try half size in width
+            localWidth = localWidth / 2;
+        }
+        else
+        {
+            // failed to find a work group size larger than default
+            localWidth = 1;
+            break;
+        }
+    }
+    *kernelObj << OCLWorkIndex(globalWidth, localWidth);
+
+    // index space height
+    size_t localHeight = wgSize / localWidth;
     if (0 != globalHeight)
     {
-        *kernelObj << OCLWorkIndex(globalHeight, 1);
+        while (true)
+        {
+            if (0 == globalHeight % localHeight)
+            {
+                // this work group size fits
+                break;
+            }
+
+            if (0 == localHeight % 2)
+            {
+                // try half size in height
+                localHeight = localHeight / 2;
+            }
+            else
+            {
+                // failed to find a work group size larger than default
+                localHeight = 1;
+                break;
+            }
+        }
+        *kernelObj << OCLWorkIndex(globalHeight, localHeight);
     }
 
 #ifdef __LOGGING_ENABLED__
     stringstream ss;
-    ss << "index space width=" << globalWidth;
+    ss << "index space width=" << globalWidth << "/" << localWidth;
     if (0 != globalHeight)
     {
-        ss << " height=" << globalHeight;
+        ss << " height=" << globalHeight << "/" << localHeight;
     }
     LOGGER(ss.str())
 #endif

@@ -296,6 +296,25 @@ bool JustInTimeMemo::autotuneVars(Evergreen::MatmulBase& kernelGen,
     return foundGoodMem;
 }
 
+void JustInTimeMemo::eligibleGather(const AstVariable* dataVariable,
+                                    const StmtIdSpace& xid)
+{
+    uint32_t dataVarNum = -1;
+    const AstVariable *dataVarPtr = NULL;
+
+    const bool readwriteDataVariable =
+        dataVariable->isTraceVariable()
+            ? xid.isReadWrite( dataVarNum = dataVariable->variable() )
+            : xid.isReadWrite( dataVarPtr = dataVariable );
+
+    const VarKey keyData(dataVarNum, dataVarPtr);
+
+    if (! readwriteDataVariable)
+    {
+        _varLength[ keyData ].push_back( 0 ); // images have vector length 0
+    }
+}
+
 bool JustInTimeMemo::createArrayTemp(const AstVariable* v,
                                      StmtIdSpace& xid)
 {

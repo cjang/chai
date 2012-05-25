@@ -25,10 +25,10 @@ class ByteTrace
     std::vector< BCStmt* > _statements;
 
     // returns number of representative variables
-    size_t liftConstants(void);  // do first
+    void liftConstants(void);  // do first
 
     // returns number of transform passes
-    size_t rollLoops(void);      // do second
+    void rollLoops(void);      // do second
 
 public:
     ByteTrace(VectorTrace&);

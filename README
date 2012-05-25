@@ -89,3 +89,10 @@ point calculation is supported (includes autotuned GEMM and GEMV). Generated
 kernels make better use of private registers in generated code. Gathering now
 works in the kirch.cpp sample. The md5.cpp sample performs vectorized MD5 hash
 code calculation on the GPU.
+
+May 25 2012 - alpha 3 release, gathering and random number generation
+Gather operations with constant translation stencils (many image processing
+filters) are optimized to use images when possible. This takes advantage of the
+high speed L1 texture cache. Random number generation on the GPU is supported
+with the Random123 counter based PRNG. This includes uniform and normal
+distributions (using the Box-Muller transform).

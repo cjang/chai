@@ -30,6 +30,7 @@ public:
     bool containedIn(const std::set< uint32_t >& traceVars,
                      const std::set< const AstVariable* >& splitVars) const;
     const std::set< uint32_t >& traceVars(void) const;
+    const std::set< const AstVariable* >& splitVars(void) const;
 
     bool swappable(const Stmt&) const;
 

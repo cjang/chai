@@ -1,5 +1,7 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
+#include <math.h>
+
 #include "AstScalar.hpp"
 #include "PrecType.hpp"
 
@@ -55,6 +57,20 @@ float AstScalar::floatValue(void) const
 double AstScalar::doubleValue(void) const
 {
     return _doubleValue;
+}
+
+int AstScalar::floorValue(void) const
+{
+    switch (precision())
+    {
+        case (PrecType::UInt32) : return _uintValue;
+        case (PrecType::Int32) : return _intValue;
+        case (PrecType::Float) : return floorf(_floatValue);
+        case (PrecType::Double) : return floor(_doubleValue);
+
+        // should never happen
+        default : return 0;
+    }
 }
 
 void AstScalar::accept(VisitAst& v)

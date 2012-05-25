@@ -28,10 +28,7 @@ class Stmt
 
     // used for kernels, set externally
     std::set< AstVariable* > _underlyingVars;
-    std::set< uint32_t >     _transposeTraceVars;
-    std::set< AstVariable* > _transposeSplitVars;
-    std::set< uint32_t >     _gatherTraceVars;
-    std::set< AstVariable* > _gatherSplitVars;
+    bool                     _scalarVectorLength;
 
     bool _constructorLHS;
     bool _destructorLHS;
@@ -70,15 +67,8 @@ public:
     const std::set< AstVariable* >& underlyingVars(void) const;
     void underlyingVars(const std::set< AstVariable* >& underlyingVars);
 
-    const std::set< uint32_t >& transposeTraceVars(void) const;
-    const std::set< AstVariable* >& transposeSplitVars(void) const;
-    void transposeVars(const std::set< uint32_t >& traceNums,
-                       const std::set< AstVariable* >& splitPtrs);
-
-    const std::set< uint32_t >& gatherTraceVars(void) const;
-    const std::set< AstVariable* >& gatherSplitVars(void) const;
-    void gatherVars(const std::set< uint32_t >& traceNums,
-                    const std::set< AstVariable* >& splitPtrs);
+    bool scalarVectorLength(void) const;
+    void scalarVectorLength(const bool);
 
     virtual bool trackLHS(void) const;
 

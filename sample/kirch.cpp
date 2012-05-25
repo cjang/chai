@@ -13,7 +13,7 @@ using namespace std;
 // http://www.stanford.edu/class/ee380/Abstracts/070926-PeakStream.pdf
 //
 
-static int NNN = 10;
+static int NNN = 12;
 
 //const float LX = 100;
 //const float LT = 100;

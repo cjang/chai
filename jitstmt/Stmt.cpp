@@ -13,10 +13,7 @@ Stmt::Stmt(void)
     : _lhsVariable(NULL),
       _rhsVariable(),
       _underlyingVars(),
-      _transposeTraceVars(),
-      _transposeSplitVars(),
-      _gatherTraceVars(),
-      _gatherSplitVars(),
+      _scalarVectorLength(false),
       _constructorLHS(false),
       _destructorLHS(false),
       _buoyancy(NEUTRAL),
@@ -132,38 +129,14 @@ void Stmt::underlyingVars(const set< AstVariable* >& underlyingVars)
     _underlyingVars = underlyingVars;
 }
 
-const set< uint32_t >& Stmt::transposeTraceVars(void) const
+bool Stmt::scalarVectorLength(void) const
 {
-    return _transposeTraceVars;
+    return _scalarVectorLength;
 }
 
-const set< AstVariable* >& Stmt::transposeSplitVars(void) const
+void Stmt::scalarVectorLength(const bool a)
 {
-    return _transposeSplitVars;
-}
-
-void Stmt::transposeVars(const set< uint32_t >& traceNums,
-                         const set< AstVariable* >& splitPtrs)
-{
-    _transposeTraceVars = traceNums;
-    _transposeSplitVars = splitPtrs;
-}
-
-const set< uint32_t >& Stmt::gatherTraceVars(void) const
-{
-    return _gatherTraceVars;
-}
-
-const set< AstVariable* >& Stmt::gatherSplitVars(void) const
-{
-    return _gatherSplitVars;
-}
-
-void Stmt::gatherVars(const set< uint32_t >& traceNums,
-                      const set< AstVariable* >& splitPtrs)
-{
-    _gatherTraceVars = traceNums;
-    _gatherSplitVars = splitPtrs;
+    _scalarVectorLength = a;
 }
 
 bool Stmt::trackLHS(void) const

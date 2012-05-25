@@ -10,6 +10,7 @@ LIBRARY_OBJECT_CODE = \
 	StmtCreateData.o \
 	StmtExtension.o \
 	StmtExtensionAuto.o \
+	StmtGatherAuto.o \
 	StmtIndex.o \
 	StmtLiteral.o \
 	StmtMatmul.o \
@@ -18,8 +19,6 @@ LIBRARY_OBJECT_CODE = \
 	StmtReadData.o \
 	StmtReduce.o \
 	StmtRepeat.o \
-	StmtRNGrand.o \
-	StmtRNGseed.o \
 	StmtSendData.o \
 	StmtSingle.o \
 	VisitStmt.o

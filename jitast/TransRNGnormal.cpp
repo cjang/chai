@@ -12,20 +12,19 @@ namespace chai_internal {
 
 BaseAst* TransRNGnormal::sub_eval(void) const
 {
-    //const unsigned int seed = 0;
-    const unsigned int seed = random();
-    const size_t variant    = _argScalar[0]; // not used
-    const size_t len        = _argScalar[1];
+    const int variant   = _argScalar[0];
+    const uint64_t seed = _argScalar[1];
+    const size_t len    = _argScalar[2];
 
     return
-        new AstRNGnormal(seed,
-                         variant,
+        new AstRNGnormal(variant,
+                         seed,
                          len,
                          _precision);
 }
 
 TransRNGnormal::TransRNGnormal(const size_t precision)
-    : BaseTrans(2, 0),
+    : BaseTrans(3, 0),
       _precision(precision) { }
 
 }; // namespace chai_internal

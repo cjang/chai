@@ -77,6 +77,9 @@ public:
                       const StmtMatmulAuto&,
                       const StmtIdSpace&);
 
+    void eligibleGather(const AstVariable* dataVariable,
+                        const StmtIdSpace&);
+
     bool createArrayTemp(const AstVariable*, StmtIdSpace&);
     bool createArrayTemp(const AstVariable*, StmtIdSpace&, const uint32_t);
     bool createArrayTemp(const AstVariable*, StmtIdSpace&, const int32_t);
