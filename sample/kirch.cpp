@@ -15,8 +15,6 @@ using namespace std;
 
 static int NNN = 12;
 
-//const float LX = 100;
-//const float LT = 100;
 const float LX = NNN;
 const float LT = NNN;
 const float velhalf = 1;
@@ -52,17 +50,11 @@ int main(int argc, char *argv[])
     /////////////////////////////////////
     // boilerplate: start virtual machine
 
-    ParseArgs pargs(argc, argv);
-    if (! pargs.initVM()) // initialize virtual machine
-    {
-        cerr << "usage: " << argv[0] << " -f configspec" << endl;
-        exit(1);
-    }
+    ParseArgs(argc, argv).initVM(); // start virtual machine, exit on error
 
     /////////////////////////////////////
     // computational work
 
-//    int NT = 100, N = 100;
     int NT = NNN, N = NNN;
     float datagpu[NT * N], modlgpu[NT * N];
     for (size_t i = 0; i < N; i++)

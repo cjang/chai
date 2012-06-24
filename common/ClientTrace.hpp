@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <map>
+#include <set>
 #include <stdint.h>
 #include <vector>
 
@@ -16,6 +17,7 @@
 
 namespace chai_internal {
 
+class AstOpenCL;
 class SingleTrace;
 
 ////////////////////////////////////////
@@ -54,6 +56,12 @@ class ClientTrace
 
     // history of sticky continuation
     std::vector< size_t >            _stickyDeviceCode;
+
+    // constrain vector length choice by JIT
+    std::map< uint32_t, int >        _forceVectorLength;
+
+    // really a scalar
+    std::set< uint32_t >             _readScalar;
 
 public:
     ClientTrace(void);
@@ -133,6 +141,13 @@ public:
                        const std::vector< double* >& defPtr);
 
     size_t frontMem(FrontMem*);
+    size_t frontMem(const uint32_t variable,
+                    AstOpenCL* astObj);
+
+    void forceVectorLength(const uint32_t variable,
+                           const int constraint);
+
+    void readScalar(const uint32_t variable);
 };
 
 }; // namespace chai_internal

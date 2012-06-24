@@ -295,4 +295,25 @@ size_t ClientTrace::frontMem(FrontMem* m)
     return idx;
 }
 
+size_t ClientTrace::frontMem(const uint32_t variable,
+                             AstOpenCL* astObj)
+{
+    // special wrapper around AST object for inline OpenCL
+    FrontMem* m = new FrontMem(variable, astObj);
+    _refs.checkout(m);
+    _refs.checkout( (RefObj*)astObj ); // ugly cast
+    return frontMem(m);
+}
+
+void ClientTrace::forceVectorLength(const uint32_t variable,
+                                    const int constraint)
+{
+    _forceVectorLength[ variable ] = constraint;
+}
+
+void ClientTrace::readScalar(const uint32_t variable)
+{
+    _readScalar.insert(variable);
+}
+
 }; // namespace chai_internal

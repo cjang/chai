@@ -23,7 +23,7 @@ public:
     StmtExtensionAuto(AstVariable*, AstExtension*);
 
     std::string extensionName(void) const;
-    bool extensionEnqueue(MemManager&, VectorTrace&);
+    bool extensionEnqueueAuto(MemManager&, VectorTrace&);
 
     size_t extensionWidth(void) const;
     size_t extensionHeight(void) const;

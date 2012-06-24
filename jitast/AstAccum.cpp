@@ -15,9 +15,6 @@ AstAccum::AstAccum(BaseAst* barg,
       _takeAvg(takeAvg),
       _argW(barg->W()),
       _argH(barg->H())
-/*FIXME - remove this,
-      _notTogether(false)
-*/
 {
     pushArg(barg);
 }
@@ -36,18 +33,6 @@ size_t AstAccum::argH(void) const
 {
     return _argH;
 }
-
-/*FIXME - remove this
-bool AstAccum::getNotTogether(void) const
-{
-    return _notTogether;
-}
-
-void AstAccum::setNotTogether(void)
-{
-    _notTogether = true;
-}
-*/
 
 void AstAccum::accept(VisitAst& v)
 {

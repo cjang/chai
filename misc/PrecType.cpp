@@ -117,4 +117,19 @@ string PrecType::getPrimitiveName(const size_t precision)
     }
 }
 
+size_t PrecType::padWidth(const size_t precision, const size_t W)
+{
+    const size_t stdVecLen = PrecType::vecLength(precision);
+
+    // if not even multiple of standard vector length
+    const bool padNeeded = 0 != (W % stdVecLen);
+
+    // width is forced to be a multiple of standard vector length
+    const size_t width = padNeeded
+                             ? stdVecLen * (1 + (W / stdVecLen))
+                             : W;
+
+    return width;
+}
+
 }; // namespace chai_internal

@@ -27,7 +27,8 @@ public:
     {
         NOTHING_SPECIAL,
         SPECIAL_MATMUL,
-        SPECIAL_MATMUL_AUTO
+        SPECIAL_MATMUL_AUTO,
+        SPECIAL_OPENCL
     };
 
 private:

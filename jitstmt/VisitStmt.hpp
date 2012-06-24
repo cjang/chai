@@ -16,6 +16,7 @@ class StmtIndex;
 class StmtLiteral;
 class StmtMatmul;
 class StmtMatmulAuto;
+class StmtOpenCL;
 class StmtReadData;
 class StmtReduce;
 class StmtRepeat;
@@ -40,6 +41,7 @@ struct VisitStmt
     virtual void visit(StmtLiteral&) = 0;
     virtual void visit(StmtMatmul&) = 0;
     virtual void visit(StmtMatmulAuto&) = 0;
+    virtual void visit(StmtOpenCL&) = 0;
     virtual void visit(StmtReadData&) = 0;
     virtual void visit(StmtReduce&) = 0;
     virtual void visit(StmtRepeat&) = 0;

@@ -691,10 +691,15 @@ void StreamSubscript::widthIdx(ostream& os) const
 {
     const size_t x = isTransposed() ? 1 : 0;
 
+    const size_t padW
+        = (0 != (varWidth() % varVectorLength()))
+          ? varVectorLength() * (1 + (varWidth() / varVectorLength()))
+          : varWidth();
+
     // More problems if a matrix is transposed and the vector length
     // is not 1... Just adding a transposed matrix to a normal one
     // is problematic.
-    const size_t width = varWidth() / varVectorLength();
+    const size_t width = padW / varVectorLength();
 
     if (isEligibleGather())
     {

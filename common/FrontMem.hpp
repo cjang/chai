@@ -60,45 +60,57 @@ public:
              const size_t precision,
              const size_t slots);
 
+    // used by make1, make2
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
              float* dataPtr);
 
+    // used by make1, make2
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
              double* dataPtr);
 
+    // used by make1, make2
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
              int32_t* dataPtr);
 
+    // used by make1, make2
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
              uint32_t* dataPtr);
 
+    // used by make1, make2 (vector array data)
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
              const std::vector< float* >& dataPtr);
 
+    // used by make1, make2 (vector array data)
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
              const std::vector< double* >& dataPtr);
 
+    // used by make1, make2 (vector array data)
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
              const std::vector< int32_t* >& dataPtr);
 
+    // used by make1, make2 (vector array data)
     FrontMem(const uint32_t variable,
              const size_t W,
              const size_t H,
              const std::vector< uint32_t* >& dataPtr);
+
+    // used by inline OpenCL
+    FrontMem(const uint32_t variable,
+             void* ptr);
 
     ~FrontMem(void);
 

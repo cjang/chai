@@ -17,6 +17,7 @@
 #include "AstMatmulMV.hpp"
 #include "AstMatmulVM.hpp"
 #include "AstMatmulVV.hpp"
+#include "AstOpenCL.hpp"
 #include "AstReadout.hpp"
 #include "AstRNGnormal.hpp"
 #include "AstRNGuniform.hpp"
@@ -189,6 +190,10 @@ void StmtMatmul::visit(AstMatmulVM& v)
 void StmtMatmul::visit(AstMatmulVV& v)
 {
     descendAst(v);
+}
+
+void StmtMatmul::visit(AstOpenCL& v)
+{
 }
 
 void StmtMatmul::visit(AstReadout& v)

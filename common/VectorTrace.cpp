@@ -79,6 +79,24 @@ VectorTrace::VectorTrace(const map< pthread_t, SingleTrace* >& traceSet)
 
             _vectorNuts[(*jt).first]->push((*jt).second);
         }
+
+        // constrain vector length choices by JIT
+        for (map< uint32_t, int >::const_iterator
+             jt = sitr->_forceVectorLength.begin();
+             jt != sitr->_forceVectorLength.end();
+             jt++)
+        {
+            _forceVectorLength[ (*jt).first ] = (*jt).second;
+        }
+
+        // really a scalar
+        for (set< uint32_t >::const_iterator
+             jt = sitr->_readScalar.begin();
+             jt != sitr->_readScalar.end();
+             jt++)
+        {
+            _readScalar.insert( *jt );
+        }
     }
 
     // 1. multiple single traces gathered by scheduler into a vector trace
@@ -252,6 +270,16 @@ const map< uint32_t, VectorNut* >& VectorTrace::vectorNuts(void) const
 const set< uint32_t >& VectorTrace::liveVariables(void) const
 {
     return _liveVariables;
+}
+
+const map< uint32_t, int >& VectorTrace::forceVectorLength(void) const
+{
+    return _forceVectorLength;
+}
+
+const set< uint32_t >& VectorTrace::readScalar(void) const
+{
+    return _readScalar;
 }
 
 }; // namespace chai_internal

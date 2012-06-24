@@ -4,7 +4,13 @@ include ../Makefile.common
 USE_CFLAGS=$(SHARED_CFLAGS)
 
 LIBRARY_OBJECT_CODE = \
-	chai.o
+	chaiArray.o \
+	chaiCL.o \
+	chaiExp.o \
+	chaiFun.o \
+	chaiLit.o \
+	chaiRNG.o \
+	chaiVM.o
 
 EXTERNAL_HEADER_FILES = \
 	chai.h

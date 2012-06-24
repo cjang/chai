@@ -20,6 +20,7 @@
 #include "AstMatmulMV.hpp"
 #include "AstMatmulVM.hpp"
 #include "AstMatmulVV.hpp"
+#include "AstOpenCL.hpp"
 #include "AstReadout.hpp"
 #include "AstRNGnormal.hpp"
 #include "AstRNGuniform.hpp"
@@ -329,6 +330,11 @@ void AstGather::visit(AstMatmulVV& v)
 {
     _countNode++;
     descendAst(v);
+}
+
+void AstGather::visit(AstOpenCL&)
+{
+    _countNode++;
 }
 
 void AstGather::visit(AstReadout&)

@@ -39,7 +39,6 @@ int Conj_Grad_GPU_PS(int N, float *cpuA, float *cpux, float *cpub)
             residuals = newResiduals;
 
             float oldRRcpu = oldRR.read_scalar();
-cout << "oldRRcpu[" << iter << "] is " << oldRRcpu << endl;
             if (oldRRcpu <= TOLERANCE) {
                 break;
             }
@@ -56,12 +55,7 @@ int main(int argc, char *argv[])
     /////////////////////////////////////
     // boilerplate: start virtual machine
 
-    ParseArgs pargs(argc, argv);
-    if (! pargs.initVM()) // initialize virtual machine
-    {
-        cerr << "usage: " << argv[0] << " -f configspec" << endl;
-        exit(1);
-    }
+    ParseArgs(argc, argv).initVM(); // start virtual machine, exit on error
 
     /////////////////////////////////////
     // computational work

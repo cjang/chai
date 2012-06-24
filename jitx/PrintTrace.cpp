@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "AstOpenCL.hpp"
 #include "PrecType.hpp"
 #include "PrintTrace.hpp"
 #include "StmtBarrier.hpp"
@@ -15,6 +16,7 @@
 #include "StmtLiteral.hpp"
 #include "StmtMatmul.hpp"
 #include "StmtMatmulAuto.hpp"
+#include "StmtOpenCL.hpp"
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
@@ -223,6 +225,14 @@ void PrintTrace::visit(StmtMatmulAuto& mmaStmt)
     _os << ")" << endl;
 }
 
+void PrintTrace::visit(StmtOpenCL& oclStmt)
+{
+    indent() << "OPENCL "
+             << oclStmt.openclPtr()->programHashCode() << " "
+             << oclStmt.openclPtr()->kernelName()
+             << endl;
+}
+
 void PrintTrace::visit(StmtReadData& datStmt)
 {
     indent() << "READ ";
@@ -358,6 +368,7 @@ void PrintTrace::visit(AstMatmulMM& v) { BasePrinter::visit(v); }
 void PrintTrace::visit(AstMatmulMV& v) { BasePrinter::visit(v); }
 void PrintTrace::visit(AstMatmulVM& v) { BasePrinter::visit(v); }
 void PrintTrace::visit(AstMatmulVV& v) { BasePrinter::visit(v); }
+void PrintTrace::visit(AstOpenCL& v) { BasePrinter::visit(v); }
 void PrintTrace::visit(AstReadout& v) { BasePrinter::visit(v); }
 void PrintTrace::visit(AstRNGnormal& v) { BasePrinter::visit(v); }
 void PrintTrace::visit(AstRNGuniform& v) { BasePrinter::visit(v); }

@@ -51,6 +51,7 @@ public:
     void visit(AstMatmulMV&);
     void visit(AstMatmulVM&);
     void visit(AstMatmulVV&);
+    void visit(AstOpenCL&);
     void visit(AstReadout&);
     void visit(AstRNGnormal&);
     void visit(AstRNGuniform&);

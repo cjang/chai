@@ -19,6 +19,7 @@
 #include "AstMatmulMV.hpp"
 #include "AstMatmulVM.hpp"
 #include "AstMatmulVV.hpp"
+#include "AstOpenCL.hpp"
 #include "AstReadout.hpp"
 #include "AstRNGnormal.hpp"
 #include "AstRNGuniform.hpp"
@@ -38,6 +39,7 @@
 #include "StmtLiteral.hpp"
 #include "StmtMatmul.hpp"
 #include "StmtMatmulAuto.hpp"
+#include "StmtOpenCL.hpp"
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
@@ -250,6 +252,10 @@ void ElideInternal::visit(AstMatmulVV& v)
     replaceAst(v);
 }
 
+void ElideInternal::visit(AstOpenCL& v)
+{
+}
+
 void ElideInternal::visit(AstReadout& v)
 {
 }
@@ -381,6 +387,11 @@ void ElideInternal::visit(StmtMatmulAuto& s)
     // leave this alone, meta-kernel
 }
 
+void ElideInternal::visit(StmtOpenCL& s)
+{
+    // leave this alone, is separate kernel
+}
+
 void ElideInternal::visit(StmtReadData& s)
 {
     // leave this alone, meta-kernel
@@ -400,21 +411,6 @@ void ElideInternal::visit(StmtRepeat& s)
 {
     // need to edit elided variables in contained statements
     s.stuffInside()->accept(*this);
-
-/*FIXME - remove this
-    // any RNG variables inside reduction must be memory objects
-    for (set< AstVariable* >::const_iterator
-         it = s.rhsVariable().begin();
-         it != s.rhsVariable().end();
-         it++)
-    {
-        AstVariable* v = *it;
-        if (v->getValueFromRNG() && v->getForceWriteback())
-        {
-            keepVariable(v);
-        }
-    }
-*/
 }
 
 void ElideInternal::visit(StmtSendData& s)

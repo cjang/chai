@@ -72,6 +72,12 @@ class VectorTrace
     // restuck from one compute device to another
     bool                                         _stickyMovement;
 
+    // constrain vector length choice by JIT
+    std::map< uint32_t, int >                    _forceVectorLength;
+
+    // really a scalar
+    std::set< uint32_t >                         _readScalar;
+
 public:
     VectorTrace(const std::map< pthread_t, SingleTrace* >& traceSet);
 
@@ -118,6 +124,12 @@ public:
 
     // live variables
     const std::set< uint32_t >& liveVariables(void) const;
+
+    // constrain vector length choice by JIT
+    const std::map< uint32_t, int >& forceVectorLength(void) const;
+
+    // really a scalar
+    const std::set< uint32_t >& readScalar(void) const;
 };
 
 }; // namespace chai_internal

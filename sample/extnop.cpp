@@ -31,12 +31,7 @@ void body(void)
 
 int main(int argc, char *argv[])
 {
-    ParseArgs pargs(argc, argv);
-    if (! pargs.initVM()) // initialize virtual machine
-    {
-        cerr << "usage: " << argv[0] << " -f configspec" << endl;
-        exit(1);
-    }
+    ParseArgs(argc, argv).initVM(); // start virtual machine, exit on error
 
     initExt(); // language extensions
 

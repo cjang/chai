@@ -5,7 +5,25 @@ USE_CFLAGS=$(SHARED_CFLAGS)
 
 LIBRARY_OBJECT_CODE = \
 	ElideInternal.o \
-	EnqueueTrace.o \
+	EnqueueTraceAST.o \
+	EnqueueTraceBase.o \
+	EnqueueTraceBarrier.o \
+	EnqueueTraceCompound.o \
+	EnqueueTraceCreateData.o \
+	EnqueueTraceExtension.o \
+	EnqueueTraceExtensionAuto.o \
+	EnqueueTraceGatherAuto.o \
+	EnqueueTraceIdSpace.o \
+	EnqueueTraceIndex.o \
+	EnqueueTraceLiteral.o \
+	EnqueueTraceMatmul.o \
+	EnqueueTraceMatmulAuto.o \
+	EnqueueTraceOpenCL.o \
+	EnqueueTraceReadData.o \
+	EnqueueTraceReduce.o \
+	EnqueueTraceRepeat.o \
+	EnqueueTraceSendData.o \
+	EnqueueTraceSingle.o \
 	GroupTogether.o \
 	JustInTimeMemo.o \
 	MakeStmt.o \
@@ -17,7 +35,16 @@ LIBRARY_OBJECT_CODE = \
 
 
 INTERNAL_HEADER_FILES = \
-	$(LIBRARY_OBJECT_CODE:.o=.hpp)
+	ElideInternal.hpp \
+	EnqueueTrace.hpp \
+	GroupTogether.hpp \
+	JustInTimeMemo.hpp \
+	MakeStmt.hpp \
+	PrintTrace.hpp \
+	StmtIdSpace.hpp \
+	TrimFat.hpp \
+	UseRegister.hpp \
+	WorkTrace.hpp
 
 all : $(LIBRARY_OBJECT_CODE)
 

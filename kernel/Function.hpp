@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "Gathering.hpp"
+#include "KernelUnit.hpp"
 #include "Random123.hpp"
 #include "Subscript.hpp"
 #include "Variable.hpp"
@@ -24,7 +25,7 @@ class AstVariable;
 ////////////////////////////////////////
 // compute device function
 
-class Function
+class Function : public KernelUnit
 {
     // unfortunately, OpenCL code is device dependent
     const size_t _deviceIndex;

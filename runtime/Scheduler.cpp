@@ -2,6 +2,11 @@
 
 #include <algorithm>
 #include <errno.h>
+
+#ifdef __LOGGING_ENABLED__
+#include <sstream>
+#endif
+
 #include <stdint.h>
 #include <sys/time.h>
 

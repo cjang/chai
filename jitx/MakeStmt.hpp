@@ -53,6 +53,7 @@ class MakeStmt : public VisitBCStmt,
     enum TrackMatmul { MATMUL_MM, MATMUL_MV, MATMUL_VM };
     std::map< BaseAst*, TrackMatmul > _trackMatmul;
     std::set< BaseAst* > _trackMatmulArgs;
+    std::set< BaseAst* > _trackOpenCL;
     std::set< BaseAst* > _trackReadData;
     enum TrackReduce { REDUCE_ACCUM, REDUCE_DOTPROD };
     std::map< BaseAst*, TrackReduce > _trackReduce;
@@ -108,11 +109,6 @@ class MakeStmt : public VisitBCStmt,
     // does this statement have a transpose or gather forcing vector length 1?
     bool _scalarVectorLength;
 
-/*FIXME - remove this
-    // keep track of containing AST nodes that force writeback
-    std::stack< BaseAst* > _writebackStack;
-*/
-
     // number of containing non-matmul-argument transposes for an AST object
     size_t getTransposeCount(void) const;
 
@@ -135,6 +131,7 @@ class MakeStmt : public VisitBCStmt,
     void insertMatmul(AstMatmulMM&);
     void insertMatmul(AstMatmulMV&);
     void insertMatmul(AstMatmulVM&);
+    void insertOpenCL(AstOpenCL&);
     void insertReadData(AstReadout&);
     void insertReduce(AstAccum&);
     void insertReduce(AstDotprod&);
@@ -187,6 +184,7 @@ public:
     void visit(AstMatmulMV&);
     void visit(AstMatmulVM&);
     void visit(AstMatmulVV&);
+    void visit(AstOpenCL&);
     void visit(AstReadout&);
     void visit(AstRNGnormal&);
     void visit(AstRNGuniform&);

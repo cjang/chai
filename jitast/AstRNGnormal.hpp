@@ -18,10 +18,6 @@ class AstRNGnormal : public BaseAst
     const int      _rngVariant;
     const uint64_t _rngSeed;
 
-/*FIXME - remove this
-    bool _insideRolledLoop;
-*/
-
 public:
     AstRNGnormal(const int variant,
                  const uint64_t seed,
@@ -30,11 +26,6 @@ public:
 
     int rngVariant(void) const;
     uint64_t rngSeed(void) const;
-
-/*FIXME - remove this
-    bool getInsideRolledLoop(void) const;
-    void setInsideRolledLoop(void);
-*/
 
     void accept(VisitAst&);
 };

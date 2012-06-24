@@ -21,11 +21,7 @@ AstRNGuniform::AstRNGuniform(const int variant,
       _step(step),
       _minlimit(minlimit),
       _maxlimit(maxlimit),
-      _precision(precision)
-/*FIXME - remove this,
-      _insideRolledLoop(false)
-*/
- { }
+      _precision(precision) { }
 
 int AstRNGuniform::rngVariant(void) const
 {
@@ -51,18 +47,6 @@ double AstRNGuniform::maxlimit(void) const
 {
     return _maxlimit;
 }
-
-/*FIXME - remove this
-bool AstRNGuniform::getInsideRolledLoop(void) const
-{
-    return _insideRolledLoop;
-}
-
-void AstRNGuniform::setInsideRolledLoop(void)
-{
-    _insideRolledLoop = true;
-}
-*/
 
 void AstRNGuniform::accept(VisitAst& v)
 {

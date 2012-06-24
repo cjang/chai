@@ -1,6 +1,8 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
+#ifdef __LOGGING_ENABLED__
 #include <sstream>
+#endif
 
 #include "BackMem.hpp"
 #include "Logger.hpp"

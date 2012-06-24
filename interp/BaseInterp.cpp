@@ -211,8 +211,11 @@ void BaseInterp::visit(void* ptr)
 {
     const size_t stmtIndex = reinterpret_cast< size_t >(ptr);
 
-    _argMem.push_back(_vt->frontMem()[stmtIndex]);
-    _backMem.push_back(_vt->backMem()[stmtIndex]);
+    _argMem.push_back( _vt->frontMem()[stmtIndex] );
+
+    _backMem.push_back( _vt->backMem().count(stmtIndex)
+                            ? _vt->backMem()[stmtIndex]
+                            : NULL );
 }
 
 }; // namespace chai_internal

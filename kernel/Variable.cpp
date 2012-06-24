@@ -176,4 +176,101 @@ void Integer::convertType(ostream& os) const
     // this is a scalar so no type conversion is required
 }
 
+////////////////////////////////////////
+// (source kernel) array variable
+
+ArrayVariable::ArrayVariable(const size_t precType,
+                             const uint32_t varNum)
+    : Variable(precType, 0),
+      _variable(varNum) { }
+
+uint32_t ArrayVariable::variable(void) const
+{
+    return _variable;
+}
+
+void ArrayVariable::declareType(ostream& os) const
+{
+}
+
+void ArrayVariable::convertType(ostream& os) const
+{
+}
+
+////////////////////////////////////////
+// (source kernel) local memory
+
+LocalMemory::LocalMemory(const size_t precType,
+                         const size_t length)
+    : Variable(precType, 0),
+      _length(length) { }
+
+size_t LocalMemory::length(void) const
+{
+    return _length;
+}
+
+void LocalMemory::declareType(ostream& os) const
+{
+}
+
+void LocalMemory::convertType(ostream& os) const
+{
+}
+
+////////////////////////////////////////
+// (source kernel) scalar argument
+
+ScalarArgument::ScalarArgument(const uint32_t a)
+    : Variable(PrecType::UInt32, 0)
+{
+    _scalar.u = a;
+}
+
+ScalarArgument::ScalarArgument(const int32_t a)
+    : Variable(PrecType::Int32, 0)
+{
+    _scalar.i = a;
+}
+
+ScalarArgument::ScalarArgument(const float a)
+    : Variable(PrecType::Float, 0)
+{
+    _scalar.f = a;
+}
+
+ScalarArgument::ScalarArgument(const double a)
+    : Variable(PrecType::Double, 0)
+{
+    _scalar.d = a;
+}
+
+uint32_t ScalarArgument::scalarUInt32(void) const
+{
+    return _scalar.u;
+}
+
+int32_t ScalarArgument::scalarInt32(void) const
+{
+    return _scalar.i;
+}
+
+float ScalarArgument::scalarFloat(void) const
+{
+    return _scalar.f;
+}
+
+double ScalarArgument::scalarDouble(void) const
+{
+    return _scalar.d;
+}
+
+void ScalarArgument::declareType(ostream& os) const
+{
+}
+
+void ScalarArgument::convertType(ostream& os) const
+{
+}
+
 }; // namespace chai_internal

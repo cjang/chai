@@ -22,6 +22,7 @@ LIBRARY_OBJECT_CODE = \
 	AstMatmulMV.o \
 	AstMatmulVM.o \
 	AstMatmulVV.o \
+	AstOpenCL.o \
 	AstReadout.o \
 	AstRNGnormal.o \
 	AstRNGuniform.o \
@@ -44,6 +45,7 @@ LIBRARY_OBJECT_CODE = \
 	TransMakedata.o \
 	TransMatmul.o \
 	TransMatmulG.o \
+	TransOpenCL.o \
 	TransReadout.o \
 	TransRNGnormal.o \
 	TransRNGuniform.o \

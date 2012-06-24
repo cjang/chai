@@ -22,6 +22,8 @@ class OCLhacks
     const std::string _vendorINTEL;
     const std::string _vendorNVIDIA;
 
+    const std::string _flagDisableInterpreter;
+    const std::string _flagEnableInterpreter;
     const std::string _flagEvergreen;
     const std::string _flagFP64;
     const std::string _flagImages;
@@ -48,6 +50,7 @@ class OCLhacks
     std::set< size_t > _deviceIndexes;
     std::map< size_t, std::string > _index2device;
 
+    bool   _enableInterpreter;
     size_t _firstEvergreen;
 
     std::vector< std::string > splitToken(const std::string& s,
@@ -67,6 +70,7 @@ public:
     void initHacks(const OCLinit& oclInit,
                    std::istream& configSpec);
 
+    bool enableInterpreter(void) const;
     size_t firstEvergreen(void) const; // first Evergreen compute device
 
     bool shutdownNOP(void);

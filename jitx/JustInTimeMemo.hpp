@@ -48,6 +48,11 @@ class JustInTimeMemo
     std::map< VarKey, std::vector< size_t > > _varLength;
     std::set< std::vector< size_t > >         _rejectParams;
 
+    // backdoor force variable vector length
+    // 0 means image, 1|2|4 mean memory buffer of specified vector length
+    // 7 means memory buffer of unspecified vector length
+    std::map< uint32_t, size_t > _forceVarLength;
+
     VarKey astVarKey(const AstVariable*) const;
 
     size_t lookupVectorLength(const VarKey, const size_t precision);
@@ -63,6 +68,8 @@ public:
 
     size_t getVectorLength(const uint32_t varNum, const size_t precision);
     size_t getVectorLength(const AstVariable*);
+
+    void forceVectorLength(const uint32_t varNum, const int vlen);
 
     std::vector< size_t > autotuneLookup(const Evergreen::MatmulMMBase&);
     std::vector< size_t > autotuneLookup(const Evergreen::MatmulMVBase&);

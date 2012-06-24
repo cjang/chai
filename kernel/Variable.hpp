@@ -15,13 +15,22 @@ class Function;
 ////////////////////////////////////////
 // variable in a device kernel
 //
-// const sampler_t     <--- it is always const
-// image2d_t           <--- never const
-// float|double:1|2|4  <--- may be const, may be pointer
-// int                 <--- may be const
-
-// this is never a variable, only reinterpreting type
-// uint4               <--- packing doubles in uint32 images
+// For synthesized kernels:
+//
+//   const sampler_t     <--- it is always const
+//   image2d_t           <--- never const
+//   float|double:1|2|4  <--- may be const, may be pointer
+//   int                 <--- may be const
+//
+//   this is never a variable, only reinterpreting type
+//   uint4               <--- packing doubles in uint32 images
+//
+// For source kernels:
+//
+//   array variable object, may be image or memory buffer
+//   local memory
+//   scalar argument
+//
 
 ////////////////////////////////////////
 // abstract base class for variables
@@ -119,7 +128,6 @@ public:
 
 ////////////////////////////////////////
 // integer scalar
-
 class Integer : public Variable
 {
     const bool _isConst;
@@ -131,6 +139,68 @@ public:
 
     Integer(const ConstVariableDecl& varDecl,
             const AddressSpace& qualifier = DEFAULT);
+
+    void declareType(std::ostream&) const;
+    void convertType(std::ostream&) const;
+};
+
+////////////////////////////////////////
+// (source kernel) array variable
+class ArrayVariable : public Variable
+{
+    const uint32_t _variable;
+
+public:
+    ArrayVariable(const size_t precType,
+                  const uint32_t varNum);
+
+    uint32_t variable(void) const;
+
+    void declareType(std::ostream&) const;
+    void convertType(std::ostream&) const;
+};
+
+////////////////////////////////////////
+// (source kernel) local memory
+class LocalMemory : public Variable
+{
+    const size_t _length;
+
+public:
+    LocalMemory(const size_t precType,
+                const size_t length);
+
+    size_t length(void) const;
+
+    void declareType(std::ostream&) const;
+    void convertType(std::ostream&) const;
+};
+
+////////////////////////////////////////
+// (source kernel) scalar argument
+
+class ScalarArgument : public Variable
+{
+    union
+    {
+        uint32_t u;
+        int32_t  i;
+        float    f;
+        double   d;
+    } _scalar;
+
+public:
+    ScalarArgument(const uint32_t);
+    ScalarArgument(const int32_t);
+    ScalarArgument(const float);
+    ScalarArgument(const double);
+
+    size_t precType(void) const;
+
+    uint32_t scalarUInt32(void) const;
+    int32_t scalarInt32(void) const;
+    float scalarFloat(void) const;
+    double scalarDouble(void) const;
 
     void declareType(std::ostream&) const;
     void convertType(std::ostream&) const;

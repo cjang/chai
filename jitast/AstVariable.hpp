@@ -41,16 +41,6 @@ class AstVariable : public BaseAst
     // do not use dot() hack for scalars when operation split reduction
     bool _disableDotHack;
 
-/*FIXME - remove this
-    // variable value comes from RNG
-    bool _valueFromRNG;
-*/
-
-/*FIXME - remove this
-    // force writeback when using registers
-    bool _forceWriteback;
-*/
-
 public:
     // new variable is split off array memory
     AstVariable(AstArrayMem* barg);
@@ -81,16 +71,6 @@ public:
 
     bool enableDotHack(void) const;
     void disableDotHack(void);
-
-/*FIXME - remove this
-    bool getValueFromRNG(void) const;
-    void setValueFromRNG(void);
-*/
-
-/*FIXME - remove this
-    bool getForceWriteback(void) const;
-    void setForceWriteback(void);
-*/
 
     void accept(VisitAst&);
 };

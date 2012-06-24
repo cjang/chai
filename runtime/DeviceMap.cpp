@@ -15,15 +15,18 @@ DeviceMap::DeviceMap(OCLinit& oclInit, istream& configSpec)
     // this must occur before creating the device handling objects below
     OCLhacks::singleton().initHacks(oclInit, configSpec);
 
-    // interpreter on one CPU core
-    for (size_t coreIndex = 0;
-         coreIndex < 1;
-         coreIndex++)
+    if (OCLhacks::singleton().enableInterpreter())
     {
-        const size_t deviceCode = MemManager::CPU_INTERP + coreIndex;
-        _allCodes.insert( deviceCode );
-        _codeDevice[ deviceCode ] = new Interpreter(deviceCode);
-        _codeDevice[ deviceCode ]->initDevice();
+        // interpreter on one CPU core
+        for (size_t coreIndex = 0;
+             coreIndex < 1;
+             coreIndex++)
+        {
+            const size_t deviceCode = MemManager::CPU_INTERP + coreIndex;
+            _allCodes.insert( deviceCode );
+           _codeDevice[ deviceCode ] = new Interpreter(deviceCode);
+            _codeDevice[ deviceCode ]->initDevice();
+        }
     }
 
     // OpenCL compute device
@@ -55,15 +58,18 @@ void DeviceMap::extendLanguage(const uint32_t opCode,
                                const BaseInterp& interpHandler,
                                const BaseTrans& jitHandler)
 {
-    // interpreter on one CPU core
-    for (size_t coreIndex = 0;
-         coreIndex < 1;
-         coreIndex++)
+    if (OCLhacks::singleton().enableInterpreter())
     {
-        const size_t deviceCode = MemManager::CPU_INTERP + coreIndex;
+        // interpreter on one CPU core
+        for (size_t coreIndex = 0;
+             coreIndex < 1;
+             coreIndex++)
+        {
+            const size_t deviceCode = MemManager::CPU_INTERP + coreIndex;
 
-        _codeDevice[ deviceCode ]->extendLanguage(opCode,
-                                                  interpHandler);
+            _codeDevice[ deviceCode ]->extendLanguage(opCode,
+                                                      interpHandler);
+        }
     }
 
     // OpenCL compute device

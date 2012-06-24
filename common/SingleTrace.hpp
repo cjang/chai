@@ -52,6 +52,12 @@ class SingleTrace : public RefObj
     // need back reference to origin client trace for sticky continuation
     ClientTrace&                     _origin;
 
+    // constrain vector length choice by JIT
+    const std::map< uint32_t, int >  _forceVectorLength;
+
+    // really a scalar
+    const std::set< uint32_t >       _readScalar;
+
     uint64_t computeHash(ClientTrace&);
 
 public:

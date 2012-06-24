@@ -5,6 +5,8 @@
 
 #include <cstddef>
 #include <stdint.h>
+#include <string>
+#include <vector>
 
 namespace chai_internal {
 
@@ -27,6 +29,12 @@ struct TEA
     static
     uint64_t hash(const uint64_t * const data,
                   const size_t n);
+
+    static
+    uint64_t hash(const std::string& data);
+
+    static
+    uint64_t hash(const std::vector< std::string >& data);
 };
 
 }; // namespace chai_internal

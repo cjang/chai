@@ -37,6 +37,7 @@ BUILD_TARGETS = \
 	cg.x cg64.x \
 	filter.x \
 	index.x \
+	inline_cl.x \
 	kirch.x \
 	loopsum_uni.x loopsum_vec.x loopsum_omp.x loopsum_pth.x \
 	matmul_uni.x matmul_vec.x matmul_omp.x matmul_pth.x \

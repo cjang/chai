@@ -43,6 +43,7 @@ public:
     void visit(StmtLiteral&);
     void visit(StmtMatmul&);
     void visit(StmtMatmulAuto&);
+    void visit(StmtOpenCL&);
     void visit(StmtReadData&);
     void visit(StmtReduce&);
     void visit(StmtRepeat&);

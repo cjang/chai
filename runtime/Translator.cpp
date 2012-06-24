@@ -1,7 +1,11 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <set>
+
+#ifdef __LOGGING_ENABLED__
 #include <sstream>
+#endif
+
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -28,6 +32,7 @@
 #include "TransMakedata.hpp"
 #include "TransMatmul.hpp"
 #include "TransMatmulG.hpp"
+#include "TransOpenCL.hpp"
 #include "TransReadout.hpp"
 #include "TransRNGnormal.hpp"
 #include "TransRNGuniform.hpp"
@@ -191,6 +196,9 @@ Translator::Translator(const size_t deviceCode)
     _opDisp.addOp(ByteCodes::matmul, new TransMatmul);
     _opDisp.addOp(ByteCodes::matmulG, new TransMatmulG);
     _opDisp.addOp(ByteCodes::transpose, new TransTranspose);
+
+    // inline OpenCL
+    _opDisp.addOp(ByteCodes::kernel_from_opencl, new TransOpenCL);
 
     // reductions
     _opDisp.addOp(ByteCodes::dot_product, new TransDotprod);
@@ -370,19 +378,18 @@ bool Translator::sub_evaluate(VectorTrace& vt)
     LOGGER(ss.str())
 #endif
 
+    // create bytecode statements from vector trace
     ByteTrace bcsTrace(vt);
 
-    // bytecode code transformations
+    // bytecode transformations: lift constants; loop rolling
     bcsTrace.optimizeBytecode();
 
-    // generate boxed statements
+    // generate AST statements
     MakeBCStmt bcsMaker(_opDisp);
     bcsTrace.traverse(bcsMaker);
 
-    // working trace
+    // create statement trace, sort, kernelize, and transforms
     WorkTrace xsTrace(bcsTrace);
-
-    // perform reorder and together
     xsTrace.reorder();
     xsTrace.together();
 

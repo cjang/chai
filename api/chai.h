@@ -4,6 +4,7 @@
 #define _CHAI_H_
 
 #include <istream>
+#include <map>
 #include <ostream>
 #include <set>
 #include <stack>
@@ -17,6 +18,7 @@
 
 namespace chai_internal {
     class ArrayClient;
+    class AstOpenCL;
     class SingleNut;
 };
 
@@ -502,23 +504,78 @@ RngFun rng_normal_make(RNGf64& generator,
                        const size_t length);
 
 ////////////////////////////////////////
-// array variables
+// array variable abstract base class
+
+class ArrayBase : public ArrayExp
+{
+    const size_t                _prectype;
+    chai_internal::ArrayClient* _client;
+    uint32_t                    _variable;
+    uint32_t                    _version;
+    chai_internal::RefSet       _refs;
+    chai_internal::SingleNut*   _nut;
+    size_t                      _W;
+    size_t                      _H;
+    size_t                      _slots;
+
+    void initClient(void);
+
+    void setArrayDim(const size_t W,
+                     const size_t H,
+                     const size_t slots);
+
+protected:
+    ArrayBase(const size_t prectype);
+
+    ArrayBase(const size_t prectype,
+              const size_t W,
+              const size_t H,
+              const size_t slots);
+
+    ArrayBase(const ArrayBase&);
+
+    ArrayBase(const size_t prectype,
+              const ArrayExp&);
+
+    virtual ~ArrayBase(void);
+
+    ArrayBase& assignOther(const ArrayBase&);
+    ArrayBase& assignExp(const ArrayExp&);
+
+    chai_internal::ArrayClient& client(void) const;
+    uint32_t variable(void) const;
+    uint32_t version(void) const;
+    uint32_t versionInc(void);
+    size_t W(void) const;
+    size_t H(void) const;
+    size_t slots(void) const;
+    ArrayDim arrayDim(void) const;
+
+public:
+    chai_internal::ArrayClient* getArrayClient(void) const;
+    size_t getArrayPrecType(void) const;
+    uint32_t getArrayVarNum(void) const;
+};
+
+enum ArrayMemoryOverride
+{
+    ARR_ANY     = -1,
+    ARR_IMAGE   = 0,
+    ARR_MEMBUF1 = 1,
+    ARR_MEMBUF2 = 2,
+    ARR_MEMBUF4 = 4,
+    ARR_MEMBUF  = 1 + 2 + 4
+};
+
+////////////////////////////////////////
+// array variable derived class
 
 #define ARR(FP) Array ## FP
 
 #define DECL_ARRAY(FP, X) \
-class ARR(FP) : public ArrayExp { \
-    chai_internal::ArrayClient* _client; \
-    uint32_t                    _variable; \
-    uint32_t                    _version; \
-    chai_internal::RefSet       _refs; \
-    chai_internal::SingleNut*   _nut; \
-    size_t                      _W; \
-    size_t                      _H; \
-    size_t                      _slots; \
-    void initClient(void); \
+class ARR(FP) : public ArrayBase { \
+    ARR(FP) (const size_t W, const size_t H, const size_t slots); \
 public: \
-    ARR(FP) (const X); \
     ARR(FP) (void); \
     ARR(FP) (const ARR(FP)&); \
     ARR(FP) (const ArrayExp&); \
@@ -557,6 +614,16 @@ public: \
     static ARR(FP) make2(const size_t W, const size_t H, X* cpu); \
     static ARR(FP) make2(const size_t W, const size_t H, \
                          const std::vector< X* >& cpu); \
+    static ARR(FP) make1(const size_t W, X* cpu, \
+                         ArrayMemoryOverride vlen); \
+    static ARR(FP) make1(const size_t W, \
+                         const std::vector< X* >& cpu, \
+                         ArrayMemoryOverride vlen); \
+    static ARR(FP) make2(const size_t W, const size_t H, X* cpu, \
+                         ArrayMemoryOverride vlen); \
+    static ARR(FP) make2(const size_t W, const size_t H, \
+                         const std::vector< X* >& cpu, \
+                         ArrayMemoryOverride vlen); \
     static ARR(FP) zeros(const size_t W); \
     static ARR(FP) zeros(const size_t W, const size_t H); \
     static ARR(FP) ones(const size_t W); \
@@ -568,6 +635,16 @@ ARR(FP) make1(const size_t W, \
 ARR(FP) make2(const size_t W, const size_t H, X* cpu); \
 ARR(FP) make2(const size_t W, const size_t H, \
               const std::vector< X* >& cpu); \
+ARR(FP) make1(const size_t W, X* cpu, \
+              ArrayMemoryOverride vlen); \
+ARR(FP) make1(const size_t W, \
+              const std::vector< X* >& cpu, \
+              ArrayMemoryOverride vlen); \
+ARR(FP) make2(const size_t W, const size_t H, X* cpu, \
+              ArrayMemoryOverride vlen); \
+ARR(FP) make2(const size_t W, const size_t H, \
+              const std::vector< X* >& cpu, \
+              ArrayMemoryOverride vlen); \
 ARR(FP) zeros_ ## FP (const size_t W); \
 ARR(FP) zeros_ ## FP (const size_t W, const size_t H); \
 ARR(FP) ones_ ## FP (const size_t W); \
@@ -577,6 +654,79 @@ DECL_ARRAY(u32, uint32_t)
 DECL_ARRAY(i32, int32_t)
 DECL_ARRAY(f32, float)
 DECL_ARRAY(f64, double)
+
+////////////////////////////////////////
+// inline OpenCL
+
+class ProgramCL
+{
+    const uint64_t             _programHashCode;
+    std::vector< std::string > _programText;
+
+    enum ArgumentKind
+    {
+        ARRAY_BASE,
+        LOCAL_MEM,
+        SCALAR
+    };
+
+    size_t                           _argIndex;
+    std::map< size_t, ArgumentKind > _argKind;
+    std::map< size_t, size_t >       _argPrecType;
+
+    std::map< std::string, std::vector< ArgumentKind > > _kernelArgKind;
+    std::map< std::string, std::vector< size_t > >       _kernelArgPrecType;
+
+    std::set< std::string > _arrayBaseKeywords;
+    std::set< std::string > _localMemKeywords;
+    std::map< std::string, size_t > _scalarKeywords;
+
+    void initKeywords(void);
+
+    bool parseKernelArgs(const std::string& strT);
+    void setKernelArgs(const std::string& kernelName);
+    void parseProgramText(void);
+
+public:
+    class Kernel
+    {
+        friend class ProgramCL;
+
+        ProgramCL&                  _progCL;
+        const std::string           _kernelName;
+        chai_internal::AstOpenCL*   _astObj;
+        chai_internal::ArrayClient* _client;
+        chai_internal::RefSet       _refs;
+        chai_internal::SingleNut*   _nut;
+
+        size_t _argIndex;
+
+        Kernel(ProgramCL& progCL,
+               const std::string& kernelName);
+
+    public:
+        ~Kernel(void);
+
+        Kernel& operator, (const ArrayBase& arrayVar);
+        Kernel& operator, (const size_t length);
+        Kernel& operator, (const uint32_t scalar);
+        Kernel& operator, (const int32_t scalar);
+        Kernel& operator, (const float scalar);
+        Kernel& operator, (const double scalar);
+
+        void operator() (const size_t global0, const size_t local0);
+        void operator() (const size_t global0, const size_t global1,
+                         const size_t local0, const size_t local1);
+    };
+
+    friend class Kernel;
+
+    ProgramCL(const std::string& programText);
+    ProgramCL(const std::vector< std::string >& programText);
+    ~ProgramCL(void);
+
+    Kernel operator, (const std::string& kernelName);
+};
 
 }; // namespace chai
 

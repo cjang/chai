@@ -22,6 +22,7 @@ class AstMatmulMM;
 class AstMatmulMV;
 class AstMatmulVM;
 class AstMatmulVV;
+class AstOpenCL;
 class AstReadout;
 class AstRNGnormal;
 class AstRNGuniform;
@@ -52,6 +53,7 @@ struct VisitAst
     virtual void visit(AstMatmulMV&) = 0;
     virtual void visit(AstMatmulVM&) = 0;
     virtual void visit(AstMatmulVV&) = 0;
+    virtual void visit(AstOpenCL&) = 0;
     virtual void visit(AstReadout&) = 0;
     virtual void visit(AstRNGnormal&) = 0;
     virtual void visit(AstRNGuniform&) = 0;

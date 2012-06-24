@@ -29,7 +29,10 @@ public:
 
         // matrix multiplication, GEMM and GEMV
         SPECIAL_MATMUL,
-        SPECIAL_MATMUL_AUTO
+        SPECIAL_MATMUL_AUTO,
+
+        // inline OpenCL
+        SPECIAL_OPENCL
     };
 
 private:
@@ -108,6 +111,7 @@ private:
 
     bool          _prevIsExtension;
     bool          _prevIsMatmul;
+    bool          _prevIsOpenCL;
     bool          _prevIsReduction;
     SpecialKernel _specialK;
 
@@ -115,6 +119,7 @@ private:
 
     bool isExtension(void);
     bool isMatmul(void);
+    bool isOpenCL(void);
     bool isReduction(void);
     bool isSpecial(void);
     bool isEmpty(void) const;
@@ -214,6 +219,7 @@ public:
     void visit(StmtLiteral&);
     void visit(StmtMatmul&);
     void visit(StmtMatmulAuto&);
+    void visit(StmtOpenCL&);
     void visit(StmtReadData&);
     void visit(StmtReduce&);
     void visit(StmtRepeat&);

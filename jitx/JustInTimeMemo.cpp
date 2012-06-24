@@ -1,6 +1,8 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
+#ifdef __LOGGING_ENABLED__
 #include <sstream>
+#endif
 
 #include "JustInTimeMemo.hpp"
 #include "Logger.hpp"
@@ -40,18 +42,48 @@ size_t JustInTimeMemo::lookupVectorLength(const VarKey varKey,
         // only distinguish between images and memory buffers
         if (0 == vlen)
         {
-            return vlen;
+            // leave image vector length alone
         }
         else
         {
-            // use simple heuristic for vector length
+            // use simple heuristic for memory buffer vector length
             vlen = PrecType::vecLength(precision);
         }
     }
     else
     {
-        // use simple heuristic for vector length
+        // nothing known, so use simple heuristic for vector length
         vlen = PrecType::vecLength(precision);
+    }
+
+    // check for backdoor forced vector length
+    const uint32_t varNum = varKey.first;
+    const bool forceVecLen = -1 != varNum && _forceVarLength.count(varNum);
+    if (forceVecLen)
+    {
+        switch (_forceVarLength[varNum])
+        {
+            // must be specified vector length
+            case (0) :
+            case (1) :
+            case (2) :
+            case (4) :
+                vlen = _forceVarLength[varNum];
+                break;
+
+            // must be memory buffer, don't care what vector length
+            case (7) :
+                if (0 == vlen)
+                {
+                    // change image to memory buffer
+                    vlen = PrecType::vecLength(precision);
+                }
+                else
+                {
+                    // already memory buffer, don't do anything
+                }
+                break;
+        }
     }
 
     return vlen;
@@ -105,6 +137,7 @@ void JustInTimeMemo::clearTrace(void)
 {
     _varLength.clear();
     _rejectParams.clear();
+    _forceVarLength.clear();
 }
 
 size_t JustInTimeMemo::getVectorLength(const uint32_t varNum,
@@ -118,6 +151,12 @@ size_t JustInTimeMemo::getVectorLength(const AstVariable* v)
 {
     return lookupVectorLength( astVarKey(v),
                                v->precision() );
+}
+
+void JustInTimeMemo::forceVectorLength(const uint32_t varNum,
+                                       const int vlen)
+{
+    _forceVarLength[ varNum ] = vlen;
 }
 
 vector< size_t > JustInTimeMemo::autotuneLookup(

@@ -1,6 +1,10 @@
 // Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
+#include <sstream>
+
 #include "TEA.hpp"
+
+using namespace std;
 
 namespace chai_internal {
 
@@ -82,6 +86,57 @@ uint64_t TEA::hash(const uint64_t * const data,
     }
 
     return *reinterpret_cast< const uint64_t* >(w);
+}
+
+uint64_t TEA::hash(const string& data)
+{
+    vector< uint64_t > v;
+
+    union
+    {
+        char     c[4];
+        uint64_t u64;
+    } u;
+
+    size_t i;
+    for (i = 0; i < data.size(); i += 4)
+    {
+        u.c[0] = data[i];
+        u.c[1] = data[i + 1];
+        u.c[2] = data[i + 2];
+        u.c[3] = data[i + 3];
+
+        v.push_back( u.u64 );
+    }
+
+    if (i < data.size())
+    {
+        u.u64 = 0;
+
+        for (size_t j = 0; i + j < data.size(); j++)
+        {
+            u.c[j] = data[i + j];
+        }
+
+        v.push_back( u.u64 );
+    }
+
+    return TEA::hash(&v[0], v.size());
+}
+
+uint64_t TEA::hash(const vector< string >& data)
+{
+    vector< uint64_t > v;
+
+    for (vector< string >::const_iterator
+         it = data.begin();
+         it != data.end();
+         it++)
+    {
+        v.push_back(TEA::hash(*it));
+    }
+
+    return TEA::hash(&v[0], v.size());
 }
 
 }; // namespace chai_internal

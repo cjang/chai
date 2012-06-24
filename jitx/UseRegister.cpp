@@ -19,6 +19,7 @@
 #include "AstMatmulMV.hpp"
 #include "AstMatmulVM.hpp"
 #include "AstMatmulVV.hpp"
+#include "AstOpenCL.hpp"
 #include "AstReadout.hpp"
 #include "AstRNGnormal.hpp"
 #include "AstRNGuniform.hpp"
@@ -37,6 +38,7 @@
 #include "StmtLiteral.hpp"
 #include "StmtMatmul.hpp"
 #include "StmtMatmulAuto.hpp"
+#include "StmtOpenCL.hpp"
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
@@ -190,11 +192,6 @@ void UseRegister::edit(StmtIdSpace& xid)
             traceCandidates.erase((*it).first);
     }
 
-/*FIXME - remove this
-    // RNG always use registers
-    traceCandidates.insert(_rngVariables.begin(), _rngVariables.end());
-*/
-
     set< const Stmt* > removeBarriers;
 
     // check for any memory barriers that need to be removed
@@ -254,14 +251,6 @@ void UseRegister::edit(StmtIdSpace& xid)
     {
         const uint32_t varNum = *it;
 
-/*FIXME - remove this
-        if (_forceWriteback.count(varNum))
-        {
-            traceWriteBack.insert(varNum);
-            continue;
-        }
-*/
-
         if (1 == _traceWrite[varNum] &&   // first assignment is only one
             0 == _traceReadWrite[varNum]) // variable value never changes
         {
@@ -269,15 +258,7 @@ void UseRegister::edit(StmtIdSpace& xid)
         }
         else
         {
-/*FIXME - remove this
-            // hack: assume variables with RNG are never written back to memory
-            if (0 == _rngVariables.count(varNum))
-            {
-*/
-                traceWriteBack.insert(varNum);
-/*FIXME - remove this
-            }
-*/
+            traceWriteBack.insert(varNum);
         }
     }
 
@@ -381,6 +362,10 @@ void UseRegister::visit(AstMatmulVV& v)
     descendAst(v);
 }
 
+void UseRegister::visit(AstOpenCL& v)
+{
+}
+
 void UseRegister::visit(AstReadout& v)
 {
 }
@@ -407,21 +392,6 @@ void UseRegister::visit(AstVariable& v)
     // appears on RHS
     _stmtRHS.insert(&v);
 
-/*FIXME - remove this
-    // hack: variables with RNG shouldn't be written back
-    if (v.isTraceVariable() && v.getValueFromRNG())
-    {
-        _rngVariables.insert(v.variable());
-    }
-*/
-
-/*FIXME - remove this
-    if (v.isTraceVariable() && v.getForceWriteback())
-    {
-        _forceWriteback.insert(v.variable());
-    }
-*/
-
     // variables contained inside a reduction or gather
     if (_trackContained.empty())
     {
@@ -433,11 +403,7 @@ void UseRegister::visit(AstVariable& v)
         // ignore pure stream variable inside reduction or gather
         if (v.isTraceVariable())
         {
-/*FIXME - remove this
-            // ...unless it has a value at least partially from RNG
-            if (! v.getValueFromRNG())
-*/
-                _traceExclude.insert(v.variable());
+            _traceExclude.insert(v.variable());
         }
     }
 
@@ -517,6 +483,11 @@ void UseRegister::visit(StmtMatmul& s)
 void UseRegister::visit(StmtMatmulAuto& s)
 {
     // leave this alone, meta-kernel
+}
+
+void UseRegister::visit(StmtOpenCL& s)
+{
+    // leave this alone, is separate kernel
 }
 
 void UseRegister::visit(StmtReadData& s)

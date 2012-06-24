@@ -271,6 +271,19 @@ FrontMem::FrontMem(const uint32_t variable,
     }
 }
 
+FrontMem::FrontMem(const uint32_t variable,
+                   void* ptr)
+    : RefObj(),
+      _variable(variable),
+      _W(0),
+      _H(0),
+      _slots(0),
+      _precision(-1),
+      _ptrMem(NULL),
+      _backObj(NULL),
+      _dataPtr(ptr),
+      _slotMem() { }
+
 FrontMem::~FrontMem(void)
 {
     for (vector< FrontMem* >::const_iterator

@@ -16,6 +16,7 @@ LIBRARY_OBJECT_CODE = \
 	StmtMatmul.o \
 	StmtMatmulAuto.o \
 	StmtMatmulBase.o \
+	StmtOpenCL.o \
 	StmtReadData.o \
 	StmtReduce.o \
 	StmtRepeat.o \

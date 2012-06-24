@@ -75,6 +75,8 @@ OCLhacks::OCLhacks(void)
       _vendorAMD("AMD"),
       _vendorINTEL("INTEL"),
       _vendorNVIDIA("NVIDIA"),
+      _flagDisableInterpreter("DisableInterpreter"),
+      _flagEnableInterpreter("EnableInterpreter"),
       _flagEvergreen("Evergreen"),
       _flagFP64("FP64"),
       _flagImages("Images"),
@@ -85,6 +87,7 @@ OCLhacks::OCLhacks(void)
       _settingTimingTrials("TimingTrials"),
       _settingWatchdog("Watchdog"),
       _settingWorkGroupSize("WorkGroupSize"),
+      _enableInterpreter(true),
       _firstEvergreen(-1)
 { }
 
@@ -136,6 +139,11 @@ void OCLhacks::initHacks(const OCLinit& oclInit,
     // @HD5870         WorkGroupSize=64
     // @GTX480         WorkGroupSize=32
     // @Corei7920      WorkGroupSize=8
+    //
+    // Special reserved keyword settings for the interpreter (last one wins)
+    //
+    // EnableInterpreter
+    // DisableInterpreter
 
     string strT, deviceKey;
     vector< string > splitT, evergreenDevices;
@@ -223,6 +231,18 @@ void OCLhacks::initHacks(const OCLinit& oclInit,
         }
         else // device keyword or capability flag
         {
+            if (_flagDisableInterpreter == strT)
+            {
+                _enableInterpreter = false;
+                continue;
+            }
+
+            if (_flagEnableInterpreter == strT)
+            {
+                _enableInterpreter = true;
+                continue;
+            }
+
             if (newDevice)
             {
                 // device keyword
@@ -358,6 +378,11 @@ void OCLhacks::initHacks(const OCLinit& oclInit,
             break;
         }
     }
+}
+
+bool OCLhacks::enableInterpreter(void) const
+{
+    return _enableInterpreter;
 }
 
 size_t OCLhacks::firstEvergreen(void) const

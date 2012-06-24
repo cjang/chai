@@ -1,8 +1,11 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <stdlib.h>
+#include <string>
+#include <string.h>
 #include <unistd.h>
 
 #include "chai/chai.h"
@@ -106,31 +109,38 @@ ParseArgs::ParseArgs(int argc, char *argv[])
       _includeSendDataToDevice(false),
       _includeReadDataFromDevice(false) { }
 
-bool ParseArgs::initVM(void)
+void ParseArgs::initVM(void)
 {
     bool ok = false;
 
-    string configSpec;
-
     int opt;
-    while (-1 != (opt = getopt(_argc, _argv, "f:")))
+    while (-1 != (opt = getopt(_argc, _argv, "f:i")))
     {
         switch (opt)
         {
             // -f configspec_filename
             case ('f') :
-                configSpec = optarg;
+                if (strlen(optarg))
+                {
+                    // part of external API, initialize runtime
+                    chai::init(optarg);
+                    ok = true;
+                }
+                break;
+
+            // -i
+            case ('i') :
+                chai::init(""); // interpreter active by default
+                ok = true;
                 break;
         }
     }
 
-    if (! configSpec.empty())
+    if (! ok)
     {
-        chai::init(configSpec); // part of external API, initialize runtime
-        ok = true;
+        cerr << "usage: " << _argv[0] << " [-f configspec] [-i]" << endl;
+        exit(1);
     }
-
-    return ok;
 }
 
 bool ParseArgs::getOpt(OCLinit& cinit)

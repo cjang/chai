@@ -23,8 +23,8 @@ string StmtExtensionAuto::extensionName(void) const
     return _extObj->extensionName();
 }
 
-bool StmtExtensionAuto::extensionEnqueue(MemManager& memMgr,
-                                         VectorTrace& vt)
+bool StmtExtensionAuto::extensionEnqueueAuto(MemManager& memMgr,
+                                             VectorTrace& vt)
 {
     return _extObj->extensionEnqueueAuto(memMgr, vt, _lhsVariable);
 }

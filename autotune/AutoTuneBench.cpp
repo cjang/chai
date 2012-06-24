@@ -56,9 +56,9 @@ size_t AutoTuneBench::runTime(const size_t trialNumber,
     _journal.compileKernel(kernelName);
 
     // kernel object, this compiles the source text
-    OCLkernel ckernel(_cdev,
-                      kernelName,
-                      kernelSource);
+    OCLkernel ckernel(_cdev);
+    ckernel.buildJIT(kernelName,
+                     kernelSource);
 
     // check for failure
     if (! ckernel.isOk())

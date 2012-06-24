@@ -7,7 +7,9 @@ LIBRARY_OBJECT_CODE = \
 	Function.o \
 	Gathering.o \
 	KernelCache.o \
+	KernelUnit.o \
 	Qualifier.o \
+	SourceKernel.o \
 	Subscript.o \
 	Variable.o
 

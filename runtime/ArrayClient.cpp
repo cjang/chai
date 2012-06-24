@@ -127,9 +127,27 @@ void* ArrayClient::frontMem(FrontMem* m)
     return reinterpret_cast<void*>(_trace.frontMem(m));
 }
 
+void* ArrayClient::frontMem(const uint32_t variable,
+                            AstOpenCL* astObj)
+{
+    return reinterpret_cast<void*>(_trace.frontMem(variable,
+                                                   astObj));
+}
+
 void ArrayClient::schedule(void)
 {
     Scheduler::singleton().wait(_ptself, _trace);
+}
+
+void ArrayClient::forceVectorLength(const uint32_t variable,
+                                    const int constraint)
+{
+    _trace.forceVectorLength(variable, constraint);
+}
+
+void ArrayClient::readScalar(const uint32_t variable)
+{
+    _trace.readScalar(variable);
 }
 
 }; // namespace chai_internal

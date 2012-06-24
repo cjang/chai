@@ -22,10 +22,6 @@ class AstRNGuniform : public BaseAst
     const double   _maxlimit;
     const size_t   _precision;
 
-/*FIXME - remove this
-    bool _insideRolledLoop;
-*/
-
 public:
     AstRNGuniform(const int variant,
                   const uint64_t seed,
@@ -41,11 +37,6 @@ public:
     size_t step(void) const;
     double minlimit(void) const;
     double maxlimit(void) const;
-
-/*FIXME - remove this
-    bool getInsideRolledLoop(void) const;
-    void setInsideRolledLoop(void);
-*/
 
     void accept(VisitAst&);
 };

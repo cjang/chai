@@ -93,6 +93,7 @@ void PrintBCStmt::visit(AstMatmulMM& v) { BasePrinter::visit(v); }
 void PrintBCStmt::visit(AstMatmulMV& v) { BasePrinter::visit(v); }
 void PrintBCStmt::visit(AstMatmulVM& v) { BasePrinter::visit(v); }
 void PrintBCStmt::visit(AstMatmulVV& v) { BasePrinter::visit(v); }
+void PrintBCStmt::visit(AstOpenCL& v) { BasePrinter::visit(v); }
 void PrintBCStmt::visit(AstReadout& v) { BasePrinter::visit(v); }
 void PrintBCStmt::visit(AstRNGnormal& v) { BasePrinter::visit(v); }
 void PrintBCStmt::visit(AstRNGuniform& v) { BasePrinter::visit(v); }

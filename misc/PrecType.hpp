@@ -43,6 +43,9 @@ public:
 
     // change precision type code to printable string name
     static std::string getPrimitiveName(const size_t precision);
+
+    // width padding
+    static size_t padWidth(const size_t precision, const size_t W);
 };
 
 }; // namespace chai_internal

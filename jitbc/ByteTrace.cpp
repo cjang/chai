@@ -70,6 +70,7 @@ void ByteTrace::liftConstants(void)
             if (v.variables().empty())
             {
                 // random number generation is a special case
+                // inline OpenCL is a special case
                 // what looks like the same constant function is really not
                 if ( v.opCodes().count(ByteCodes::rng_normal_make_u32) ||
                      v.opCodes().count(ByteCodes::rng_normal_make_i32) ||
@@ -78,9 +79,11 @@ void ByteTrace::liftConstants(void)
                      v.opCodes().count(ByteCodes::rng_uniform_make_u32) ||
                      v.opCodes().count(ByteCodes::rng_uniform_make_i32) ||
                      v.opCodes().count(ByteCodes::rng_uniform_make_f32) ||
-                     v.opCodes().count(ByteCodes::rng_uniform_make_f64) )
+                     v.opCodes().count(ByteCodes::rng_uniform_make_f64) ||
+                     v.opCodes().count(ByteCodes::kernel_from_opencl) )
                 {
                     // RNG violates referential transparency
+                    // inline OpenCL is a special case
                 }
                 else
                 {

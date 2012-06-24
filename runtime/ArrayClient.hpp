@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <vector>
 
+#include "AstOpenCL.hpp"
 #include "chai/BC.hpp"
 #include "chai/Stak.hpp"
 #include "ClientTrace.hpp"
@@ -91,8 +92,15 @@ public:
                        const std::vector< double* >& dataPtr);
 
     void* frontMem(FrontMem*);
+    void* frontMem(const uint32_t variable,
+                   AstOpenCL* astObj);
 
     void schedule(void);
+
+    void forceVectorLength(const uint32_t variable,
+                           const int constraint);
+
+    void readScalar(const uint32_t variable);
 };
 
 }; // namespace chai_internal

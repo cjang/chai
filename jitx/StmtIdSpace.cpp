@@ -23,6 +23,9 @@ StmtIdSpace::SpecialKernel StmtIdSpace::convertSpecialK(
 
         case (GroupTogether::SPECIAL_MATMUL_AUTO) :
             return SPECIAL_MATMUL_AUTO;
+
+        case (GroupTogether::SPECIAL_OPENCL) :
+            return SPECIAL_OPENCL;
     }
 }
 

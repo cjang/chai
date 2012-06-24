@@ -3,7 +3,7 @@
 #ifndef _CHAI_PARSE_ARGS_HPP_
 #define _CHAI_PARSE_ARGS_HPP_
 
-#include <string>
+#include <cstddef>
 
 namespace chai_internal {
     namespace Evergreen {
@@ -57,7 +57,7 @@ public:
     ParseArgs(int argc, char *argv[]);
 
     // used by regular DSL applications
-    bool initVM(void);
+    void initVM(void);
 
 #ifdef _CHAI_OCL_INIT_HPP_
     // used by application tools with direct control over runtime

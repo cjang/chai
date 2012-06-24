@@ -36,6 +36,7 @@ public:
     void visit(StmtLiteral&);
     void visit(StmtMatmul&);
     void visit(StmtMatmulAuto&);
+    void visit(StmtOpenCL&);
     void visit(StmtReadData&);
     void visit(StmtReduce&);
     void visit(StmtRepeat&);
@@ -58,6 +59,7 @@ public:
     void visit(AstMatmulMV&);
     void visit(AstMatmulVM&);
     void visit(AstMatmulVV&);
+    void visit(AstOpenCL&);
     void visit(AstReadout&);
     void visit(AstRNGnormal&);
     void visit(AstRNGuniform&);

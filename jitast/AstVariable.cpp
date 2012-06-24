@@ -20,12 +20,6 @@ AstVariable::AstVariable(AstArrayMem* barg)
       _kindOfVariable(SPLIT_ARRAY_MEMORY),
       _sameDataAcrossTraces(barg->sameDataAcrossTraces()),
       _disableDotHack(false)
-/*FIXME - remove this,
-      _valueFromRNG(false)
-*/
-/*FIXME - remove this,
-      _forceWriteback(false)
-*/
 {
     pushArg(barg);
 }
@@ -41,12 +35,6 @@ AstVariable::AstVariable(BaseAst* barg,
       _kindOfVariable(SPLIT_OPERATION),
       _sameDataAcrossTraces(false),
       _disableDotHack(false)
-/*FIXME - remove this,
-      _valueFromRNG(false)
-*/
-/*FIXME - remove this,
-      _forceWriteback(false)
-*/
 {
     pushArg(barg);
 }
@@ -65,12 +53,6 @@ AstVariable::AstVariable(BaseAst* barg,
       _kindOfVariable(TRACE_VARIABLE),
       _sameDataAcrossTraces(MemManager::checkSameDataAcrossTraces(frontMem)),
       _disableDotHack(false)
-/*FIXME - remove this,
-      _valueFromRNG(false)
-*/
-/*FIXME - remove this,
-      _forceWriteback(false)
-*/
 {
     pushArg(barg);
 }
@@ -147,30 +129,6 @@ void AstVariable::disableDotHack(void)
 {
     _disableDotHack = true;
 }
-
-/*FIXME - remove this
-bool AstVariable::getValueFromRNG(void) const
-{
-    return _valueFromRNG;
-}
-
-void AstVariable::setValueFromRNG(void)
-{
-    _valueFromRNG = true;
-}
-*/
-
-/*FIXME - remove this
-bool AstVariable::getForceWriteback(void) const
-{
-    return _forceWriteback;
-}
-
-void AstVariable::setForceWriteback(void)
-{
-    _forceWriteback = true;
-}
-*/
 
 void AstVariable::accept(VisitAst& v)
 {

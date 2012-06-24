@@ -31,7 +31,9 @@ SingleTrace::SingleTrace(ClientTrace& origin)
     : RefObj(),
       _liveVariables(origin._liveVariables),
       _variableNuts(origin._variableNuts),
-      _origin(origin)
+      _origin(origin),
+      _forceVectorLength(origin._forceVectorLength),
+      _readScalar(origin._readScalar)
 {
     // copy trace statements from last checkpoint
     for (size_t i = origin.getScheduleCheckpoint();

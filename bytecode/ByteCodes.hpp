@@ -72,7 +72,9 @@ namespace ByteCodes {
     static const uint32_t index2_f64              = 49;
 
     ////////////////////////////////////////
-    // unassigned (50 - 59)
+    // special kernel (50 - 59)
+
+    static const uint32_t kernel_from_opencl      = 50;
 
     ////////////////////////////////////////
     // data creation (60 - 89)

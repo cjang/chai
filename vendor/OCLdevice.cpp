@@ -1,10 +1,12 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <sstream>
+
 #include <string.h>
 
 #include "Logger.hpp"
 #include "OCLdevice.hpp"
+#include "TEA.hpp"
 
 using namespace std;
 
@@ -431,6 +433,7 @@ const cl_mem& OCLHeapOfImages::handle(const size_t index) const
 // HeapOfKernels
 
 int OCLHeapOfKernels::create( const vector<string>& source,
+                              const uint64_t sourceHashCode,
                               const string& options,
                               const string& kernelName )
 {
@@ -511,6 +514,8 @@ int OCLHeapOfKernels::create( const vector<string>& source,
 
     _programHandle.push_back(program);
     _programSource.push_back(source);
+    if (sourceHashCode)
+        _programHashCode[ sourceHashCode ] = progIdx;
 
     _kernelHandle.push_back(kernel);
     _programIndex.push_back(progIdx);
@@ -602,6 +607,7 @@ size_t OCLHeapOfKernels::scavenge(void)
     }
 
     vector< size_t > newProgIdx;
+    set< size_t > releaseProgIdx;
     for (size_t i = 0; i < _programHandle.size(); i++)
     {
         newProgIdx.push_back(newProgramHandle.size());
@@ -609,6 +615,7 @@ size_t OCLHeapOfKernels::scavenge(void)
         if (0 == progRefcnt[i])
         {
             clReleaseProgram(_programHandle[i]);
+            releaseProgIdx.insert(i);
             releaseCount++;
         }
         else
@@ -622,6 +629,28 @@ size_t OCLHeapOfKernels::scavenge(void)
     {
         const size_t idx = newProgIdx[ newProgramIndex[i] ];
         newProgramIndex[i] = idx;
+    }
+
+    set< uint64_t > releaseProgramHashCode;
+    for (map< uint64_t, size_t >::const_iterator
+         it = _programHashCode.begin();
+         it != _programHashCode.end();
+         it++)
+    {
+        const size_t oldProgramIndex = (*it).second;
+
+        if (releaseProgIdx.count(oldProgramIndex))
+        {
+            releaseProgramHashCode.insert((*it).first);
+        }
+    }
+
+    for (set< uint64_t >::const_iterator
+         it = releaseProgramHashCode.begin();
+         it != releaseProgramHashCode.end();
+         it++)
+    {
+        _programHashCode.erase(*it);
     }
 
     for (map< string, set< size_t > >::const_iterator
@@ -651,21 +680,23 @@ size_t OCLHeapOfKernels::scavenge(void)
     return releaseCount;
 }
 
-int OCLHeapOfKernels::create(const string& source,
-                             const string& kernelName)
+int OCLHeapOfKernels::createJIT( const string& source,
+                                 const string& kernelName )
 {
     vector< string > src;
     src.push_back(source);
-    return create(src, kernelName);
+    return createJIT(src, kernelName);
 }
 
-int OCLHeapOfKernels::create( const vector< string >& source,
-                              const string& kernelName )
+int OCLHeapOfKernels::createJIT( const vector< string >& source,
+                                 const string& kernelName )
 {
     int retIdx = -1;
 
     if (_kernelMap.count(kernelName))
     {
+        // kernel by this name already exists, may recycle programs
+
         size_t matchProgIdx = -1;
 
         for (set< size_t >::const_iterator
@@ -691,12 +722,50 @@ int OCLHeapOfKernels::create( const vector< string >& source,
         }
 
         retIdx = ( -1 == matchProgIdx
-                       ? create(source, "", kernelName)
+                       ? create(source, 0, "", kernelName)
                        : create(matchProgIdx, kernelName) );
     }
     else
     {
-        retIdx = create(source, "", kernelName);
+        // never seen this kernel name before, new program and kernel
+
+        retIdx = create(source, 0, "", kernelName);
+    }
+
+    if (-1 != retIdx)
+        _kernelMap[kernelName].insert(retIdx);
+
+    return retIdx;
+}
+
+int OCLHeapOfKernels::createCL( const string& source,
+                                const uint64_t sourceHashCode,
+                                const string& kernelName )
+{
+    vector< string > src;
+    src.push_back(source);
+    return createCL(src, sourceHashCode, kernelName);
+}
+
+int OCLHeapOfKernels::createCL( const vector< string >& source,
+                                const uint64_t sourceHashCode,
+                                const string& kernelName )
+{
+    int retIdx = -1;
+
+    if (_programHashCode.count(sourceHashCode))
+    {
+        // program already exists
+
+        const size_t matchProgIdx = _programHashCode[sourceHashCode];
+
+        retIdx = create(matchProgIdx, kernelName);
+    }
+    else
+    {
+        // never seen this program before
+
+        retIdx = create(source, sourceHashCode, "", kernelName);
     }
 
     if (-1 != retIdx)
@@ -874,48 +943,38 @@ OCLkernel::OCLkernel(OCLdevice& cdev)
       _argIndex(0),
       _statusOp(false) { }
 
-OCLkernel::OCLkernel(OCLdevice& cdev,
-                     const string& kernelName,
-                     const string& source)
-    : _heap(cdev.kernels()),
-      _index(_heap.create(source, kernelName)),
-      _global(),
-      _local(),
-      _argIndex(0),
-      _statusOp(false)
-{
-    _heap.checkout(_index);
-}
-
-OCLkernel::OCLkernel(OCLdevice& cdev,
-                     const string& kernelName,
-                     const vector<string>& source)
-    : _heap(cdev.kernels()),
-      _index(_heap.create(source, kernelName)),
-      _global(),
-      _local(),
-      _argIndex(0),
-      _statusOp(false)
-{
-    _heap.checkout(_index);
-}
-
 OCLkernel::~OCLkernel(void)
 {
     _heap.release(_index);
 }
 
-void OCLkernel::build(const string& kernelName,
-                      const string& source)
+void OCLkernel::buildJIT(const string& kernelName,
+                         const string& source)
 {
-    _index = _heap.create(source, kernelName);
+    _index = _heap.createJIT(source, kernelName);
     _heap.checkout(_index);
 }
 
-void OCLkernel::build(const string& kernelName,
-                      const vector<string>& source)
+void OCLkernel::buildJIT(const string& kernelName,
+                         const vector<string>& source)
 {
-    _index = _heap.create(source, kernelName);
+    _index = _heap.createJIT(source, kernelName);
+    _heap.checkout(_index);
+}
+
+void OCLkernel::buildCL(const string& kernelName,
+                        const string& source,
+                        const uint64_t sourceHashCode)
+{
+    _index = _heap.createCL(source, sourceHashCode, kernelName);
+    _heap.checkout(_index);
+}
+
+void OCLkernel::buildCL(const string& kernelName,
+                        const vector<string>& source,
+                        const uint64_t sourceHashCode)
+{
+    _index = _heap.createCL(source, sourceHashCode, kernelName);
     _heap.checkout(_index);
 }
 

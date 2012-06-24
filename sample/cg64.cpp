@@ -28,9 +28,8 @@ int Conj_Grad_GPU_PS(int N, double *cpuA, double *cpux, double *cpub)
         Arrayf64 newRR = dot_product(residuals, residuals);
 
         for (iter = 0; iter < N; iter++) {
-//            Arrayf64 oldRR = newRR;
-            Arrayf64 oldRR = newRR, newX, newP, newResiduals;
-//            Arrayf64 newX, newP, newResiduals;
+            Arrayf64 oldRR = newRR;
+            Arrayf64 newX, newP, newResiduals;
             Arrayf64 Ap = matmul(A, p);
             Arrayf64 dp = dot_product(p, Ap);
             newX = x + p * oldRR / dp;
@@ -42,7 +41,6 @@ int Conj_Grad_GPU_PS(int N, double *cpuA, double *cpux, double *cpub)
             residuals = newResiduals;
 
             double oldRRcpu = oldRR.read_scalar();
-cout << "oldRRcpu[" << iter << "] is " << oldRRcpu << endl;
             if (oldRRcpu <= TOLERANCE) {
                 break;
             }
@@ -59,12 +57,7 @@ int main(int argc, char *argv[])
     /////////////////////////////////////
     // boilerplate: start virtual machine
 
-    ParseArgs pargs(argc, argv);
-    if (! pargs.initVM()) // initialize virtual machine
-    {
-        cerr << "usage: " << argv[0] << " -f configspec" << endl;
-        exit(1);
-    }
+    ParseArgs(argc, argv).initVM(); // start virtual machine, exit on error
 
     /////////////////////////////////////
     // computational work

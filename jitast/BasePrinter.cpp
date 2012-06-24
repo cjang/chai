@@ -17,6 +17,7 @@
 #include "AstMatmulMV.hpp"
 #include "AstMatmulVM.hpp"
 #include "AstMatmulVV.hpp"
+#include "AstOpenCL.hpp"
 #include "AstReadout.hpp"
 #include "AstRNGnormal.hpp"
 #include "AstRNGuniform.hpp"
@@ -292,6 +293,17 @@ void BasePrinter::visit(AstMatmulVV& v)
     _os << ", ";
     descendAst(1, v);
     _os << ")";
+}
+
+void BasePrinter::visit(AstOpenCL& v)
+{
+    for (vector< string >::const_iterator
+         it = v.programSource().begin();
+         it != v.programSource().end();
+         it++)
+    {
+        _os << (*it) << endl;
+    }
 }
 
 void BasePrinter::visit(AstReadout& v)

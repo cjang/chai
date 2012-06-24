@@ -14,11 +14,7 @@ AstRNGnormal::AstRNGnormal(const int variant,
                            const size_t precision)
     : BaseAst(len, 1, precision),
       _rngVariant(variant),
-      _rngSeed(seed)
-/*FIXME - remove this,
-      _insideRolledLoop(false)
-*/
- { }
+      _rngSeed(seed) { }
 
 int AstRNGnormal::rngVariant(void) const
 {
@@ -29,18 +25,6 @@ uint64_t AstRNGnormal::rngSeed(void) const
 {
     return _rngSeed;
 }
-
-/*FIXME - remove this
-bool AstRNGnormal::getInsideRolledLoop(void) const
-{
-    return _insideRolledLoop;
-}
-
-void AstRNGnormal::setInsideRolledLoop(void)
-{
-    _insideRolledLoop = true;
-}
-*/
 
 void AstRNGnormal::accept(VisitAst& v)
 {

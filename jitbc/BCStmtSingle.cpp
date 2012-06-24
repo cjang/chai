@@ -33,8 +33,13 @@ uint64_t BCStmtSingle::computeHash(VectorTrace& vt)
 
     if (-1 != v.ptrIndex())
     {
-        _frontMem = vt.frontMem()[v.ptrIndex()];
-        _backMem = vt.backMem()[v.ptrIndex()];
+        const size_t stmtIndex = v.ptrIndex();
+
+        _frontMem = vt.frontMem()[stmtIndex];
+
+        _backMem = vt.backMem().count(stmtIndex)
+                       ? vt.backMem()[stmtIndex]
+                       : NULL;
     }
     else
     {
@@ -48,6 +53,7 @@ uint64_t BCStmtSingle::computeHash(VectorTrace& vt)
     {
         _vectorNuts[*it] = vt.vectorNuts()[*it];
     }
+
     _vectorNuts[_lhsVariable] = vt.vectorNuts()[_lhsVariable];
 
     return v.code();

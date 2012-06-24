@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "Function.hpp"
+#include "KernelUnit.hpp"
 #include "OCLdevice.hpp"
 
 namespace chai_internal {
@@ -29,7 +29,7 @@ public:
     KernelCache(OCLdevice&);
     ~KernelCache(void);
 
-    OCLkernel* factoryLookup(Function& func);
+    OCLkernel* factoryLookup(KernelUnit& func);
 };
 
 }; // namespace chai_internal

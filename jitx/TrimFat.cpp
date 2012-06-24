@@ -13,6 +13,7 @@
 #include "StmtLiteral.hpp"
 #include "StmtMatmul.hpp"
 #include "StmtMatmulAuto.hpp"
+#include "StmtOpenCL.hpp"
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
@@ -116,6 +117,8 @@ void TrimFat::visit(StmtLiteral& s) { }
 void TrimFat::visit(StmtMatmul& s) { }
 
 void TrimFat::visit(StmtMatmulAuto& s) { }
+
+void TrimFat::visit(StmtOpenCL& s) { }
 
 void TrimFat::visit(StmtReadData& s) { }
 

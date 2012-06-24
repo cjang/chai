@@ -62,9 +62,9 @@ bool ExtNOP::extensionEnqueue(MemManager& memMgr,
 
     LOGGER(ss.str())
 
-    OCLkernel ckernel(memMgr.getComputeDevice(),
-                      kernelName,
-                      ss.str());
+    OCLkernel ckernel(memMgr.getComputeDevice());
+    ckernel.buildJIT(kernelName,
+                     ss.str());
 
     A->argumentToKernel(ckernel);
     B->argumentToKernel(ckernel);

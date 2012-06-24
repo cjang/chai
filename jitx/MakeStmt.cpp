@@ -17,6 +17,7 @@
 #include "AstMatmulMV.hpp"
 #include "AstMatmulVM.hpp"
 #include "AstMatmulVV.hpp"
+#include "AstOpenCL.hpp"
 #include "AstReadout.hpp"
 #include "AstRNGnormal.hpp"
 #include "AstRNGuniform.hpp"
@@ -38,6 +39,7 @@
 #include "StmtLiteral.hpp"
 #include "StmtMatmul.hpp"
 #include "StmtMatmulAuto.hpp"
+#include "StmtOpenCL.hpp"
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
@@ -114,6 +116,7 @@ void MakeStmt::clearAst(void)
     _trackLiteral.clear();
     _trackMatmul.clear();
     _trackMatmulArgs.clear(); // for moving transpose AST objects into kernel
+    _trackOpenCL.clear();
     _trackReadData.clear();
     _trackReduce.clear();
     _trackSameDataAcrossTraces.clear();
@@ -124,10 +127,6 @@ void MakeStmt::clearAst(void)
     _transposeStack.clear();
     while (! _gatherStack.empty()) _gatherStack.pop();
     _scalarVectorLength = false;
-
-/*FIXME - remove this
-    while (! _writebackStack.empty()) _writebackStack.pop();
-*/
 }
 
 void MakeStmt::insertAst(BaseAst& v)
@@ -177,6 +176,11 @@ void MakeStmt::insertMatmul(AstMatmulVM& v)
 
     _trackMatmulArgs.insert(v.getArg(0));
     _trackMatmulArgs.insert(v.getArg(1));
+}
+
+void MakeStmt::insertOpenCL(AstOpenCL& v)
+{
+    _trackOpenCL.insert(&v);
 }
 
 void MakeStmt::insertReadData(AstReadout& v)
@@ -592,33 +596,11 @@ void MakeStmt::visit(AstAccum& v)
     insertAst(v); // reduction: mean, sum
     insertReduce(v);
 
-/*FIXME - remove this
-    _writebackStack.push(&v);
-*/
-
     descendAst(v);
-
-/*FIXME - remove this
-    _writebackStack.pop();
-*/
 
     splitAst(v);
     if (! _repScope.empty())
         _reductionInsideLoop = true;
-
-/*FIXME - remove this
-    for (set< AstVariable* >::const_iterator
-         it = v.rhsVariable().begin();
-         it != v.rhsVariable().end();
-         it++)
-    {
-        if ((*it)->getValueFromRNG() && (*it)->getForceWriteback())
-        {
-            v.setNotTogether();
-            break;
-        }
-    }
-*/
 }
 
 void MakeStmt::visit(AstArrayMem& v)
@@ -649,14 +631,7 @@ void MakeStmt::visit(AstDotprod& v)
     insertAst(v); // reduction: dot_product
     insertReduce(v);
 
-/*FIXME - remove this
-    _writebackStack.push(&v);
-*/
     descendAst(v);
-
-/*FIXME - remove this
-    _writebackStack.pop();
-*/
 
     splitAst(v);
     if (! _repScope.empty())
@@ -668,15 +643,7 @@ void MakeStmt::visit(AstExtension& v)
     insertAst(v); // language extension is always separate kernel
     insertExtension(v);
 
-/*FIXME - remove this
-    _writebackStack.push(&v);
-*/
-
     descendAst(v);
-
-/*FIXME - remove this
-    _writebackStack.pop();
-*/
 
     splitAst(v, FORCE_EXTENSION);
     if (! _repScope.empty())
@@ -716,15 +683,7 @@ void MakeStmt::visit(AstGather& v)
             new StmtGatherAuto(v.dataVariable()) );
     }
 
-/*FIXME - remove this
-    _writebackStack.push(&v);
-*/
-
     descendAst(v);
-
-/*FIXME - remove this
-    _writebackStack.pop();
-*/
 
     splitAst(v);
 
@@ -758,15 +717,7 @@ void MakeStmt::visit(AstMatmulMM& v)
     insertAst(v); // reduction: special case of XGEMM
     insertMatmul(v);
 
-/*FIXME - remove this
-    _writebackStack.push(&v);
-*/
-
     descendAst(v);
-
-/*FIXME - remove this
-    _writebackStack.pop();
-*/
 
     // incorporate transposed A argument into matmul AST object
     if (_trackTranspose.count(v.getArg(0)))
@@ -809,15 +760,7 @@ void MakeStmt::visit(AstMatmulMV& v)
     insertAst(v); // reduction: matmul matrix*vector lifted to XGEMM
     insertMatmul(v);
 
-/*FIXME - remove this
-    _writebackStack.push(&v);
-*/
-
     descendAst(v);
-
-/*FIXME - remove this
-    _writebackStack.pop();
-*/
 
     // incorporate transposed A argument into matmul AST object
     if (_trackTranspose.count(v.getArg(0)))
@@ -860,15 +803,7 @@ void MakeStmt::visit(AstMatmulVM& v)
     insertAst(v); // reduction: matmul vector*matrix lifted to XGEMM
     insertMatmul(v);
 
-/*FIXME - remove this
-    _writebackStack.push(&v);
-*/
-
     descendAst(v);
-
-/*FIXME - remove this
-    _writebackStack.pop();
-*/
 
     // incorporate transposed A argument into matmul AST object
     if (_trackTranspose.count(v.getArg(0)))
@@ -914,15 +849,7 @@ void MakeStmt::visit(AstMatmulVV& v)
 
     _transposeStack.push_back(&outerProductLeft);
 
-/*FIXME - remove this
-    _writebackStack.push(&v);
-*/
-
     descendAst(v);
-
-/*FIXME - remove this
-    _writebackStack.pop();
-*/
 
     v.getArg(0)->accept(*this); // left argument is really transposed
     splitAst(v, 0);
@@ -933,6 +860,11 @@ void MakeStmt::visit(AstMatmulVV& v)
     splitAst(v, 1);
 }
 
+void MakeStmt::visit(AstOpenCL& v)
+{
+    insertOpenCL(v);
+}
+
 void MakeStmt::visit(AstReadout& v)
 {
     insertReadData(v);
@@ -940,32 +872,10 @@ void MakeStmt::visit(AstReadout& v)
 
 void MakeStmt::visit(AstRNGnormal& v)
 {
-/*FIXME - remove this
-    _lhsRoot->setValueFromRNG();
-*/
-
-/*FIXME - remove this
-    if (! _repScope.empty())
-    {
-        // RNG is inside a rolled loop
-        v.setInsideRolledLoop();
-    }
-*/
 }
 
 void MakeStmt::visit(AstRNGuniform& v)
 {
-/*FIXME - remove this
-    _lhsRoot->setValueFromRNG();
-*/
-
-/*FIXME - remove this
-    if (! _repScope.empty())
-    {
-        // RNG is inside a rolled loop
-        v.setInsideRolledLoop();
-    }
-*/
 }
 
 void MakeStmt::visit(AstScalar& v)
@@ -979,15 +889,7 @@ void MakeStmt::visit(AstTranspose& v)
 
     _transposeStack.push_back(&v);
 
-/*FIXME - remove this
-    _writebackStack.push(&v);
-*/
-
     descendAst(v);
-
-/*FIXME - remove this
-    _writebackStack.pop();
-*/
 
     splitAst(v);
 
@@ -1008,8 +910,11 @@ void MakeStmt::visit(AstVariable& v)
         // continue descent
         descendAst(v);
 
+        // special case for inline OpenCL
+        const bool inlineOpenCL = _trackOpenCL.count(v.getArg(0));
+
         StmtCreateData* createData = NULL;
-        if ( 0 == _lhsTraceVariables.count(v.variable()) )
+        if ( !inlineOpenCL && 0 == _lhsTraceVariables.count(v.variable()) )
         {
             // new create data statement
             createData = new StmtCreateData(&v, _repScope.empty());
@@ -1335,6 +1240,17 @@ void MakeStmt::visit(AstVariable& v)
             if (createData) pushLexScope(createData);
             pushLexScope(idxStmt);
         }
+        else if ( inlineOpenCL )
+        {
+            AstOpenCL* oclObj = static_cast< AstOpenCL* >(v.getArg(0));
+
+            // new inline OpenCL statement
+            StmtOpenCL* oclStmt = new StmtOpenCL(oclObj);
+
+            // add into current list
+            if (createData) pushLexScope(createData);
+            pushLexScope(oclStmt);
+        }
         else
         {
             // new single statement
@@ -1391,13 +1307,6 @@ void MakeStmt::visit(AstVariable& v)
 
         // check for transposed and gathered array subscripts
         specialTrackVar();
-
-/*FIXME - remove this
-        if (! _writebackStack.empty())
-        {
-            v.setForceWriteback();
-        }
-*/
     }
 }
 

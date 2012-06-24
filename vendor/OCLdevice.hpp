@@ -6,6 +6,7 @@
 #include <CL/cl.h>
 #include <map>
 #include <set>
+#include <stdint.h>
 #include <string>
 
 #include "OCLinit.hpp"
@@ -425,6 +426,7 @@ class OCLHeapOfKernels
     // programs
     Type< cl_program >::aligned_vector          _programHandle;
     std::vector< std::vector< std::string > >   _programSource;
+    std::map< uint64_t, size_t >                _programHashCode;
 
     // kernels
     Type< cl_kernel >::aligned_vector           _kernelHandle;
@@ -435,6 +437,7 @@ class OCLHeapOfKernels
     OCLDeviceEventQueue&                        _devQueue;
 
     int create(const std::vector<std::string>& source,
+               const uint64_t sourceHashCode,
                const std::string& options,
                const std::string& kernelName);
 
@@ -451,11 +454,19 @@ public:
 
     size_t scavenge(void);
 
-    int create(const std::string& source,
-               const std::string& kernelName);
+    int createJIT(const std::string& source,
+                  const std::string& kernelName);
 
-    int create(const std::vector<std::string>& source,
-               const std::string& kernelName);
+    int createJIT(const std::vector<std::string>& source,
+                  const std::string& kernelName);
+
+    int createCL(const std::string& source,
+                 const uint64_t sourceHashCode,
+                 const std::string& kernelName);
+
+    int createCL(const std::vector<std::string>& source,
+                 const uint64_t sourceHashCode,
+                 const std::string& kernelName);
 
     bool enqueueKernel(const size_t index,
                        const std::vector<size_t>& global,
@@ -790,18 +801,19 @@ class OCLkernel
 
 public:
     OCLkernel(OCLdevice& cdev);
-    OCLkernel(OCLdevice& cdev,
-              const std::string& kernelName,
-              const std::string& source);
-    OCLkernel(OCLdevice& cdev,
-              const std::string& kernelName,
-              const std::vector<std::string>& source);
     ~OCLkernel(void);
 
-    void build(const std::string& kernelName,
-               const std::string& source);
-    void build(const std::string& kernelName,
-               const std::vector<std::string>& source);
+    void buildJIT(const std::string& kernelName,
+                  const std::string& source);
+    void buildJIT(const std::string& kernelName,
+                  const std::vector<std::string>& source);
+
+    void buildCL(const std::string& kernelName,
+                 const std::string& source,
+                 const uint64_t sourceHashCode);
+    void buildCL(const std::string& kernelName,
+                 const std::vector<std::string>& source,
+                 const uint64_t sourceHashCode);
 
     size_t index(void) const;
 

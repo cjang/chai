@@ -13,8 +13,8 @@
 #include "ArrayBuf.hpp"
 #include "BackMem.hpp"
 #include "FrontMem.hpp"
-#include "Function.hpp"
 #include "KernelCache.hpp"
+#include "KernelUnit.hpp"
 #include "OCLdevice.hpp"
 #include "OCLinit.hpp"
 #include "VectorTrace.hpp"
@@ -263,7 +263,15 @@ public:
 
     // enqueue kernel
     bool enqueueKernel(VectorTrace& vt,
-                       Function& func,
+                       KernelUnit& func,
+                       const size_t globalWidth,
+                       const size_t globalHeight,
+                       const size_t localWidth,
+                       const size_t localHeight);
+
+    // enqueue kernel
+    bool enqueueKernel(VectorTrace& vt,
+                       KernelUnit& func,
                        const size_t globalWidth,
                        const size_t globalHeight = 0);
 };

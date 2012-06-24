@@ -1,11 +1,6 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
-#include <iostream> //FIXME
 #include <set>
-
-/*FIXME - remove this
-#include "AstAccum.hpp"
-*/
 
 #include "GroupTogether.hpp"
 #include "OCLhacks.hpp"
@@ -20,6 +15,7 @@
 #include "StmtLiteral.hpp"
 #include "StmtMatmul.hpp"
 #include "StmtMatmulAuto.hpp"
+#include "StmtOpenCL.hpp"
 #include "StmtReadData.hpp"
 #include "StmtReduce.hpp"
 #include "StmtRepeat.hpp"
@@ -171,6 +167,19 @@ bool GroupTogether::isMatmul(void)
     }
 }
 
+bool GroupTogether::isOpenCL(void)
+{
+    if (_prevIsOpenCL)
+    {
+        _prevIsOpenCL = false;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 bool GroupTogether::isReduction(void)
 {
     if (_prevIsReduction)
@@ -188,11 +197,11 @@ bool GroupTogether::isSpecial(void)
 {
     if (_reductionIsSpecial)
     {
-        return isExtension() || isMatmul() || isReduction();
+        return isExtension() || isMatmul() || isOpenCL() || isReduction();
     }
     else
     {
-        return isExtension() || isMatmul();
+        return isExtension() || isMatmul() || isOpenCL();
     }
 }
 
@@ -460,6 +469,7 @@ GroupTogether::GroupTogether(void)
       _lexicalDepth(0),
       _prevIsExtension(false),
       _prevIsMatmul(false),
+      _prevIsOpenCL(false),
       _prevIsReduction(false),
       _specialK(NOTHING_SPECIAL),
       _reductionIsSpecial(true) { }
@@ -474,6 +484,7 @@ GroupTogether::GroupTogether(const GroupTogether& other)
       _lexicalDepth(other._lexicalDepth),
       _prevIsExtension(other._prevIsExtension),
       _prevIsMatmul(other._prevIsMatmul),
+      _prevIsOpenCL(other._prevIsOpenCL),
       _prevIsReduction(other._prevIsReduction),
       _specialK(other._specialK),
       _reductionIsSpecial(other._reductionIsSpecial) { }
@@ -502,6 +513,7 @@ void GroupTogether::clear(void)
     _lexicalDepth = 0;
     _prevIsExtension = false;
     _prevIsMatmul = false;
+    _prevIsOpenCL = false;
     _prevIsReduction = false;
     _specialK = NOTHING_SPECIAL;
 }
@@ -1088,6 +1100,20 @@ void GroupTogether::visit(StmtMatmulAuto& s)
     }
 }
 
+void GroupTogether::visit(StmtOpenCL& s)
+{
+    if (isSpecial()) return;
+
+    if (isEmpty())
+    {
+        boundIndex(0, 0);
+        pushList(s);
+
+        _prevIsOpenCL = true;
+        _specialK = SPECIAL_OPENCL;
+    }
+}
+
 void GroupTogether::visit(StmtReadData& s)
 {
     if (isSpecial()) return;
@@ -1109,26 +1135,6 @@ void GroupTogether::visit(StmtReduce& s)
 {
     if (isSpecial()) return;
     if (isMetaKernel()) return;
-
-/*FIXME - remove this
-    // any RNG variables inside reduction force kernel boundary
-    for (set< AstVariable* >::const_iterator
-         it = s.rhsVariable().begin();
-         it != s.rhsVariable().end();
-         it++)
-    {
-        AstVariable* v = *it;
-        if (v->getValueFromRNG() && v->getForceWriteback())
-        {
-            return;
-        }
-    }
-
-    if (s.accumPtr() && s.accumPtr()->getNotTogether())
-    {
-cerr << "GroupTogether::visit(StmtReduce& s) NOT TOGETHER" << endl;
-    }
-*/
 
     setIndex(s);
     pushList(s);

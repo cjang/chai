@@ -29,7 +29,7 @@ float managedCode(const size_t i)
     Arrayf32 C;
     {
         Arrayf32 A = make1(ARRAY_SIZE, cpuA[i]);
-        Arrayf32 B = 5;
+        Arrayf32 B = 5 * ones_f32(1);
 
         for (size_t j = 0; j < 2; j++)
         {
@@ -62,7 +62,7 @@ vector< float > managedCode(const vector< float* >& dataA)
     Arrayf32 C;
     {
         Arrayf32 A = make1(ARRAY_SIZE, dataA);
-        Arrayf32 B = 5;
+        Arrayf32 B = 5 * ones_f32(1);
 
         for (size_t j = 0; j < 2; j++)
         {
@@ -103,7 +103,7 @@ float managedCode(const size_t i)
     Arrayf32 C;
     {
         Arrayf32 A = make1(ARRAY_SIZE, cpuA[i]);
-        Arrayf32 B = 5;
+        Arrayf32 B = 5 * ones_f32(1);
 
         for (size_t j = 0; j < 2; j++)
         {
@@ -141,7 +141,7 @@ float managedCode(const size_t i)
     Arrayf32 C;
     {
         Arrayf32 A = make1(ARRAY_SIZE, cpuA[i]);
-        Arrayf32 B = 5;
+        Arrayf32 B = 5 * ones_f32(1);
 
         for (size_t j = 0; j < 2; j++)
         {
@@ -204,12 +204,7 @@ int main(int argc, char *argv[])
     /////////////////////////////////////
     // boilerplate: start virtual machine
 
-    ParseArgs pargs(argc, argv);
-    if (! pargs.initVM()) // initialize virtual machine
-    {
-        cerr << "usage: " << argv[0] << " -f configspec" << endl;
-        exit(1);
-    }
+    ParseArgs(argc, argv).initVM(); // start virtual machine, exit on error
 
     /////////////////////////////////////
     // computational work
