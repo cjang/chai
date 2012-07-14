@@ -10,7 +10,7 @@
 #include "chai/BC.hpp"
 #include "chai/Stak.hpp"
 #include "FrontMem.hpp"
-#include "MemManager.hpp"
+#include "MemInterp.hpp"
 #include "VectorTrace.hpp"
 
 namespace chai_internal {
@@ -41,17 +41,17 @@ protected:
 
     // context
     VectorTrace* _vt;
-    MemManager*  _memManager;
+    MemInterp*   _memMgr;
 
     // implemented in derived class
     virtual void sub_eval(std::stack< std::vector< FrontMem* > >&) = 0;
 
     // all streams in a vector share the same precision and dimensions
-    size_t precision(const size_t argStackIndex) const;
+    size_t prec(const size_t argStackIndex) const;
     size_t W(const size_t argStackIndex) const;
     size_t H(const size_t argStackIndex) const;
+    size_t slots(const size_t argStackIndex) const;
     size_t frontSize(const size_t argStackIndex) const;
-    size_t numTraces() const;
 
     // modulo array subscript
     size_t idx(const size_t argStackIndex,
@@ -73,13 +73,14 @@ protected:
     uint32_t* uintPtr(const size_t argStackIndex,
                       const size_t vecIndex) const;
 
-    BackMem* allocBackMem(const size_t W,
+    BackMem* allocBackMem(const size_t PREC,
+                          const size_t W,
                           const size_t H,
-                          const size_t prec) const;
+                          const size_t slots) const;
 
-    FrontMem* allocFrontMem(const size_t W,
+    FrontMem* allocFrontMem(const size_t PREC,
+                            const size_t W,
                             const size_t H,
-                            const size_t prec,
                             BackMem* backMem,
                             const size_t vecIndex) const;
 
@@ -92,7 +93,7 @@ public:
     virtual BaseInterp* clone(void) const;
 
     void setContext(VectorTrace& vt, const size_t uniqueSwizzleKey);
-    void setContext(MemManager& mm);
+    void setContext(MemInterp& mm);
 
     void eval(Stak<BC>& inStak,
               std::stack< std::vector< FrontMem* > >& outStack);

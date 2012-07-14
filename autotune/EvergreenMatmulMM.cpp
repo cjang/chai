@@ -4,7 +4,6 @@
 #include <math.h>
 #include <sstream>
 
-#include "ArrayBufUtil.hpp"
 #include "CodeControlFlow.hpp"
 #include "CodeFunction.hpp"
 #include "CodeImageSample.hpp"
@@ -14,6 +13,7 @@
 #include "EvergreenMatmulMM.hpp"
 #include "Logger.hpp"
 #include "PrecType.hpp"
+#include "UtilFuns.hpp"
 
 using namespace std;
 
@@ -37,9 +37,9 @@ string MatmulMMBase::assignMAD(
                          const size_t k,        // output column
                          const size_t l ) const // inner product component
 {
-    const size_t vlenA = valueA[0][0].vectorLength();
-    const size_t vlenB = valueB[0][0].vectorLength();
-    const size_t vlenC = accum[0][0].vectorLength();
+    const size_t vlenA = valueA[0][0].vecLength();
+    const size_t vlenB = valueB[0][0].vecLength();
+    const size_t vlenC = accum[0][0].vecLength();
 
     if (transposeA())
     {
@@ -95,13 +95,13 @@ ostream& MatmulMMBase::assignMAD(
         case (0) : // (j, k, l)
 
             // output row
-            for (size_t j = 0; j < blockHeight(); j++)
+            for (size_t j = 0; j < blockH(); j++)
 
             // output column
-            for (size_t k = 0; k < blockWidth(); k++)
+            for (size_t k = 0; k < blockW(); k++)
 
             // values component
-            for (size_t l = 0; l < blockWidth(); l++)
+            for (size_t l = 0; l < blockW(); l++)
 
                 os << assignMAD(accum, valueA, valueB, j, k, l);
 
@@ -110,13 +110,13 @@ ostream& MatmulMMBase::assignMAD(
         case (1) : // (k, j, l)
 
             // output column
-            for (size_t k = 0; k < blockWidth(); k++)
+            for (size_t k = 0; k < blockW(); k++)
 
             // output row
-            for (size_t j = 0; j < blockHeight(); j++)
+            for (size_t j = 0; j < blockH(); j++)
 
             // values component
-            for (size_t l = 0; l < blockWidth(); l++)
+            for (size_t l = 0; l < blockW(); l++)
 
                 os << assignMAD(accum, valueA, valueB, j, k, l);
 
@@ -125,13 +125,13 @@ ostream& MatmulMMBase::assignMAD(
         case (2) : // (l, j, k)
 
             // values component
-            for (size_t l = 0; l < blockWidth(); l++)
+            for (size_t l = 0; l < blockW(); l++)
 
             // output row
-            for (size_t j = 0; j < blockHeight(); j++)
+            for (size_t j = 0; j < blockH(); j++)
 
             // output column
-            for (size_t k = 0; k < blockWidth(); k++)
+            for (size_t k = 0; k < blockW(); k++)
 
                 os << assignMAD(accum, valueA, valueB, j, k, l);
 
@@ -140,13 +140,13 @@ ostream& MatmulMMBase::assignMAD(
         case (3) : // (j, l, k)
 
             // output row
-            for (size_t j = 0; j < blockHeight(); j++)
+            for (size_t j = 0; j < blockH(); j++)
 
             // values component
-            for (size_t l = 0; l < blockWidth(); l++)
+            for (size_t l = 0; l < blockW(); l++)
 
             // output column
-            for (size_t k = 0; k < blockWidth(); k++)
+            for (size_t k = 0; k < blockW(); k++)
 
                 os << assignMAD(accum, valueA, valueB, j, k, l);
 
@@ -155,13 +155,13 @@ ostream& MatmulMMBase::assignMAD(
         case (4) : // (k, l, j)
 
             // output column
-            for (size_t k = 0; k < blockWidth(); k++)
+            for (size_t k = 0; k < blockW(); k++)
 
             // values component
-            for (size_t l = 0; l < blockWidth(); l++)
+            for (size_t l = 0; l < blockW(); l++)
 
             // output row
-            for (size_t j = 0; j < blockHeight(); j++)
+            for (size_t j = 0; j < blockH(); j++)
 
                 os << assignMAD(accum, valueA, valueB, j, k, l);
 
@@ -170,13 +170,13 @@ ostream& MatmulMMBase::assignMAD(
         case (5) : // (l, k, j)
 
             // values component
-            for (size_t l = 0; l < blockWidth(); l++)
+            for (size_t l = 0; l < blockW(); l++)
 
             // output column
-            for (size_t k = 0; k < blockWidth(); k++)
+            for (size_t k = 0; k < blockW(); k++)
 
             // output row
-            for (size_t j = 0; j < blockHeight(); j++)
+            for (size_t j = 0; j < blockH(); j++)
 
                 os << assignMAD(accum, valueA, valueB, j, k, l);
 
@@ -195,28 +195,28 @@ bool MatmulMMBase::validParams(void) const
 {
     return
         // array types of A, B, C
-        validArrayType(precisionA(), vectorLengthA()) &&
-        validArrayType(precisionB(), vectorLengthB()) &&
-        validArrayType(precisionC(), vectorLengthC()) &&
+        validArrayType(precA(), vecLengthA()) &&
+        validArrayType(precB(), vecLengthB()) &&
+        validArrayType(precC(), vecLengthC()) &&
 
         // if GEMM, then C must be read-write (can not be an image)
-        !(general() && 0 == vectorLengthC()) &&
+        !(general() && 0 == vecLengthC()) &&
 
         // packed kernels
-        packing() > 0 &&
+        batching() > 0 &&
 
         // check for blocking compatible with matrix dimensions
-        0 == dimensionM() % (groupHeight() * blockHeight()) &&
-        0 == dimensionN() % (groupWidth() * blockWidth()) &&
-        0 == dimensionK() % (groupHeight() * blockWidth()) &&
-        groupHeight() * blockHeight() <= dimensionM() &&
-        groupWidth() * blockWidth() <= dimensionN() &&
-        groupHeight() * blockWidth() <= dimensionK() &&
+        0 == M() % (groupH() * blockH()) &&
+        0 == N() % (groupW() * blockW()) &&
+        0 == K() % (groupH() * blockW()) &&
+        groupH() * blockH() <= M() &&
+        groupW() * blockW() <= N() &&
+        groupH() * blockW() <= K() &&
 
         // if A is transposed, then inner blocking height
         // must be even number of vector elements
         ( transposeA()
-              ? (0 == blockHeight() % effVectorLengthA())
+              ? (0 == blockH() % effVecLengthA())
               : true ) &&
 
         // extra parameter
@@ -232,17 +232,17 @@ bool MatmulMMBase::getParams(vector<size_t>& params) const
         params.clear();
 
         // array precisions
-        params.push_back(precisionA());
-        params.push_back(precisionB());
-        params.push_back(precisionC());
+        params.push_back(precA());
+        params.push_back(precB());
+        params.push_back(precC());
 
         // array vector lengths
-        params.push_back(vectorLengthA());
-        params.push_back(vectorLengthB());
-        params.push_back(vectorLengthC());
+        params.push_back(vecLengthA());
+        params.push_back(vecLengthB());
+        params.push_back(vecLengthC());
 
         // packed kernels
-        params.push_back(packing());
+        params.push_back(batching());
         if (getDifferentData()) params.push_back(0);
         else if (getSameDataMatrixA()) params.push_back(1);
         else if (getSameDataMatrixB()) params.push_back(2);
@@ -251,21 +251,21 @@ bool MatmulMMBase::getParams(vector<size_t>& params) const
         params.push_back(general());
 
         // matrix dimensions
-        params.push_back(dimensionM());
-        params.push_back(dimensionN());
-        params.push_back(dimensionK());
+        params.push_back(M());
+        params.push_back(N());
+        params.push_back(K());
 
         // data layout
         params.push_back(transposeA());
         params.push_back(transposeB());
 
         // work group
-        params.push_back(groupHeight());
-        params.push_back(groupWidth());
+        params.push_back(groupH());
+        params.push_back(groupW());
 
         // inner blocking
-        params.push_back(blockHeight());
-        params.push_back(blockWidth());
+        params.push_back(blockH());
+        params.push_back(blockW());
 
         // extra parameter
         params.push_back(extraParam());
@@ -280,18 +280,18 @@ string MatmulMMBase::exogenousKey(void) const
 
     ss << deviceFamily()
        << kernelForename()
-       << packing()
+       << batching()
        << (getSameDataMatrixA() ? "A" : "N")
        << (getSameDataMatrixB() ? "B" : "N")
        << (general() ? "G" : "N")
-       << precisionA()
-       << precisionB()
-       << precisionC()
+       << precA()
+       << precB()
+       << precC()
        << (transposeA() ? "T" : "N")
        << (transposeB() ? "T" : "N")
-       << "_" << dimensionM()
-       << "_" << dimensionN()
-       << "_" << dimensionK();
+       << "_" << M()
+       << "_" << N()
+       << "_" << K();
 
     return ss.str();
 }
@@ -303,7 +303,7 @@ void MatmulMMBase::toggleParamMarks(void)
 
 bool MatmulMMBase::getParams(set< vector<size_t> >& paramSet)
 {
-    // exogenous: packing (default is 1: no packing)
+    // exogenous: batching (default is 1: no batching)
     //            general (default is false: pure matrix multiply)
     //            precision (default is -1, must be set)
     //            dimensions (default is 0, must be set)
@@ -317,13 +317,13 @@ bool MatmulMMBase::getParams(set< vector<size_t> >& paramSet)
     //             global ID (extra parameter)
 
     const bool exogenousOk =
-        (packing() > 0) &&
-        PrecType::validSizeCode(precisionA()) &&
-        PrecType::validSizeCode(precisionB()) &&
-        PrecType::validSizeCode(precisionC()) &&
-        (0 != dimensionM()) &&
-        (0 != dimensionN()) &&
-        (0 != dimensionK());
+        (batching() > 0) &&
+        PrecType::validCode(precA()) &&
+        PrecType::validCode(precB()) &&
+        PrecType::validCode(precC()) &&
+        (0 != M()) &&
+        (0 != N()) &&
+        (0 != K());
 
     if (! exogenousOk)
         return false;
@@ -399,9 +399,9 @@ void MatmulMMBase::setParams(const vector<size_t>& params)
     const size_t vlenC = params[index++];
     setVectorLength(vlenA, vlenB, vlenC);
 
-    // packed kernels
+    // batched kernels
     const size_t numberKernels = params[index++];
-    setPacking(numberKernels);
+    setBatching(numberKernels);
     switch (params[index++])
     {
         case (0) : setDifferentData(); break;
@@ -425,14 +425,14 @@ void MatmulMMBase::setParams(const vector<size_t>& params)
     setDataLayout(transposeA, transposeB);
 
     // work group
-    const size_t groupHeight = params[index++];
-    const size_t groupWidth = params[index++];
-    setWorkGroup(groupHeight, groupWidth);
+    const size_t groupH = params[index++];
+    const size_t groupW = params[index++];
+    setWorkGroup(groupH, groupW);
 
     // inner blocking
-    const size_t blockHeight = params[index++];
-    const size_t blockWidth = params[index++];
-    setInnerBlocking(blockHeight, blockWidth);
+    const size_t blockH = params[index++];
+    const size_t blockW = params[index++];
+    setInnerBlocking(blockH, blockW);
 
     // extra parameter
     const size_t extraParam = params[index++];
@@ -447,25 +447,25 @@ string MatmulMMBase::kernelName(void) const
 vector<size_t> MatmulMMBase::globalWorkItems(void) const
 {
     vector<size_t> dims;
-    dims.push_back(dimensionN() / blockWidth());
-    dims.push_back(dimensionM() / blockHeight());
+    dims.push_back(N() / blockW());
+    dims.push_back(M() / blockH());
     return dims;
 }
 
 vector<size_t> MatmulMMBase::localWorkItems(void) const
 {
     vector<size_t> dims;
-    dims.push_back(groupWidth());
-    dims.push_back(groupHeight());
+    dims.push_back(groupW());
+    dims.push_back(groupH());
     return dims;
 }
 
 size_t MatmulMMBase::numberFlops(void) const
 {
     if (general())
-        return packing() * 2 * dimensionM()*dimensionN() * (dimensionK() + 1);
+        return batching() * 2 * M() * N() * (K() + 1);
     else
-        return packing() * dimensionM()*dimensionN() * (2 * dimensionK() - 1);
+        return batching() * M() * N() * (2 * K() - 1);
 }
 
 ////////////////////////////////////////
@@ -509,10 +509,10 @@ bool MatmulMM::setArgsInternal(OCLkernel& ckernel,
     {
         const size_t numberElems = localSize() *
                                    groupSize() *
-                                   blockWidth() *
-                                   blockHeight();
+                                   blockW() *
+                                   blockH();
 
-        switch (_A->precision())
+        switch (_A->prec())
         {
             case (PrecType::UInt32) :
                 {
@@ -553,10 +553,10 @@ bool MatmulMM::setArgsInternal(OCLkernel& ckernel,
     {
         const size_t numberElems = localSize() *
                                    groupSize() *
-                                   blockWidth() *
-                                   blockWidth();
+                                   blockW() *
+                                   blockW();
 
-        switch (_B->precision())
+        switch (_B->prec())
         {
             case (PrecType::UInt32) :
                 {
@@ -595,13 +595,13 @@ bool MatmulMM::setArgsInternal(OCLkernel& ckernel,
     // array dimensions
     if (! inlineDim())
     {
-        if (! (ckernel << static_cast<int>(dimensionM())).statusOp())
+        if (! (ckernel << static_cast<int>(M())).statusOp())
             return false;
 
-        if (! (ckernel << static_cast<int>(dimensionN())).statusOp())
+        if (! (ckernel << static_cast<int>(N())).statusOp())
             return false;
 
-        if (! (ckernel << static_cast<int>(dimensionK())).statusOp())
+        if (! (ckernel << static_cast<int>(K())).statusOp())
             return false;
     }
 
@@ -609,7 +609,7 @@ bool MatmulMM::setArgsInternal(OCLkernel& ckernel,
     if (general())
     {
         // alpha
-        switch ( maxPrecision(_A->precision(), _B->precision()) )
+        switch ( max<size_t>(_A->prec(), _B->prec()) )
         {
             case (PrecType::UInt32) :
                 {
@@ -645,7 +645,7 @@ bool MatmulMM::setArgsInternal(OCLkernel& ckernel,
         }
 
         // beta
-        switch (_C->precision())
+        switch (_C->prec())
         {
             case (PrecType::UInt32) :
                 {
@@ -728,22 +728,6 @@ void MatmulMM::paranoidCheck(const double absDiffLimit)
 bool MatmulMM::setArgs(OCLdevice& cdev,
                        OCLkernel& ckernel)
 {
-    const size_t P = packing();
-    const size_t packA = getSameDataMatrixA() ? 1 : P;
-    const size_t packB = getSameDataMatrixB() ? 1 : P;
-
-    const size_t M = dimensionM();
-    const size_t N = dimensionN();
-    const size_t K = dimensionK();
-
-    const size_t precA = precisionA();
-    const size_t precB = precisionB();
-    const size_t precC = precisionC();
-
-    const size_t vlenA = vectorLengthA();
-    const size_t vlenB = vectorLengthB();
-    const size_t vlenC = vectorLengthC();
-
     cdev.scavenge();
 
     ArrayBuf *A = NULL, *B = NULL, *C = NULL;
@@ -751,30 +735,54 @@ bool MatmulMM::setArgs(OCLdevice& cdev,
     // allocate arrays
     if (NULL == _A || NULL == _B || NULL == _C ||
         _checkOutputTouched ||
-        packingChanged() ||
+        batchingChanged() ||
         generalChanged() ||
         precisionChanged() ||
-        dimensionChanged() ||
+        dimensionsChanged() ||
         layoutChanged() ||
         vectorLengthChanged())
     {
         _checkOutputTouched = true;
 
         A = transposeA()
-            ? new ArrayBuf(cdev, ArrayBuf::READ, packA, M, K, precA, vlenA)
-            : new ArrayBuf(cdev, ArrayBuf::READ, packA, K, M, precA, vlenA);
+                ? new ArrayBuf(cdev,
+                               ArrayBuf::READ,
+                               precA(),
+                               vecLengthA(),
+                               M(),
+                               K(),
+                               getSameDataMatrixA() ? 1 : batching())
+                : new ArrayBuf(cdev,
+                               ArrayBuf::READ,
+                               precA(),
+                               vecLengthA(),
+                               K(),
+                               M(),
+                               getSameDataMatrixA() ? 1 : batching());
 
         B = transposeB()
-            ? new ArrayBuf(cdev, ArrayBuf::READ, packB, K, N, precB, vlenB)
-            : new ArrayBuf(cdev, ArrayBuf::READ, packB, N, K, precB, vlenB);
+                ? new ArrayBuf(cdev,
+                               ArrayBuf::READ,
+                               precB(),
+                               vecLengthB(),
+                               K(),
+                               N(),
+                               getSameDataMatrixB() ? 1 : batching())
+                : new ArrayBuf(cdev,
+                               ArrayBuf::READ,
+                               precB(),
+                               vecLengthB(),
+                               N(),
+                               K(),
+                               getSameDataMatrixB() ? 1 : batching());
 
         C = new ArrayBuf(cdev,
                          general() ? ArrayBuf::READWRITE : ArrayBuf::WRITE,
-                         P,
-                         N,
-                         M,
-                         precC,
-                         vlenC,
+                         precC(),
+                         vecLengthC(),
+                         N(),
+                         M(),
+                         batching(),
                          true); // host array memory for checking output
 
         if (! A->bufOk() || ! B->bufOk() || ! C->bufOk())
@@ -836,8 +844,8 @@ bool MatmulMM::setArgs(OCLdevice& cdev,
     }
 
     double alpha;
-    if ( PrecType::isTypeFP(precA) &&
-         PrecType::isTypeFP(precB) )
+    if ( PrecType::isTypeFP(precA()) &&
+         PrecType::isTypeFP(precB()) )
     {
         if (PARANOID_CHECK == _checkOutputMode)
             alpha = posrand<double>();
@@ -850,7 +858,7 @@ bool MatmulMM::setArgs(OCLdevice& cdev,
     }
 
     double beta;
-    if ( PrecType::isTypeFP(precC) )
+    if ( PrecType::isTypeFP(precC()) )
     {
         if (PARANOID_CHECK == _checkOutputMode)
             beta = posrand<double>();
@@ -917,8 +925,8 @@ bool MatmulMM::checkOutput(void)
         if (1 == histMap.size())
         {
             const double sentinelValue = general()
-                                             ? dimensionK() + 1
-                                             : dimensionK();
+                                             ? K() + 1
+                                             : K();
 
             return sentinelValue == (*histMap.begin()).first;
         }
@@ -928,31 +936,31 @@ bool MatmulMM::checkOutput(void)
         double accumC = 0;
 
         // reference calculation
-        for (size_t p = 0; p < packing(); p++)
-        for (size_t i = 0; i < dimensionM(); i++)
-        for (size_t j = 0; j < dimensionN(); j++)
+        for (size_t b = 0; b < batching(); b++)
+        for (size_t i = 0; i < M(); i++)
+        for (size_t j = 0; j < N(); j++)
         {
             double valueC = 0;
 
-            const size_t pA = getSameDataMatrixA() ? 0 : p;
-            const size_t pB = getSameDataMatrixB() ? 0 : p;
+            const size_t slotA = getSameDataMatrixA() ? 0 : b;
+            const size_t slotB = getSameDataMatrixB() ? 0 : b;
 
             if (transposeA())
             {
                 if (transposeB())
                 {
-                    for (size_t k = 0; k < dimensionK(); k++)
+                    for (size_t k = 0; k < K(); k++)
                     {
-                        valueC += _A->getArrayElem(pA, k, i) *
-                                  _B->getArrayElem(pB, j, k);
+                        valueC += _A->getArrayElem(slotA, k, i) *
+                                  _B->getArrayElem(slotB, j, k);
                     }
                 }
                 else
                 {
-                    for (size_t k = 0; k < dimensionK(); k++)
+                    for (size_t k = 0; k < K(); k++)
                     {
-                        valueC += _A->getArrayElem(pA, k, i) *
-                                  _B->getArrayElem(pB, k, j);
+                        valueC += _A->getArrayElem(slotA, k, i) *
+                                  _B->getArrayElem(slotB, k, j);
                     }
                 }
             }
@@ -960,18 +968,18 @@ bool MatmulMM::checkOutput(void)
             {
                 if (transposeB())
                 {
-                    for (size_t k = 0; k < dimensionK(); k++)
+                    for (size_t k = 0; k < K(); k++)
                     {
-                        valueC += _A->getArrayElem(pA, i, k) *
-                                  _B->getArrayElem(pB, j, k);
+                        valueC += _A->getArrayElem(slotA, i, k) *
+                                  _B->getArrayElem(slotB, j, k);
                     }
                 }
                 else
                 {
-                    for (size_t k = 0; k < dimensionK(); k++)
+                    for (size_t k = 0; k < K(); k++)
                     {
-                        valueC += _A->getArrayElem(pA, i, k) *
-                                  _B->getArrayElem(pB, k, j);
+                        valueC += _A->getArrayElem(slotA, i, k) *
+                                  _B->getArrayElem(slotB, k, j);
                     }
                 }
             }
@@ -979,10 +987,10 @@ bool MatmulMM::checkOutput(void)
             if (general())
             {
                 valueC = _alpha * valueC
-                       + _beta * _C->getHostArrayElem(p, i, j);
+                       + _beta * _C->getHostArrayElem(b, i, j);
             }
 
-            _C->setHostArrayElem(p, i, j, valueC);
+            _C->setHostArrayElem(b, i, j, valueC);
 
             accumC += valueC;
         }
@@ -1012,21 +1020,19 @@ bool MatmulMM::checkOutput(void)
         }
 
         // extra statistical test for floating point
-        if ( PrecType::isTypeFP(precisionA()) &&
-             PrecType::isTypeFP(precisionB()) &&
-             PrecType::isTypeFP(precisionC()) )
+        if ( PrecType::isTypeFP(precA()) &&
+             PrecType::isTypeFP(precB()) &&
+             PrecType::isTypeFP(precC()) )
         {
             // Elements of A and B are uniform on [0, 1) so mean value of C
             // is predictable.
             // simple matrix multiply: .5 * .5 * K
             // general matrix multiply: alpha * .5 * .5 * K + beta * .5
             const double expectMean = general()
-                             ? _alpha * .25f * dimensionK() + _beta * .5f
-                             : .25f * dimensionK();
+                             ? _alpha * .25f * K() + _beta * .5f
+                             : .25f * K();
 
-            const double actualMean = accumC / (packing() *
-                                                dimensionM() *
-                                                dimensionN());
+            const double actualMean = accumC / (batching() * M() * N());
 
             // percentage error from statistically expected value, this detects
             // uninitialized buffer failures as they are usually filled with
@@ -1070,26 +1076,18 @@ bool MatmulMM::checkOutput(void)
 
 ostream& MatmulMM::print(ostream& os) const
 {
-    const size_t precA = precisionA();
-    const size_t precB = precisionB();
-    const size_t precC = precisionC();
+    const size_t vnumA = blockW() / effVecLengthA();
+    const size_t vnumB = blockW() / effVecLengthB();
+    const size_t vnumC = blockW() / effVecLengthC();
 
-    const size_t vlenA = vectorLengthA();
-    const size_t vlenB = vectorLengthB();
-    const size_t vlenC = vectorLengthC();
-
-    const size_t vnumA = blockWidth() / effVectorLengthA();
-    const size_t vnumB = blockWidth() / effVectorLengthB();
-    const size_t vnumC = blockWidth() / effVectorLengthC();
-
-    const size_t packIdxDisableA = getSameDataMatrixA() ? 0 : 1;
-    const size_t packIdxDisableB = getSameDataMatrixB() ? 0 : 1;
+    const size_t batchIdxDisableA = getSameDataMatrixA() ? 0 : 1;
+    const size_t batchIdxDisableB = getSameDataMatrixB() ? 0 : 1;
 
     ////////////////////////////////////////
     // OpenCL double precision extension
-    if (PrecType::Double == precA ||
-        PrecType::Double == precB ||
-        PrecType::Double == precC)
+    if ( PrecType::Double == precA() ||
+         PrecType::Double == precB() ||
+         PrecType::Double == precC() )
     {
         os << pragma_extension(PrecType::Double, _deviceIndex);
     }
@@ -1098,26 +1096,31 @@ ostream& MatmulMM::print(ostream& os) const
     // kernel arguments
     FunctionDeclaration kDecl(kernelName());
 
-    const GlobalVar matrixC("matrixC", precC, vlenC, true, kDecl);
-    const GlobalVar matrixA("matrixA", precA, vlenA, false, kDecl);
-    const GlobalVar matrixB("matrixB", precB, vlenB, false, kDecl);
+    const GlobalVar matrixC("matrixC", precC(), vecLengthC(), true, kDecl);
+    const GlobalVar matrixA("matrixA", precA(), vecLengthA(), false, kDecl);
+    const GlobalVar matrixB("matrixB", precB(), vecLengthB(), false, kDecl);
 
-    const LocalVar localA("localA", precA, vlenA, true, kDecl, 0 != vlenA);
-    const LocalVar localB("localB", precB, vlenB, true, kDecl, 0 != vlenB);
+    const LocalVar localA("localA", precA(), vecLengthA(), true, kDecl,
+                          0 != vecLengthA());
+    const LocalVar localB("localB", precB(), vecLengthB(), true, kDecl,
+                          0 != vecLengthB());
 
-    const PrivateVar M("M", 1, 1, false, kDecl, dimensionM(), inlineDim());
-    const PrivateVar N("N", 1, 1, false, kDecl, dimensionN(), inlineDim());
-    const PrivateVar K("K", 1, 1, false, kDecl, dimensionK(), inlineDim());
+    const PrivateVar varM("M", PrecType::Int32, 1, false, kDecl,
+                          M(), inlineDim());
+    const PrivateVar varN("N", PrecType::Int32, 1, false, kDecl,
+                          N(), inlineDim());
+    const PrivateVar varK("K", PrecType::Int32, 1, false, kDecl,
+                          K(), inlineDim());
 
     const PrivateVar alpha("alpha",
-                           maxPrecision(precA, precB),
+                           max<size_t>(precA(), precB()),
                            1,
                            false,
                            kDecl,
                            general());
 
     const PrivateVar beta("beta",
-                          precC,
+                          precC(),
                           1,
                           false,
                           kDecl,
@@ -1129,23 +1132,23 @@ ostream& MatmulMM::print(ostream& os) const
     ////////////////////////////////////////
     // image sampler
     const SamplerVar sampler;
-    if (0 == vlenA || 0 == vlenB)
+    if (0 == vecLengthA() || 0 == vecLengthB())
     {
         os << declare(sampler, ImageSampler());
     }
 
     ////////////////////////////////////////
     // pointers to memory buffers
-    const GlobalVar ptrMatrixA("ptrMatrixA", precA, vlenA, false);
-    const LocalVar ptrLocalA("ptrLocalA", precA, vlenA, false);
-    if (0 != vlenA)
+    const GlobalVar ptrMatrixA("ptrMatrixA", precA(), vecLengthA(), false);
+    const LocalVar ptrLocalA("ptrLocalA", precA(), vecLengthA(), false);
+    if (0 != vecLengthA())
     {
         os << declare(ptrMatrixA);
         os << declare(ptrLocalA);
     }
-    const GlobalVar ptrMatrixB("ptrMatrixB", precB, vlenB, false);
-    const LocalVar ptrLocalB("ptrLocalB", precB, vlenB, false);
-    if (0 != vlenB)
+    const GlobalVar ptrMatrixB("ptrMatrixB", precB(), vecLengthB(), false);
+    const LocalVar ptrLocalB("ptrLocalB", precB(), vecLengthB(), false);
+    if (0 != vecLengthB())
     {
         os << declare(ptrMatrixB);
         os << declare(ptrLocalB);
@@ -1153,12 +1156,12 @@ ostream& MatmulMM::print(ostream& os) const
 
     ////////////////////////////////////////
     // accumulate inner product sum
-    const size_t accumPrec = maxPrecision(precA, precB, precC);
+    const size_t accumPrec = max<size_t>(precA(), precB(), precC());
     const vector< vector< PrivateVar > > accum = privateVector(
                                                      "accum",
                                                      accumPrec,
-                                                     vlenC,
-                                                     blockHeight(),
+                                                     vecLengthC(),
+                                                     blockH(),
                                                      vnumC);
     os << declare(accum);
 
@@ -1166,30 +1169,31 @@ ostream& MatmulMM::print(ostream& os) const
     // registers for inner product
     const vector< vector< PrivateVar > > valueA = privateVector(
                                                       "valueA",
-                                                      precA,
-                                                      vlenA,
-                                                      blockHeight(),
+                                                      precA(),
+                                                      vecLengthA(),
+                                                      blockH(),
                                                       vnumA);
     const vector< vector< PrivateVar > > valueB = privateVector(
                                                       "valueB",
-                                                      precB,
-                                                      vlenB,
-                                                      blockWidth(),
+                                                      precB(),
+                                                      vecLengthB(),
+                                                      blockW(),
                                                       vnumB);
     os << declare(valueA)
        << declare(valueB);
 
     ////////////////////////////////////////
     // begin packing loop
-    const PrivateVar packIdx("packIdx", 1, 1, true, 0, 1 == packing());
-    if (1 != packing())
-        os << ForLoop(packIdx, packing(), 1);
+    const PrivateVar batchIdx("batchIdx", PrecType::Int32, 1, true,
+                              0, 1 == batching());
+    if (1 != batching())
+        os << ForLoop(batchIdx, batching(), 1);
 
     // set accumulators to zero
-    os << assign(accum, CastValue(ConstantValue(0), accumPrec, vlenC));
+    os << assign(accum, CastValue(ConstantValue(0), accumPrec, vecLengthC()));
 
     // initialize pointer to memory buffer for matrix A
-    if (0 != vlenA)
+    if (0 != vecLengthA())
     {
         // start at left or top edge of matrix A
         if (transposeA())
@@ -1198,43 +1202,43 @@ ostream& MatmulMM::print(ostream& os) const
             // (must transpose quads into local memory)
             os << assign( ptrMatrixA,
 
-                      matrixA
+                matrixA
 
-                      // down by packed KxM matrices
-                      + packIdxDisableA * (packIdx * (M * K / vlenA))
+                // down by packed KxM matrices
+                + batchIdxDisableA * (batchIdx * (varM * varK / vecLengthA()))
 
-                      // across by global index
-                      + globalRow * (blockHeight() / vlenA)
+                // across by global index
+                + globalRow * (blockH() / vecLengthA())
 
-                      // down by local index
-                      + localCol * (M * (blockWidth() / vlenA)) );
+                // down by local index
+                + localCol * (varM * (blockW() / vecLengthA())) );
         }
         else
         {
             // start at left edge of matrix A (height is M, width is K)
             os << assign( ptrMatrixA,
 
-                      matrixA
+                matrixA
 
-                      // down by packed MxK matrices
-                      + packIdxDisableA * (packIdx * (M * K / vlenA))
+                // down by packed MxK matrices
+                + batchIdxDisableA * (batchIdx * (varM * varK / vecLengthA()))
 
-                      // down by work group
-                      + groupRow *
-                        ( 0 == (groupSize() * blockHeight()) % vlenA
-                              ? K * (groupSize() * blockHeight() / vlenA)
-                              : (groupSize() * blockHeight()) * K / vlenA )
+                // down by work group
+                + groupRow *
+                  ( 0 == (groupSize() * blockH()) % vecLengthA()
+                        ? varK * (groupSize() * blockH() / vecLengthA())
+                        : (groupSize() * blockH()) * varK / vecLengthA() )
 
-                      // down by local index
-                      + localRow * (K / vlenA)
+                // down by local index
+                + localRow * (varK / vecLengthA())
 
-                      // across by local index
-                      + localCol );
+                // across by local index
+                + localCol );
         }
     }
 
     // initialize pointer to memory buffer for matrix B
-    if (0 != vlenB)
+    if (0 != vecLengthB())
     {
         // start at left or top edge of matrix B
         if (transposeB())
@@ -1242,19 +1246,19 @@ ostream& MatmulMM::print(ostream& os) const
             // start at left edge of matrix B (height is N, width is K)
             os << assign( ptrMatrixB,
 
-                      matrixB
+                matrixB
 
-                      // down by packed NxK matrices
-                      + packIdxDisableB * (packIdx * (N * K / vlenB))
+                // down by packed NxK matrices
+                + batchIdxDisableB * (batchIdx * (varN * varK / vecLengthB()))
 
-                      // down by work group
-                      + groupCol * (K * (groupSize() * blockWidth() / vlenB))
+                // down by work group
+                + groupCol * (varK * (groupSize() * blockW() / vecLengthB()))
 
-                      // down by local index
-                      + localRow * (K / vlenB)
+                // down by local index
+                + localRow * (varK / vecLengthB())
 
-                      // across by local index
-                      + localCol );
+                // across by local index
+                + localCol );
         }
         else
         {
@@ -1262,108 +1266,108 @@ ostream& MatmulMM::print(ostream& os) const
             // (must transpose quads into local memory)
             os << assign( ptrMatrixB,
 
-                      matrixB
+                matrixB
 
-                      // down by packed KxN matrices
-                      + packIdxDisableB * (packIdx * (N * K / vlenB))
+                // down by packed KxN matrices
+                + batchIdxDisableB * (batchIdx * (varN * varK / vecLengthB()))
 
-                      // across by global index
-                      + globalCol * (blockWidth() / vlenB)
+                // across by global index
+                + globalCol * (blockW() / vecLengthB())
 
-                      // down by local index
-                      + localRow * (N * (blockWidth() / vlenB)) );
+                // down by local index
+                + localRow * (varN * (blockW() / vecLengthB())) );
         }
     }
 
     ////////////////////////////////////////
     // begin outer loop over blocks
-    const PrivateVar outerIdx("outerIdx", 1, 1, true);
-    if (0 != vlenA || 0 != vlenB)
+    const PrivateVar outerIdx("outerIdx", PrecType::Int32, 1, true);
+    if (0 != vecLengthA() || 0 != vecLengthB())
     {
-        os << ForLoop(outerIdx, K / (groupSize() * blockWidth()), 1);
+        os << ForLoop(outerIdx, varK / (groupSize() * blockW()), 1);
     }
 
     // copy from global memory buffer for matrix A to local memory
-    if (0 != vlenA)
+    if (0 != vecLengthA())
     {
-        for (size_t i = 0; i < blockHeight(); i++)
+        for (size_t i = 0; i < blockH(); i++)
         for (size_t j = 0; j < vnumA; j++)
         {
             if (transposeA())
             {
-                const size_t blockNum = i / vlenA;
-                const size_t blockIdx = i % vlenA;
+                const size_t blockNum = i / vecLengthA();
+                const size_t blockIdx = i % vecLengthA();
 
                 os << assign( LocalVar(
 
-                *(localA + (localRow * (blockHeight() * localSize()) +
-                            localCol +
-                            i * localSize()) * vnumA
-                         + j) ),
+                    *(localA + (localRow * (blockH() * localSize()) +
+                                localCol +
+                                i * localSize()) * vnumA
+                             + j) ),
 
-                *(ptrMatrixA + blockNum
-                             + blockIdx * M / vlenA
-                             + j * M) );
+                    *(ptrMatrixA + blockNum
+                                 + blockIdx * varM / vecLengthA()
+                                 + j * varM) );
             }
             else
             {
                 os << assign( LocalVar(
 
-                *(localA + localRow * (localSize() * vnumA)
-                         + i * groupSize() * localSize() * vnumA
-                         + localCol
-                         + j * groupSize()) ),
+                    *(localA + localRow * (localSize() * vnumA)
+                             + i * groupSize() * localSize() * vnumA
+                             + localCol
+                             + j * groupSize()) ),
 
-                *(ptrMatrixA + (i * groupSize()) * K / vlenA
-                             + j * groupSize()) );
+                    *(ptrMatrixA + (i * groupSize()) * varK / vecLengthA()
+                                 + j * groupSize()) );
             }
         }
     }
 
     // copy from global memory buffer for matrix B to local memory
-    if (0 != vlenB)
+    if (0 != vecLengthB())
     {
-        for (size_t i = 0; i < blockWidth(); i++)
+        for (size_t i = 0; i < blockW(); i++)
         for (size_t j = 0; j < vnumB; j++)
         {
             if (transposeB())
             {
                 os << assign( LocalVar(
 
-                *(localB + localRow * (localSize() * vnumB)
-                         + i * groupSize() * localSize() * vnumB
-                         + localCol
-                         + j * groupSize()) ),
+                    *(localB + localRow * (localSize() * vnumB)
+                             + i * groupSize() * localSize() * vnumB
+                             + localCol
+                             + j * groupSize()) ),
 
-                *(ptrMatrixB + (i * groupSize()) * K / vlenB
-                             + j * groupSize()) );
+                    *(ptrMatrixB + (i * groupSize()) * varK / vecLengthB()
+                                 + j * groupSize()) );
             }
             else
             {
                 os << assign( LocalVar(
 
-                *(localB + (localCol * (blockWidth() * localSize()) +
-                            localRow) * vnumB
-                         + i * localSize() * vnumB
-                         + j) ),
+                    *(localB + (localCol * (blockW() * localSize()) +
+                                localRow) * vnumB
+                             + i * localSize() * vnumB
+                             + j) ),
 
-                *(ptrMatrixB + i * N / vlenB + j) );
+                    *(ptrMatrixB + i * varN / vecLengthB() + j) );
             }
         }
     }
 
     // need barrier if using local memory
-    if (0 != vlenA || 0 != vlenB)
+    if (0 != vecLengthA() || 0 != vecLengthB())
     {
         os << LocalBarrier();
     }
 
     // update global memory buffer pointer for matrix A
-    if (0 != vlenA)
+    if (0 != vecLengthA())
     {
         if (transposeA())
         {
-            os << increment( ptrMatrixA, M * (groupSize() * vnumA) );
+            os << increment( ptrMatrixA, varM * (groupSize() * vnumA) );
         }
         else
         {
@@ -1372,7 +1376,7 @@ ostream& MatmulMM::print(ostream& os) const
     }
 
     // update global memory buffer pointer for matrix B
-    if (0 != vlenB)
+    if (0 != vecLengthB())
     {
         if (transposeB())
         {
@@ -1380,36 +1384,31 @@ ostream& MatmulMM::print(ostream& os) const
         }
         else
         {
-            os << increment( ptrMatrixB,
-                             N * (groupSize() * vnumB) );
+            os << increment( ptrMatrixB, varN * (groupSize() * vnumB) );
         }
     }
 
     // initialize inner product pointer when using memory buffer for matrix A
-    if (0 != vlenA)
+    if (0 != vecLengthA())
     {
         os << assign( ptrLocalA,
-                      localA + localRow * (localSize() *
-                                           blockHeight() *
-                                           vnumA) );
+                      localA + localRow * (localSize() * blockH() * vnumA) );
     }
 
     // initialize inner product pointer when using memory buffer for matrix B
-    if (0 != vlenB)
+    if (0 != vecLengthB())
     {
         os << assign( ptrLocalB,
-                      localB + localCol * (localSize() *
-                                           blockWidth() *
-                                           vnumB) );
+                      localB + localCol * (localSize() * blockW() * vnumB) );
     }
 
-    const PrivateVar kIdx("kIdx", 1, 1, true);
-    const PrivateVar innerIdx("innerIdx", 1, 1, true);
-    if (0 == vlenA && 0 == vlenB)
+    const PrivateVar kIdx("kIdx", PrecType::Int32, 1, true);
+    const PrivateVar innerIdx("innerIdx", PrecType::Int32, 1, true);
+    if (0 == vecLengthA() && 0 == vecLengthB())
     {
         ////////////////////////////////////////
         // one loop for A and B both images
-        os << ForLoop(kIdx, K / blockWidth(), 1);
+        os << ForLoop(kIdx, varK / blockW(), 1);
     }
     else
     {
@@ -1419,18 +1418,17 @@ ostream& MatmulMM::print(ostream& os) const
     }
 
     // read in values of matrix A
-    if (0 == vlenA)
+    if (0 == vecLengthA())
     {
         // image
-        for (size_t i = 0; i < blockHeight(); i++)
+        for (size_t i = 0; i < blockH(); i++)
         for (size_t j = 0; j < vnumA; j++)
         {
-            const size_t veclength = effVectorLengthA();
+            const size_t veclength = effVecLengthA();
 
-            const PrivateVar
-                idx( 0 == vlenB
-                         ? ConstantValue(kIdx)
-                         : outerIdx * groupSize() + innerIdx );
+            const PrivateVar idx( 0 == vecLengthB()
+                                      ? ConstantValue(kIdx)
+                                      : outerIdx * groupSize() + innerIdx );
 
             if (transposeA())
             {
@@ -1443,13 +1441,13 @@ ostream& MatmulMM::print(ostream& os) const
                         ReadImage(
                             matrixA,
                             sampler,
-                            globalRow * (blockHeight() / veclength) + blockNum,
-                            packIdxDisableA * (packIdx * K)
-                                + idx * blockWidth()
+                            globalRow * (blockH() / veclength) + blockNum,
+                            batchIdxDisableA * (batchIdx * varK)
+                                + idx * blockW()
                                 + (j * veclength + blockIdx) ),
-                        precA,
-                        vlenA,
-                        PrecType::Double == precA ));
+                        precA(),
+                        vecLengthA(),
+                        PrecType::Double == precA() ));
             }
             else
             {
@@ -1460,19 +1458,19 @@ ostream& MatmulMM::print(ostream& os) const
                             matrixA,
                             sampler,
                             idx * vnumA + j,
-                            packIdxDisableA * (packIdx * M)
-                                + globalRow * blockHeight()
+                            batchIdxDisableA * (batchIdx * varM)
+                                + globalRow * blockH()
                                 + i ),
-                        precA,
-                        vlenA,
-                        PrecType::Double == precA ));
+                        precA(),
+                        vecLengthA(),
+                        PrecType::Double == precA() ));
             }
         }
     }
     else
     {
         // memory buffer
-        for (size_t i = 0; i < blockHeight(); i++)
+        for (size_t i = 0; i < blockH(); i++)
         for (size_t j = 0; j < vnumA; j++)
         {
             os << assign( valueA[j][i],
@@ -1483,18 +1481,17 @@ ostream& MatmulMM::print(ostream& os) const
     }
 
     // read in values of matrix B
-    if (0 == vlenB)
+    if (0 == vecLengthB())
     {
         // image
-        for (size_t i = 0; i < blockWidth(); i++)
+        for (size_t i = 0; i < blockW(); i++)
         for (size_t j = 0; j < vnumB; j++)
         {
-            const size_t veclength = effVectorLengthB();
+            const size_t veclength = effVecLengthB();
 
-            const PrivateVar
-                idx( 0 == vlenA
-                         ? ConstantValue(kIdx)
-                         : outerIdx * groupSize() + innerIdx );
+            const PrivateVar idx( 0 == vecLengthA()
+                                      ? ConstantValue(kIdx)
+                                      : outerIdx * groupSize() + innerIdx );
 
             if (transposeB())
             {
@@ -1505,12 +1502,12 @@ ostream& MatmulMM::print(ostream& os) const
                             matrixB,
                             sampler,
                             idx * vnumB + j,
-                            packIdxDisableB * (packIdx * N)
-                                + globalCol * blockWidth()
+                            batchIdxDisableB * (batchIdx * varN)
+                                + globalCol * blockW()
                                 + i ),
-                        precB,
-                        vlenB,
-                        PrecType::Double == precB ));
+                        precB(),
+                        vecLengthB(),
+                        PrecType::Double == precB() ));
             }
             else
             {
@@ -1521,19 +1518,19 @@ ostream& MatmulMM::print(ostream& os) const
                             matrixB,
                             sampler,
                             globalCol * vnumB + j,
-                            packIdxDisableB * (packIdx * K)
-                                + idx * blockWidth()
+                            batchIdxDisableB * (batchIdx * varK)
+                                + idx * blockW()
                                 + i ),
-                        precB,
-                        vlenB,
-                        PrecType::Double == precB ));
+                        precB(),
+                        vecLengthB(),
+                        PrecType::Double == precB() ));
             }
         }
     }
     else
     {
         // memory buffer
-        for (size_t i = 0; i < blockWidth(); i++)
+        for (size_t i = 0; i < blockW(); i++)
         for (size_t j = 0; j < vnumB; j++)
         {
             os << assign( valueB[j][i],
@@ -1546,7 +1543,7 @@ ostream& MatmulMM::print(ostream& os) const
     // assignMAD goes here
     assignMAD(os, loopOrder(), accum, valueA, valueB);
 
-    if (0 == vlenA && 0 == vlenB)
+    if (0 == vecLengthA() && 0 == vecLengthB())
     {
         ////////////////////////////////////////
         // end one loop for A and B both images
@@ -1571,29 +1568,29 @@ ostream& MatmulMM::print(ostream& os) const
                          globalID() ? globalCol
                                     : groupCol * groupSize() + localCol );
 
-    if (0 == vlenC)
+    if (0 == vecLengthC())
     {
-        const size_t veclength = effVectorLengthC();
+        const size_t veclength = effVecLengthC();
 
         // image
-        for (size_t i = 0; i < blockHeight(); i++)
+        for (size_t i = 0; i < blockH(); i++)
         for (size_t j = 0; j < vnumC; j++)
         {
             os << WriteImage(
                       matrixC,
                       switchGlobalCol * vnumC + j,
-                      packIdx * M
-                      + switchGlobalRow * blockHeight()
-                      + i,
+                      batchIdx * varM
+                          + switchGlobalRow * blockH()
+                          + i,
                       ReinterpretValue(
                           ConvertValue(
                               accum[j][i],
-                              precC,
-                              vlenC,
-                              accumPrec != precC ),
+                              precC(),
+                              vecLengthC(),
+                              accumPrec != precC() ),
                           PrecType::UInt32,
                           PrecType::vecLength(PrecType::UInt32),
-                          PrecType::Double == precC ));
+                          PrecType::Double == precC() ));
         }
     }
     else
@@ -1601,32 +1598,32 @@ ostream& MatmulMM::print(ostream& os) const
         // memory buffer
         const GlobalVar ptrMatrixC(
                             matrixC
-                            + packIdx * (M * N / vlenC)
-                            + switchGlobalRow * (blockHeight() * N / vlenC)
-                            + switchGlobalCol * (blockWidth() / vlenC) );
+                            + batchIdx * (varM * varN / vecLengthC())
+                            + switchGlobalRow * (blockH() * varN / vecLengthC())
+                            + switchGlobalCol * (blockW() / vecLengthC()) );
 
-        for (size_t i = 0; i < blockHeight(); i++)
+        for (size_t i = 0; i < blockH(); i++)
         for (size_t j = 0; j < vnumC; j++)
         {
             os << assign(
-                      GlobalVar(*(ptrMatrixC + i * N / vlenC + j)),
-                      ConvertValue(
-                          general()
-                              ? MADValue(CastValue(alpha, accumPrec, vlenC),
-                                         accum[j][i],
-                                         CastValue(beta, accumPrec, vlenC) *
-                                         *(ptrMatrixC + i * N / vlenC + j),
-                                         useMADFunction())
-                              : accum[j][i],
-                          precC,
-                          vlenC,
-                          accumPrec != precC ));
+                GlobalVar(*(ptrMatrixC + i * varN / vecLengthC() + j)),
+                ConvertValue(
+                    general()
+                        ? MADValue(CastValue(alpha, accumPrec, vecLengthC()),
+                                   accum[j][i],
+                                   CastValue(beta, accumPrec, vecLengthC()) *
+                                   *(ptrMatrixC + i * varN / vecLengthC() + j),
+                                   useMADFunction())
+                        : accum[j][i],
+                    precC(),
+                    vecLengthC(),
+                    accumPrec != precC() ));
         }
     }
 
     ////////////////////////////////////////
     // end packing loop
-    if (1 != packing())
+    if (1 != batching())
         os << EndBlock();
 
     return os << EndBlock();

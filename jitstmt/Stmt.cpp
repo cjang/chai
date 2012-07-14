@@ -13,7 +13,7 @@ Stmt::Stmt(void)
     : _lhsVariable(NULL),
       _rhsVariable(),
       _underlyingVars(),
-      _scalarVectorLength(false),
+      _scalarVecLength(false),
       _constructorLHS(false),
       _destructorLHS(false),
       _buoyancy(NEUTRAL),
@@ -129,19 +129,26 @@ void Stmt::underlyingVars(const set< AstVariable* >& underlyingVars)
     _underlyingVars = underlyingVars;
 }
 
-bool Stmt::scalarVectorLength(void) const
+bool Stmt::scalarVecLength(void) const
 {
-    return _scalarVectorLength;
+    return _scalarVecLength;
 }
 
-void Stmt::scalarVectorLength(const bool a)
+void Stmt::scalarVecLength(const bool a)
 {
-    _scalarVectorLength = a;
+    _scalarVecLength = a;
 }
 
 bool Stmt::trackLHS(void) const
 {
     return true;
+}
+
+bool Stmt::randomness(void) const
+{
+    return _lhsVariable
+               ? _lhsVariable->randomness()
+               : false;
 }
 
 bool Stmt::swappable(const Stmt& other) const
@@ -153,9 +160,7 @@ bool Stmt::swappable(const Stmt& other) const
 
     // this LHS with other LHS and RHS
     for (set< uint32_t >::const_iterator
-         it = _traceLHS.begin();
-         it != _traceLHS.end();
-         it++)
+         it = _traceLHS.begin(); it != _traceLHS.end(); it++)
     {
         if (other._traceLHS.count(*it) || other._traceRHS.count(*it))
         {
@@ -165,9 +170,7 @@ bool Stmt::swappable(const Stmt& other) const
 
     // this RHS with other LHS
     for (set< uint32_t >::const_iterator
-         it = _traceRHS.begin();
-         it != _traceRHS.end();
-         it++)
+         it = _traceRHS.begin(); it != _traceRHS.end(); it++)
     {
         if (other._traceLHS.count(*it))
         {
@@ -179,9 +182,7 @@ bool Stmt::swappable(const Stmt& other) const
 
     // this LHS with other LHS and RHS
     for (set< AstVariable* >::const_iterator
-         it = _splitLHS.begin();
-         it != _splitLHS.end();
-         it++)
+         it = _splitLHS.begin(); it != _splitLHS.end(); it++)
     {
         if (other._splitLHS.count(*it) || other._splitRHS.count(*it))
         {
@@ -191,9 +192,7 @@ bool Stmt::swappable(const Stmt& other) const
 
     // this RHS with other LHS
     for (set< AstVariable* >::const_iterator
-         it = _splitRHS.begin();
-         it != _splitRHS.end();
-         it++)
+         it = _splitRHS.begin(); it != _splitRHS.end(); it++)
     {
         if (other._splitLHS.count(*it))
         {

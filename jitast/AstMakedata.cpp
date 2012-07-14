@@ -12,10 +12,11 @@ namespace chai_internal {
 
 AstMakedata::AstMakedata(const vector< FrontMem* >& frontMem,
                          BackMem* backMem,
+                         const size_t PREC,
                          const size_t W,
                          const size_t H,
-                         const size_t precision)
-    : BaseAst(W, H, precision),
+                         const size_t slots)
+    : BaseAst(PREC, W, H, slots, false),
       _frontMem(frontMem),
       _backMem(backMem) { }
 

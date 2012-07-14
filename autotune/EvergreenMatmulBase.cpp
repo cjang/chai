@@ -3,15 +3,15 @@
 #include <map>
 #include <sstream>
 
-#include "ArrayBufUtil.hpp"
 #include "CodeControlFlow.hpp"
 #include "CodeFunction.hpp"
 #include "CodeImageSample.hpp"
 #include "CodeStatements.hpp"
 #include "CodeType.hpp"
 #include "CodeValues.hpp"
-#include "EvergreenMatmulMM.hpp"
+#include "EvergreenMatmulBase.hpp"
 #include "PrecType.hpp"
+#include "UtilFuns.hpp"
 
 using namespace std;
 
@@ -31,28 +31,25 @@ MatmulBase::MatmulBase(void) { }
 
 MatmulBase::~MatmulBase(void) { }
 
-bool MatmulBase::validArrayType(const size_t precision,
-                                const size_t vectorLength) const
+bool MatmulBase::validArrayType(const size_t PREC,
+                                const size_t vecLen) const
 {
-    if ( ! PrecType::validSizeCode(precision) ||
-         ! (0 == vectorLength ||
-            1 == vectorLength ||
-            2 == vectorLength ||
-            4 == vectorLength) )
+    if ( ! PrecType::validCode(PREC) ||
+         ! (0 == vecLen || 1 == vecLen || 2 == vecLen || 4 == vecLen) )
     {
         return false;
     }
 
-    if (0 == vectorLength) // image
+    if (0 == vecLen) // image
     {
-        if (0 != blockWidth() % PrecType::vecLength(precision))
+        if (0 != blockW() % PrecType::vecLength(PREC))
         {
             return false;
         }
     }
     else // memory buffer
     {
-        if (0 != blockWidth() % vectorLength)
+        if (0 != blockW() % vecLen)
         {
             return false;
         }
@@ -61,71 +58,47 @@ bool MatmulBase::validArrayType(const size_t precision,
     return true;
 }
 
-size_t MatmulBase::maxPrecision(const size_t precisionA,
-                                const size_t precisionB) const
+size_t MatmulBase::effVecLengthA(void) const
 {
-    // precB:  0  1  4  8
-    // precA:
-    //     0   U  I  F  D
-    //     1   I  I  F  D
-    //     4   F  F  F  D
-    //     8   D  D  D  D
-
-    return precisionA < precisionB
-               ? precisionB
-               : precisionA;
-}
-
-size_t MatmulBase::maxPrecision(const size_t precisionA,
-                                const size_t precisionB,
-                                const size_t precisionC) const
-{
-    return maxPrecision(
-               maxPrecision(precisionA, precisionB),
-               precisionC );
-}
-
-size_t MatmulBase::effVectorLengthA(void) const
-{
-    if (0 == vectorLengthA())
+    if (0 == vecLengthA())
     {
-        return PrecType::vecLength(precisionA());
+        return PrecType::vecLength(precA());
     }
     else
     {
-        return vectorLengthA();
+        return vecLengthA();
     }
 }
 
-size_t MatmulBase::effVectorLengthB(void) const
+size_t MatmulBase::effVecLengthB(void) const
 {
-    if (0 == vectorLengthB())
+    if (0 == vecLengthB())
     {
-        return PrecType::vecLength(precisionB());
+        return PrecType::vecLength(precB());
     }
     else
     {
-        return vectorLengthB();
+        return vecLengthB();
     }
 }
 
-size_t MatmulBase::effVectorLengthC(void) const
+size_t MatmulBase::effVecLengthC(void) const
 {
-    if (0 == vectorLengthC())
+    if (0 == vecLengthC())
     {
-        return PrecType::vecLength(precisionC());
+        return PrecType::vecLength(precC());
     }
     else
     {
-        return vectorLengthC();
+        return vecLengthC();
     }
 }
 
 bool MatmulBase::useMADFunction(void) const
 {
-    return PrecType::isTypeFP(precisionA()) &&
-           PrecType::isTypeFP(precisionB()) &&
-           PrecType::isTypeFP(precisionC());
+    return PrecType::isTypeFP(precA()) &&
+           PrecType::isTypeFP(precB()) &&
+           PrecType::isTypeFP(precC());
 }
 
 void MatmulBase::toggleParamMarks(void)
@@ -148,9 +121,7 @@ string MatmulBase::kernelName(void) const
     if (getParams(params))
     {
         for (vector< size_t >::const_iterator
-             it = params.begin();
-             it != params.end();
-             it++)
+             it = params.begin(); it != params.end(); it++)
         {
             ss << "_" << *it;
         }

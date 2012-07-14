@@ -13,27 +13,27 @@ namespace chai_internal {
 //   matrix * vector
 //   vector * matrix
 
-AstMatmulBase::AstMatmulBase(const size_t width,
-                             const size_t height,
-                             const size_t precision,
+AstMatmulBase::AstMatmulBase(const size_t PREC,
+                             const size_t W,
+                             const size_t H,
+                             const size_t slots,
+                             const bool randomness,
                              BaseAst* bargLeft,
                              BaseAst* bargRight)
-    : BaseAst(width, height, precision),
+    : BaseAst(PREC, W, H, slots, randomness),
       _isGEMM(false),
       _alpha(1),
       _beta(0),
       _transposeA(false),
       _transposeB(false),
-      _sameDataA(false),
-      _sameDataB(false)
+      _sameDataA(1 == bargLeft->slots()),
+      _sameDataB(1 == bargRight->slots())
 {
     pushArg(bargLeft);
     pushArg(bargRight);
 }
 
-AstMatmulBase::~AstMatmulBase(void)
-{
-}
+AstMatmulBase::~AstMatmulBase(void) { }
 
 size_t AstMatmulBase::leftW(void) const
 {
@@ -45,9 +45,14 @@ size_t AstMatmulBase::leftH(void) const
     return getArg(0)->H();
 }
 
-size_t AstMatmulBase::leftPrecision(void) const
+size_t AstMatmulBase::leftSlots(void) const
 {
-    return getArg(0)->precision();
+    return getArg(0)->slots();
+}
+
+size_t AstMatmulBase::leftPrec(void) const
+{
+    return getArg(0)->prec();
 }
 
 size_t AstMatmulBase::rightW(void) const
@@ -60,9 +65,14 @@ size_t AstMatmulBase::rightH(void) const
     return getArg(1)->H();
 }
 
-size_t AstMatmulBase::rightPrecision(void) const
+size_t AstMatmulBase::rightSlots(void) const
 {
-    return getArg(1)->precision();
+    return getArg(1)->slots();
+}
+
+size_t AstMatmulBase::rightPrec(void) const
+{
+    return getArg(1)->prec();
 }
 
 void AstMatmulBase::setGEMM(AstVariable* lhsVariable,
@@ -71,7 +81,7 @@ void AstMatmulBase::setGEMM(AstVariable* lhsVariable,
 {
     _isGEMM = true;
 
-    switch (alpha->precision())
+    switch (alpha->prec())
     {
         case (PrecType::UInt32) : _alpha = alpha->uintValue(); break;
         case (PrecType::Int32) : _alpha = alpha->intValue(); break;
@@ -79,7 +89,7 @@ void AstMatmulBase::setGEMM(AstVariable* lhsVariable,
         case (PrecType::Double) : _alpha = alpha->doubleValue(); break;
     }
 
-    switch (beta->precision())
+    switch (beta->prec())
     {
         case (PrecType::UInt32) : _beta = beta->uintValue(); break;
         case (PrecType::Int32) : _beta = beta->intValue(); break;
@@ -138,16 +148,6 @@ bool AstMatmulBase::getTransposeA(void) const
 bool AstMatmulBase::getTransposeB(void) const
 {
     return _transposeB;
-}
-
-void AstMatmulBase::setSameDataA(void)
-{
-    _sameDataA = true;
-}
-
-void AstMatmulBase::setSameDataB(void)
-{
-    _sameDataB = true;
 }
 
 bool AstMatmulBase::getSameDataA(void) const

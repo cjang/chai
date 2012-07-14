@@ -12,47 +12,44 @@ namespace chai_internal {
 
 void InterpScalar::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
-    const double scalar = _argScalar[0];
+    const double SCALAR = _argScalar[0];
 
     // first allocate backing memory
-    BackMem* backMem = allocBackMem(1, 1, _precision);
+    BackMem* backMem = allocBackMem(_prec, 1, 1, 1);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
     // calculate and create fronts
-    for (size_t i = 0; i < numTraces(); i++)
+    FrontMem* m = allocFrontMem(_prec, 1, 1, backMem, 0);
+
+    frontMem.push_back(m);
+
+    switch (_prec)
     {
-        FrontMem* m = allocFrontMem(1, 1, _precision, backMem, i);
+        case (PrecType::UInt32) :
+            m->uintPtr()[0] = static_cast<uint32_t>(SCALAR);
+            break;
 
-        frontMem.push_back(m);
+        case (PrecType::Int32) :
+            m->intPtr()[0] = static_cast<int32_t>(SCALAR);
+            break;
 
-        switch (_precision)
-        {
-            case (PrecType::UInt32) :
-                m->uintPtr()[0] = static_cast<uint32_t>(scalar);
-                break;
+        case (PrecType::Float) :
+            m->floatPtr()[0] = static_cast<float>(SCALAR);
+            break;
 
-            case (PrecType::Int32) :
-                m->intPtr()[0] = static_cast<int32_t>(scalar);
-                break;
-
-            case (PrecType::Float) :
-                m->floatPtr()[0] = static_cast<float>(scalar);
-                break;
-
-            case (PrecType::Double) :
-                m->doublePtr()[0] = scalar;
-                break;
-        }
+        case (PrecType::Double) :
+            m->doublePtr()[0] = SCALAR;
+            break;
     }
 
     // push result on stack
     outStack.push(frontMem);
 }
 
-InterpScalar::InterpScalar(const size_t precision)
+InterpScalar::InterpScalar(const size_t PREC)
     : BaseInterp(1, 0),
-      _precision(precision) { }
+      _prec(PREC) { }
 
 }; // namespace chai_internal

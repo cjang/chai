@@ -3,8 +3,10 @@
 #ifndef _CHAI_STMT_REDUCE_HPP_
 #define _CHAI_STMT_REDUCE_HPP_
 
-#include "VisitAst.hpp"
+#include <vector>
+
 #include "Stmt.hpp"
+#include "VisitAst.hpp"
 
 namespace chai_internal {
 
@@ -18,6 +20,11 @@ class StmtReduce : public Stmt,
     AstAccum*    _rhsAccum;
     AstDotprod*  _rhsDotprod;
 
+    const size_t _rhsW;
+    const size_t _rhsH;
+
+    std::vector< Stmt* > _nestStmt;
+
     // recursive visiting down AST tree
     void descendAst(BaseAst&);
 
@@ -25,12 +32,20 @@ public:
     StmtReduce(AstVariable* lhs, AstAccum* rhs);
     StmtReduce(AstVariable* lhs, AstDotprod* rhs);
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
+
+    const std::vector< Stmt* >& nestStmt(void) const;
+    void nestStmt(Stmt*);
 
     void accept(VisitStmt&);
 
     AstAccum* accumPtr(void) const;
     AstDotprod* dotprodPtr(void) const;
+
+    size_t rhsW(void) const;
+    size_t rhsH(void) const;
 
     void visit(AstAccum&);
     void visit(AstArrayMem&);

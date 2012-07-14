@@ -12,7 +12,7 @@
 #include "chai/BC.hpp"
 #include "chai/Stak.hpp"
 #include "FrontMem.hpp"
-#include "MemManager.hpp"
+#include "MemInterp.hpp"
 
 namespace chai_internal {
 
@@ -48,7 +48,7 @@ public:
 
     void setContext(std::stack< std::vector< FrontMem* > >& outStack);
     void setContext(VectorTrace& vt, const size_t uniqueSwizzleKey);
-    void setContext(MemManager& mm);
+    void setContext(MemInterp& mm);
 
     void visit(const uint32_t variable, const uint32_t version);
     void visit(const uint32_t opCode);

@@ -44,9 +44,7 @@ bool StmtBarrier::containedIn(const set< uint32_t >& traceVars) const
     if (_splitVars.empty())
     {
         for (set< uint32_t >::const_iterator
-             it = _traceVars.begin();
-             it != _traceVars.end();
-             it++)
+             it = _traceVars.begin(); it != _traceVars.end(); it++)
         {
             if (0 == traceVars.count(*it))
                 return false;
@@ -65,9 +63,7 @@ bool StmtBarrier::containedIn(const set< uint32_t >& traceVars,
 {
     // contained inside trace set
     for (set< uint32_t >::const_iterator
-         it = _traceVars.begin();
-         it != _traceVars.end();
-         it++)
+         it = _traceVars.begin(); it != _traceVars.end(); it++)
     {
         if (0 == traceVars.count(*it))
             return false;
@@ -75,9 +71,7 @@ bool StmtBarrier::containedIn(const set< uint32_t >& traceVars,
 
     // contained inside split set
     for (set< const AstVariable* >::const_iterator
-         it = _splitVars.begin();
-         it != _splitVars.end();
-         it++)
+         it = _splitVars.begin(); it != _splitVars.end(); it++)
     {
         if (0 == splitVars.count(*it))
             return false;
@@ -94,6 +88,11 @@ const set< uint32_t >& StmtBarrier::traceVars(void) const
 const set< const AstVariable* >& StmtBarrier::splitVars(void) const
 {
     return _splitVars;
+}
+
+bool StmtBarrier::randomness(void) const
+{
+    return false;
 }
 
 bool StmtBarrier::swappable(const Stmt& other) const

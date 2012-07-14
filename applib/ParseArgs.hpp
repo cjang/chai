@@ -26,7 +26,7 @@ class ParseArgs
     char**    _argv;
 
     size_t _deviceIdx;
-    size_t _packing;
+    size_t _batching;
     size_t _general;
     size_t _precA;
     size_t _precB;
@@ -43,20 +43,23 @@ class ParseArgs
     bool _includeSendDataToDevice;
     bool _includeReadDataFromDevice;
 
-    void setVectorLength(const char tok,
-                         size_t& vecLen) const;
+    bool _noInterpret;
 
-    void setVectorLengthLimits(const size_t vectorLength,
-                               const bool useImages,
-                               size_t& startIdx,
-                               size_t& stopIdx) const;
+    void setVecLength(const char tok,
+                      size_t& vecLen) const;
 
-    size_t precisionChar(const char UISD) const;
+    void setVecLengthLimits(const size_t vecLen,
+                            const bool useImages,
+                            size_t& startIdx,
+                            size_t& stopIdx) const;
+
+    size_t precChar(const char UISD) const;
 
 public:
     ParseArgs(int argc, char *argv[]);
 
     // used by regular DSL applications
+    ParseArgs& noInterpret(void);
     void initVM(void);
 
 #ifdef _CHAI_OCL_INIT_HPP_

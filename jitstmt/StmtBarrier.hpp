@@ -32,6 +32,8 @@ public:
     const std::set< uint32_t >& traceVars(void) const;
     const std::set< const AstVariable* >& splitVars(void) const;
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
 
     void accept(VisitStmt&);

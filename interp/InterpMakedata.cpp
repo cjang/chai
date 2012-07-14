@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "InterpMakedata.hpp"
 
@@ -14,16 +14,14 @@ namespace chai_internal {
 
 void InterpMakedata::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
-    // ignoring the scalar width and height arguments
+    // ignoring the scalar dimension arguments
     // they are used only for bytecode hashing
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
     for (vector< FrontMem* >::const_iterator
-         it = _argMem[0].begin();
-         it != _argMem[0].end();
-         it++)
+         it = _argMem[0].begin(); it != _argMem[0].end(); it++)
     {
         frontMem.push_back(*it);
     }
@@ -33,6 +31,6 @@ void InterpMakedata::sub_eval(stack< vector< FrontMem* > >& outStack)
 }
 
 InterpMakedata::InterpMakedata(void)
-    : BaseInterp(3, 0) { }
+    : BaseInterp(4, 0) { }
 
 }; // namespace chai_internal

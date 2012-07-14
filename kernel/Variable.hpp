@@ -36,21 +36,21 @@ class Function;
 // abstract base class for variables
 class Variable
 {
-    const size_t _precision;
-    const size_t _vectorLength;
+    const size_t _prec;
+    const size_t _vecLen;
 
     Function* _func;
 
 public:
-    Variable(const size_t precision,
-             const size_t vectorLength);
+    Variable(const size_t PREC,
+             const size_t vecLen);
     virtual ~Variable(void);
 
     void setFunction(Function*);
 
     void identifierName(std::ostream&) const;
-    size_t precision(void) const;
-    size_t vectorLength(void) const;
+    size_t prec(void) const;
+    size_t vecLength(void) const;
 
     virtual void declareType(std::ostream&) const = 0;
     virtual void convertType(std::ostream&) const = 0;
@@ -74,8 +74,8 @@ class Image2D : public Variable
     const ImageAccess& _imgAccess;
 
 public:
-    Image2D(const size_t precision,
-            const size_t vectorLength,
+    Image2D(const size_t PREC,
+            const size_t vecLen,
             const ImageAccess& rw);
 
     void declareType(std::ostream&) const;
@@ -101,22 +101,22 @@ class AddrMem : public Variable
     const AddressSpace& _addrSpace;
 
 public:
-    AddrMem(const size_t precision,
-            const size_t vectorLength,
+    AddrMem(const size_t PREC,
+            const size_t vecLen,
             const AddressSpace& qualifier = DEFAULT);
 
-    AddrMem(const size_t precision,
-            const size_t vectorLength,
+    AddrMem(const size_t PREC,
+            const size_t vecLen,
             const ConstVariableDecl& varDecl,
             const AddressSpace& qualifier = DEFAULT);
 
-    AddrMem(const size_t precision,
-            const size_t vectorLength,
+    AddrMem(const size_t PREC,
+            const size_t vecLen,
             const PointerVariableDecl& varDecl,
             const AddressSpace& qualifier = DEFAULT);
 
-    AddrMem(const size_t precision,
-            const size_t vectorLength,
+    AddrMem(const size_t PREC,
+            const size_t vecLen,
             const ConstPointerVariableDecl& varDecl,
             const AddressSpace& qualifier = DEFAULT);
 
@@ -151,7 +151,7 @@ class ArrayVariable : public Variable
     const uint32_t _variable;
 
 public:
-    ArrayVariable(const size_t precType,
+    ArrayVariable(const size_t PREC,
                   const uint32_t varNum);
 
     uint32_t variable(void) const;
@@ -167,7 +167,7 @@ class LocalMemory : public Variable
     const size_t _length;
 
 public:
-    LocalMemory(const size_t precType,
+    LocalMemory(const size_t PREC,
                 const size_t length);
 
     size_t length(void) const;
@@ -194,8 +194,6 @@ public:
     ScalarArgument(const int32_t);
     ScalarArgument(const float);
     ScalarArgument(const double);
-
-    size_t precType(void) const;
 
     uint32_t scalarUInt32(void) const;
     int32_t scalarInt32(void) const;

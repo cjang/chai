@@ -19,8 +19,8 @@ namespace chai_internal {
 class BaseVar : public IVariable
 {
 protected:
-    size_t _precision;
-    size_t _vectorLength;
+    size_t _prec;
+    size_t _vecLen;
     bool   _writable;
 
     std::string   _variableIdentifier;
@@ -34,22 +34,22 @@ protected:
 
     // basic variable
     BaseVar(const std::string& name,
-            const size_t precision,
-            const size_t vectorLength,
+            const size_t PREC,
+            const size_t vecLen,
             const bool writable);
 
     // basic variable may be inlined
     BaseVar(const std::string& name,
-            const size_t precision,
-            const size_t vectorLength,
+            const size_t PREC,
+            const size_t vecLen,
             const bool writable,
             const IValue& inlineValue,
             const bool doInline);
 
     // basic variable may be inlined
     BaseVar(const std::string& name,
-            const size_t precision,
-            const size_t vectorLength,
+            const size_t PREC,
+            const size_t vecLen,
             const bool writable,
             const int inlineValue,
             const bool doInline);
@@ -68,8 +68,8 @@ class GlobalVar : public BaseVar
 public:
     // pointer to global memory
     GlobalVar(const std::string& name,
-              const size_t precision,
-              const size_t vectorLength,
+              const size_t PREC,
+              const size_t vecLen,
               const bool writable);
 
     // inlined pointer to global memory
@@ -77,22 +77,22 @@ public:
 
     // function array argument
     GlobalVar(const std::string& name,
-              const size_t precision,
-              const size_t vectorLength,
+              const size_t PREC,
+              const size_t vecLen,
               const bool writable,
               FunctionDeclaration& funcDecl);
 
     // optional function array argument
     GlobalVar(const std::string& name,
-              const size_t precision,
-              const size_t vectorLength,
+              const size_t PREC,
+              const size_t vecLen,
               const bool writable,
               FunctionDeclaration& funcDecl,
               const bool isArgument);
 
     std::string declaredName(void) const;
 
-    size_t precision(void) const;
+    size_t prec(void) const;
 };
 
 // local memory
@@ -101,8 +101,8 @@ class LocalVar : public BaseVar
 public:
     // pointer to local memory
     LocalVar(const std::string& name,
-             const size_t precision,
-             const size_t vectorLength,
+             const size_t PREC,
+             const size_t vecLen,
              const bool writable);
 
     // inlined pointer to local memory
@@ -110,15 +110,15 @@ public:
 
     // function local memory argument
     LocalVar(const std::string& name,
-             const size_t precision,
-             const size_t vectorLength,
+             const size_t PREC,
+             const size_t vecLen,
              const bool writable,
              FunctionDeclaration& funcDecl);
 
     // optional function local memory argument
     LocalVar(const std::string& name,
-             const size_t precision,
-             const size_t vectorLength,
+             const size_t PREC,
+             const size_t vecLen,
              const bool writable,
              FunctionDeclaration& funcDecl,
              const bool isArgument);
@@ -137,8 +137,8 @@ public:
 
     // register on stack frame of function
     PrivateVar(const std::string& name,
-               const size_t precision,
-               const size_t vectorLength,
+               const size_t PREC,
+               const size_t vecLen,
                const bool writable);
 
     // inlined value
@@ -146,40 +146,39 @@ public:
 
     // register on stack frame of function, optionally inlined
     PrivateVar(const std::string& name,
-               const size_t precision,
-               const size_t vectorLength,
+               const size_t PREC,
+               const size_t vecLen,
                const bool writable,
                const IValue& inlineValue,
                const bool doInline);
 
     // register on stack frame of function, optionally inlined
     PrivateVar(const std::string& name,
-               const size_t precision,
-               const size_t vectorLength,
+               const size_t PREC,
+               const size_t vecLen,
                const bool writable,
                const int inlineValue,
                const bool doInline);
 
     // function scalar argument
-    // function scalar argument
     PrivateVar(const std::string& name,
-               const size_t precision,
-               const size_t vectorLength,
+               const size_t PREC,
+               const size_t vecLen,
                const bool writable,
                FunctionDeclaration& funcDec);
 
     // optional function scalar argument
     PrivateVar(const std::string& name,
-               const size_t precision,
-               const size_t vectorLength,
+               const size_t PREC,
+               const size_t vecLen,
                const bool writable,
                FunctionDeclaration& funcDec,
                const bool isArgument);
 
     // function scalar argument, optionally inlined
     PrivateVar(const std::string& name,
-               const size_t precision,
-               const size_t vectorLength,
+               const size_t PREC,
+               const size_t vecLen,
                const bool writable,
                FunctionDeclaration& funcDec,
                const IValue& inlineValue,
@@ -187,8 +186,8 @@ public:
 
     // function scalar argument, optionally inlined
     PrivateVar(const std::string& name,
-               const size_t precision,
-               const size_t vectorLength,
+               const size_t PREC,
+               const size_t vecLen,
                const bool writable,
                FunctionDeclaration& funcDec,
                const int inlineValue,
@@ -196,29 +195,29 @@ public:
 
     // component of a private vector element
     PrivateVar(const std::string& name,
-               const size_t precision,
-               const size_t vectorLength,
+               const size_t PREC,
+               const size_t vecLen,
                const bool writable,
                const size_t componentIndex);
 
     std::string name(void) const;
     std::string declaredName(void) const;
 
-    size_t vectorLength(void) const;
+    size_t vecLength(void) const;
 
     // vector type components
     PrivateVar operator[] (const size_t componentIndex) const;
 };
 
 std::vector< PrivateVar > privateVector(const std::string& name,
-                                        const size_t precision,
-                                        const size_t vectorLength,
+                                        const size_t PREC,
+                                        const size_t vecLen,
                                         const size_t numberElements);
 
 std::vector< std::vector< PrivateVar > > privateVector(
                                              const std::string& name,
-                                             const size_t precision,
-                                             const size_t vectorLength,
+                                             const size_t PREC,
+                                             const size_t vecLen,
                                              const size_t numberElements,
                                              const size_t numberVectors);
 

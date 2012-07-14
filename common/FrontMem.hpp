@@ -26,7 +26,7 @@ class FrontMem : public RefObj
     const size_t _slots;
 
     // precision
-    const size_t _precision;
+    const size_t _prec;
 
     // managed pointer into the backing memory
     void*        _ptrMem;
@@ -49,15 +49,15 @@ public:
 
     // used by read_scalar, read1, read2
     FrontMem(const uint32_t variable,
+             const size_t PREC,
              const size_t W,
-             const size_t H,
-             const size_t precision);
+             const size_t H);
 
     // used by read_scalar, read1, read2 (vector array data)
     FrontMem(const uint32_t variable,
+             const size_t PREC,
              const size_t W,
              const size_t H,
-             const size_t precision,
              const size_t slots);
 
     // used by make1, make2
@@ -122,7 +122,7 @@ public:
     size_t H(void) const;
     size_t slots(void) const;
 
-    size_t precision(void) const;
+    size_t prec(void) const;
 
     void swizzle(const size_t uniqueKey);
 
@@ -131,7 +131,7 @@ public:
     int32_t* intPtr(void) const;
     uint32_t* uintPtr(void) const;
     void* ptrMem(void) const;
-    void* ptrMem(const size_t precision) const;
+    void* ptrMem(const size_t PREC) const;
     void* dataPtr(void) const;
 
     const std::vector< FrontMem* >& slotMem(void) const;

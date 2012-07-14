@@ -38,8 +38,8 @@ public:
 
     const std::vector< Variable* >& arguments(void) const;
 
-    void pushArgArray(const size_t precType, const uint32_t varNum);
-    void pushArgLocal(const size_t precType, const size_t length);
+    void pushArgArray(const size_t PREC, const uint32_t varNum);
+    void pushArgLocal(const size_t PREC, const size_t length);
     void pushArgScalar(const uint32_t a);
     void pushArgScalar(const int32_t a);
     void pushArgScalar(const float a);

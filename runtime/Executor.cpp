@@ -1,9 +1,5 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
-#ifdef __LOGGING_ENABLED__
-#include <sstream>
-#endif
-
 #include <sys/time.h>
 
 #include "Executor.hpp"
@@ -28,12 +24,12 @@ void Executor::extendLanguage(const uint32_t opCode,
                               jitHandler);
 }
 
-const set< size_t >& Executor::deviceCodes(void) const
+const set< int >& Executor::deviceNums(void) const
 {
-    return _deviceMap.allCodes();
+    return _deviceMap.allDevnums();
 }
 
-double Executor::dispatch(const size_t deviceCode,
+double Executor::dispatch(const int deviceNum,
                           VectorTrace& vt)
 {
     struct timeval tvStart, tvStop;
@@ -57,7 +53,7 @@ double Executor::dispatch(const size_t deviceCode,
     // half is the JIT which is not timed. The bottom half is the
     // kernel execution. Interpreters have a NOP top half.
 
-    if (! _deviceMap.getDevice(deviceCode)->evaluate(vt))
+    if (! _deviceMap.getDevice(deviceNum)->evaluate(vt))
     {
         return DEVICE_FAILURE; // failure
     }
@@ -80,12 +76,6 @@ double Executor::dispatch(const size_t deviceCode,
     // normalize by amount of vectorization
     double goodnessTime = elapsed_usecs;
     goodnessTime /= vt.numTraces();
-
-#ifdef __LOGGING_ENABLED__
-    stringstream ss;
-    ss << "goodnessTime: " << goodnessTime;
-    LOGGER(ss.str())
-#endif
 
     // The number of traces will vary and are a consequence of auto-tuning.
     // The executor feeds into profiling. That's where the auto-tuning should

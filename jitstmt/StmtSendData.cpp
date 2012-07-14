@@ -40,6 +40,11 @@ bool StmtSendData::trackLHS(void) const
     return false;
 }
 
+bool StmtSendData::randomness(void) const
+{
+    return false;
+}
+
 bool StmtSendData::swappable(const Stmt& other) const
 {
     return Stmt::swappable(other);

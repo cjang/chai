@@ -15,37 +15,37 @@ namespace chai_internal {
 
 // BaseVar
 BaseVar::BaseVar(void)
-    : _precision(-1),
-      _vectorLength(-1),
+    : _prec(-1),
+      _vecLen(-1),
       _writable(false),
       _variableIdentifier(),
       _inlineValue() { }
 
 BaseVar::BaseVar(const IValue& inlineValue)
-    : _precision(-1),
-      _vectorLength(-1),
+    : _prec(-1),
+      _vecLen(-1),
       _writable(false),
       _variableIdentifier(),
       _inlineValue(inlineValue) { }
 
 BaseVar::BaseVar(const string& name,
-                 const size_t precision,
-                 const size_t vectorLength,
+                 const size_t PREC,
+                 const size_t vecLen,
                  const bool writable)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+    : _prec(PREC),
+      _vecLen(vecLen),
       _writable(writable),
       _variableIdentifier(name),
       _inlineValue() { }
 
 BaseVar::BaseVar(const string& name,
-                 const size_t precision,
-                 const size_t vectorLength,
+                 const size_t PREC,
+                 const size_t vecLen,
                  const bool writable,
                  const IValue& inlineValue,
                  const bool doInline)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+    : _prec(PREC),
+      _vecLen(vecLen),
       _writable(writable),
       _variableIdentifier(name),
       _inlineValue(doInline
@@ -53,13 +53,13 @@ BaseVar::BaseVar(const string& name,
                        : ConstantValue()) { }
 
 BaseVar::BaseVar(const string& name,
-                 const size_t precision,
-                 const size_t vectorLength,
+                 const size_t PREC,
+                 const size_t vecLen,
                  const bool writable,
                  const int inlineValue,
                  const bool doInline)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+    : _prec(PREC),
+      _vecLen(vecLen),
       _writable(writable),
       _variableIdentifier(name),
       _inlineValue(doInline
@@ -68,8 +68,8 @@ BaseVar::BaseVar(const string& name,
 
 BaseVar& BaseVar::operator= (const BaseVar& other)
 {
-    _precision          = other._precision;
-    _vectorLength       = other._vectorLength;
+    _prec               = other._prec;
+    _vecLen             = other._vecLen;
     _writable           = other._writable;
     _variableIdentifier = other._variableIdentifier;
     _inlineValue        = other._inlineValue;
@@ -91,39 +91,39 @@ string BaseVar::name(void) const
 
 // GlobalVar
 GlobalVar::GlobalVar(const string& name,
-                     const size_t precision,
-                     const size_t vectorLength,
+                     const size_t PREC,
+                     const size_t vecLen,
                      const bool writable)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable) { }
 
 GlobalVar::GlobalVar(const IValue& inlineValue)
     : BaseVar(inlineValue) { }
 
 GlobalVar::GlobalVar(const string& name,
-                     const size_t precision,
-                     const size_t vectorLength,
+                     const size_t PREC,
+                     const size_t vecLen,
                      const bool writable,
                      FunctionDeclaration& funcDecl)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable)
 {
     funcDecl.argument(*this);
 }
 
 GlobalVar::GlobalVar(const string& name,
-                     const size_t precision,
-                     const size_t vectorLength,
+                     const size_t PREC,
+                     const size_t vecLen,
                      const bool writable,
                      FunctionDeclaration& funcDecl,
                      const bool isArgument)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable)
 {
     if (isArgument)
@@ -134,53 +134,53 @@ string GlobalVar::declaredName(void) const
 {
     stringstream ss;
 
-    ss << NameOf::globalvar(_precision, _vectorLength, _writable)
+    ss << NameOf::globalvar(_prec, _vecLen, _writable)
        << " "
        << _variableIdentifier;
 
     return ss.str();
 }
 
-size_t GlobalVar::precision(void) const
+size_t GlobalVar::prec(void) const
 {
-    return _precision;
+    return _prec;
 }
 
 // LocalVar
 LocalVar::LocalVar(const string& name,
-                   const size_t precision,
-                   const size_t vectorLength,
+                   const size_t PREC,
+                   const size_t vecLen,
                    const bool writable)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable) { }
 
 LocalVar::LocalVar(const IValue& inlineValue)
     : BaseVar(inlineValue) { }
 
 LocalVar::LocalVar(const string& name,
-                   const size_t precision,
-                   const size_t vectorLength,
+                   const size_t PREC,
+                   const size_t vecLen,
                    const bool writable,
                    FunctionDeclaration& funcDecl)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable)
 {
     funcDecl.argument(*this);
 }
 
 LocalVar::LocalVar(const string& name,
-                   const size_t precision,
-                   const size_t vectorLength,
+                   const size_t PREC,
+                   const size_t vecLen,
                    const bool writable,
                    FunctionDeclaration& funcDecl,
                    const bool isArgument)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable)
 {
     if (isArgument)
@@ -191,7 +191,7 @@ string LocalVar::declaredName(void) const
 {
     stringstream ss;
 
-    ss << NameOf::localvar(_precision, _vectorLength, _writable)
+    ss << NameOf::localvar(_prec, _vecLen, _writable)
        << " "
        << _variableIdentifier;
 
@@ -204,12 +204,12 @@ PrivateVar::PrivateVar(void)
       _componentIndex(-1) { }
 
 PrivateVar::PrivateVar(const string& name,
-                       const size_t precision,
-                       const size_t vectorLength,
+                       const size_t PREC,
+                       const size_t vecLen,
                        const bool writable)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable),
       _componentIndex(-1) { }
 
@@ -218,41 +218,41 @@ PrivateVar::PrivateVar(const IValue& inlineValue)
      _componentIndex(-1) { }
 
 PrivateVar::PrivateVar(const string& name,
-                       const size_t precision,
-                       const size_t vectorLength,
+                       const size_t PREC,
+                       const size_t vecLen,
                        const bool writable,
                        const IValue& inlineValue,
                        const bool doInline)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable,
               inlineValue,
               doInline),
       _componentIndex(-1) { }
 
 PrivateVar::PrivateVar(const string& name,
-                       const size_t precision,
-                       const size_t vectorLength,
+                       const size_t PREC,
+                       const size_t vecLen,
                        const bool writable,
                        const int inlineValue,
                        const bool doInline)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable,
               inlineValue,
               doInline),
       _componentIndex(-1) { }
 
 PrivateVar::PrivateVar(const string& name,
-                       const size_t precision,
-                       const size_t vectorLength,
+                       const size_t PREC,
+                       const size_t vecLen,
                        const bool writable,
                        FunctionDeclaration& funcDecl)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable),
       _componentIndex(-1)
 {
@@ -260,14 +260,14 @@ PrivateVar::PrivateVar(const string& name,
 }
 
 PrivateVar::PrivateVar(const string& name,
-                       const size_t precision,
-                       const size_t vectorLength,
+                       const size_t PREC,
+                       const size_t vecLen,
                        const bool writable,
                        FunctionDeclaration& funcDecl,
                        const bool isArgument)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable),
       _componentIndex(-1)
 {
@@ -276,15 +276,15 @@ PrivateVar::PrivateVar(const string& name,
 }
 
 PrivateVar::PrivateVar(const string& name,
-                       const size_t precision,
-                       const size_t vectorLength,
+                       const size_t PREC,
+                       const size_t vecLen,
                        const bool writable,
                        FunctionDeclaration& funcDecl,
                        const IValue& inlineValue,
                        const bool doInline)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable,
               inlineValue,
               doInline),
@@ -295,15 +295,15 @@ PrivateVar::PrivateVar(const string& name,
 }
 
 PrivateVar::PrivateVar(const string& name,
-                       const size_t precision,
-                       const size_t vectorLength,
+                       const size_t PREC,
+                       const size_t vecLen,
                        const bool writable,
                        FunctionDeclaration& funcDecl,
                        const int inlineValue,
                        const bool doInline)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable,
               inlineValue,
               doInline),
@@ -314,13 +314,13 @@ PrivateVar::PrivateVar(const string& name,
 }
 
 PrivateVar::PrivateVar(const string& name,
-                       const size_t precision,
-                       const size_t vectorLength,
+                       const size_t PREC,
+                       const size_t vecLen,
                        const bool writable,
                        const size_t componentIndex)
     : BaseVar(name,
-              precision,
-              vectorLength,
+              PREC,
+              vecLen,
               writable),
       _componentIndex(componentIndex) { }
 
@@ -336,13 +336,13 @@ string PrivateVar::name(void) const
 
         ss << BaseVar::name();
 
-        switch (_vectorLength)
+        switch (_vecLen)
         {
             case (0) :
             case (2) :
             case (4) :
                 ss << ".s" << hex(_componentIndex);
-            break;
+                break;
         }
 
         return ss.str();
@@ -353,38 +353,38 @@ string PrivateVar::declaredName(void) const
 {
     stringstream ss;
 
-    ss << NameOf::privatevar(_precision, _vectorLength, _writable)
+    ss << NameOf::privatevar(_prec, _vecLen, _writable)
        << " "
        << _variableIdentifier;
 
     return ss.str();
 }
 
-size_t PrivateVar::vectorLength(void) const
+size_t PrivateVar::vecLength(void) const
 {
-    if (0 == _vectorLength)
+    if (0 == _vecLen)
     {
-        return PrecType::vecLength(_precision);
+        return PrecType::vecLength(_prec);
     }
     else
     {
-         return _vectorLength;
+        return _vecLen;
     }
 }
 
 PrivateVar PrivateVar::operator [] (const size_t componentIndex) const
 {
     return PrivateVar(_variableIdentifier,
-                      _precision,
-                      _vectorLength,
+                      _prec,
+                      _vecLen,
                       _writable,
                       componentIndex);
 }
 
 // privateVector
 vector< PrivateVar > privateVector(const string& name,
-                                   const size_t precision,
-                                   const size_t vectorLength,
+                                   const size_t PREC,
+                                   const size_t vecLen,
                                    const size_t numberElements)
 {
     vector< PrivateVar > vec;
@@ -396,15 +396,15 @@ vector< PrivateVar > privateVector(const string& name,
         ss.str(string());
         ss << name << i;
 
-        vec.push_back(PrivateVar(ss.str(), precision, vectorLength, true));
+        vec.push_back(PrivateVar(ss.str(), PREC, vecLen, true));
     }
 
     return vec;
 }
 
 vector< vector< PrivateVar > > privateVector(const string& name,
-                                             const size_t precision,
-                                             const size_t vectorLength,
+                                             const size_t PREC,
+                                             const size_t vecLen,
                                              const size_t numberElements,
                                              const size_t numberVectors)
 {
@@ -418,7 +418,7 @@ vector< vector< PrivateVar > > privateVector(const string& name,
         ss << name << i;
 
         vecOfVec.push_back(
-            privateVector(ss.str(), precision, vectorLength, numberElements) );
+            privateVector(ss.str(), PREC, vecLen, numberElements) );
     }
 
     return vecOfVec;

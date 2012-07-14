@@ -2,19 +2,21 @@ include Makefile.common
 include Makefile.config
 
 all : \
-	Random123_ \
 	misc_ \
+	Random123_ \
 	vendor_ \
 	openclhack_ \
 	autotune_ \
 	kernel_ \
 	bytecode_ \
 	common_ \
+	memmgr_ \
 	interp_ \
 	jitast_ \
 	jitbc_ \
 	jitstmt_ \
-	jitx_ \
+	jitkrnl_ \
+	enqueue_ \
 	runtime_ \
 	api_ \
 	applib_ \
@@ -51,6 +53,9 @@ bytecode_ : _installdirs
 common_ : _installdirs
 	cd common; make install; cd -
 
+enqueue_ : _installdirs
+	cd enqueue; make install; cd -
+
 interp_ : _installdirs
 	cd interp; make install; cd -
 
@@ -60,14 +65,17 @@ jitast_ : _installdirs
 jitbc_ : _installdirs
 	cd jitbc; make install; cd -
 
+jitkrnl_ : _installdirs
+	cd jitkrnl; make install; cd -
+
 jitstmt_ : _installdirs
 	cd jitstmt; make install; cd -
 
-jitx_ : _installdirs
-	cd jitx; make install; cd -
-
 kernel_ : _installdirs
 	cd kernel; make install; cd -
+
+memmgr_ : _installdirs
+	cd memmgr; make install; cd -
 
 misc_ : _installdirs
 	cd misc; make install; cd -
@@ -182,12 +190,14 @@ clean :
 	cd autotune; make clean; cd -
 	cd bytecode; make clean; cd -
 	cd common; make clean; cd -
+	cd enqueue; make clean; cd -
 	cd interp; make clean; cd -
 	cd jitast; make clean; cd -
 	cd jitbc; make clean; cd -
+	cd jitkrnl; make clean; cd -
 	cd jitstmt; make clean; cd -
-	cd jitx; make clean; cd -
 	cd kernel; make clean; cd -
+	cd memmgr; make clean; cd -
 	cd misc; make clean; cd -
 	cd Random123; make clean; cd -
 	cd runtime; make clean; cd -
@@ -202,12 +212,14 @@ clean :
 		autotune/*.h* autotune/*.c* \
 		bytecode/*.h* bytecode/*.c* \
 		common/*.h* common/*.c* \
+		enqueue/*.h* enqueue/*.c* \
 		interp/*.h* interp/*.c* \
 		jitast/*.h* jitast/*.c* \
 		jitbc/*.h* jitbc/*.c* \
+		jitkrnl/*.h* jitkrnl/*.c* \
 		jitstmt/*.h* jitstmt/*.c* \
-		jitx/*.h* jitx/*.c* \
 		kernel/*.h* kernel/*.c* \
+		memmgr/*.h* memmgr/*.c* \
 		misc/*.h* misc/*.c* \
 		Random123/*.h* Random123/*.c* \
 		runtime/*.h* runtime/*.c* \

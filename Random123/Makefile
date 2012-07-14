@@ -4,6 +4,9 @@ include ../Makefile.common
 USE_CFLAGS=$(SHARED_CFLAGS) -D__STDC_LIMIT_MACROS
 
 LIBRARY_OBJECT_CODE = \
+	R123Philox.o \
+	R123Threefry.o \
+	R123Util.o \
 	Random123.o
 
 INTERNAL_HEADER_FILES = \

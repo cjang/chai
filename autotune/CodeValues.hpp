@@ -36,29 +36,29 @@ public:
 
 class CastValue : public IValue
 {
-    const size_t  _precision;
-    const size_t  _vectorLength;
+    const size_t  _prec;
+    const size_t  _vecLen;
     const IValue& _value;
 
 public:
     CastValue(const IValue& value,
-              const size_t precision,
-              const size_t vectorLength);
+              const size_t PREC,
+              const size_t vecLen);
 
     std::string name(void) const;
 };
 
 class ReinterpretValue : public IValue
 {
-    const size_t  _precision;
-    const size_t  _vectorLength;
+    const size_t  _prec;
+    const size_t  _vecLen;
     const IValue& _value;
     const bool    _doApply;
 
 public:
     ReinterpretValue(const IValue& value,
-                     const size_t precision,
-                     const size_t vectorLength,
+                     const size_t PREC,
+                     const size_t vecLen,
                      const bool doApply = true);
 
     std::string name(void) const;
@@ -66,15 +66,15 @@ public:
 
 class ConvertValue : public IValue
 {
-    const size_t  _precision;
-    const size_t  _vectorLength;
+    const size_t  _prec;
+    const size_t  _vecLen;
     const IValue& _value;
     const bool    _doApply;
 
 public:
     ConvertValue(const IValue& value,
-                 const size_t precision,
-                 const size_t vectorLength,
+                 const size_t PREC,
+                 const size_t vecLen,
                  const bool doApply = true);
 
     std::string name(void) const;

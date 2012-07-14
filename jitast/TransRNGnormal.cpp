@@ -14,17 +14,21 @@ BaseAst* TransRNGnormal::sub_eval(void) const
 {
     const int variant   = _argScalar[0];
     const uint64_t seed = _argScalar[1];
-    const size_t len    = _argScalar[2];
+    const size_t W      = _argScalar[2];
+    const size_t H      = _argScalar[3];
+    const size_t slots  = _argScalar[4];
 
     return
         new AstRNGnormal(variant,
                          seed,
-                         len,
-                         _precision);
+                         _prec,
+                         W,
+                         H,
+                         slots);
 }
 
-TransRNGnormal::TransRNGnormal(const size_t precision)
-    : BaseTrans(3, 0),
-      _precision(precision) { }
+TransRNGnormal::TransRNGnormal(const size_t PREC)
+    : BaseTrans(5, 0),
+      _prec(PREC) { }
 
 }; // namespace chai_internal

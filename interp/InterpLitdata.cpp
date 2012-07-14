@@ -19,83 +19,82 @@ namespace chai_internal {
 
 void InterpLitdata::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
+    const size_t WIDTH  = _argScalar[0];
+    const size_t HEIGHT = (2 == _N ? _argScalar[1] : 1);
+    const size_t LEN    = WIDTH * HEIGHT;
+
     // first allocate backing memory
-    const size_t W = _argScalar[0];
-    const size_t H = (2 == _N ? _argScalar[1] : 1);
-    BackMem* backMem = allocBackMem(W, H, _precision);
+    BackMem* backMem = allocBackMem(_prec, WIDTH, HEIGHT, 1);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
     // calculate and create fronts
-    for (size_t i = 0; i < numTraces(); i++)
+    FrontMem* m = allocFrontMem(_prec, WIDTH, HEIGHT, backMem, 0);
+
+    frontMem.push_back(m);
+
+    switch (_prec)
     {
-        FrontMem* m = allocFrontMem(W, H, _precision, backMem, i);
+        case (PrecType::UInt32) :
+            for (size_t j = 0; j < LEN; j++)
+                m->uintPtr()[j] = _uintValue;
+            break;
 
-        frontMem.push_back(m);
+        case (PrecType::Int32) :
+            for (size_t j = 0; j < LEN; j++)
+                m->intPtr()[j] = _intValue;
+            break;
 
-        switch (_precision)
-        {
-            case (PrecType::UInt32) :
-                for (size_t j = 0; j < W * H; j++)
-                    m->uintPtr()[j] = _uintValue;
-                break;
+        case (PrecType::Float) :
+            for (size_t j = 0; j < LEN; j++)
+                m->floatPtr()[j] = _floatValue;
+            break;
 
-            case (PrecType::Int32) :
-                for (size_t j = 0; j < W * H; j++)
-                    m->intPtr()[j] = _intValue;
-                break;
-
-            case (PrecType::Float) :
-                for (size_t j = 0; j < W * H; j++)
-                    m->floatPtr()[j] = _floatValue;
-                break;
-
-            case (PrecType::Double) :
-                for (size_t j = 0; j < W * H; j++)
-                    m->doublePtr()[j] = _doubleValue;
-                break;
-        }
+        case (PrecType::Double) :
+            for (size_t j = 0; j < LEN; j++)
+                m->doublePtr()[j] = _doubleValue;
+            break;
     }
 
     // push result on stack
     outStack.push(frontMem);
 }
 
-InterpLitdata::InterpLitdata(const uint32_t a, const size_t N)
+InterpLitdata::InterpLitdata(const size_t N, const uint32_t a)
     : BaseInterp(N, 0),
-      _precision(PrecType::UInt32),
+      _prec(PrecType::UInt32),
+      _N(N),
       _uintValue(a),
       _intValue(0),
       _floatValue(0),
-      _doubleValue(0),
-      _N(N) { }
+      _doubleValue(0) { }
 
-InterpLitdata::InterpLitdata(const int32_t a, const size_t N)
+InterpLitdata::InterpLitdata(const size_t N, const int32_t a)
     : BaseInterp(N, 0),
-      _precision(PrecType::UInt32),
+      _prec(PrecType::UInt32),
+      _N(N),
       _uintValue(0),
       _intValue(a),
       _floatValue(0),
-      _doubleValue(0),
-      _N(N) { }
+      _doubleValue(0) { }
 
-InterpLitdata::InterpLitdata(const float a, const size_t N)
+InterpLitdata::InterpLitdata(const size_t N, const float a)
     : BaseInterp(N, 0),
-      _precision(PrecType::Float),
+      _prec(PrecType::Float),
+      _N(N),
       _uintValue(0),
       _intValue(0),
       _floatValue(a),
-      _doubleValue(0),
-      _N(N) { }
+      _doubleValue(0) { }
 
-InterpLitdata::InterpLitdata(const double a, const size_t N)
+InterpLitdata::InterpLitdata(const size_t N, const double a)
     : BaseInterp(N, 0),
-      _precision(PrecType::Double),
+      _prec(PrecType::Double),
+      _N(N),
       _uintValue(0),
       _intValue(0),
       _floatValue(0),
-      _doubleValue(a),
-      _N(N) { }
+      _doubleValue(a) { }
 
 }; // namespace chai_internal

@@ -98,17 +98,13 @@ Function::~Function(void)
     delete _sampler;
 
     for (vector< Variable* >::const_iterator
-         it = _arguments.begin();
-         it != _arguments.end();
-         it++)
+         it = _arguments.begin(); it != _arguments.end(); it++)
     {
         delete *it;
     }
 
     for (vector< Variable* >::const_iterator
-         it = _privates.begin();
-         it != _privates.end();
-         it++)
+         it = _privates.begin(); it != _privates.end(); it++)
     {
         delete *it;
     }
@@ -187,14 +183,14 @@ void Function::addArgument(const AstVariable* variable, Integer* obj)
     addSplitArgument(variable, obj);
 }
 
-AddrMem* Function::getPrivateVar(const size_t precision,
-                                 const size_t vectorLength)
+AddrMem* Function::getPrivateVar(const size_t PREC,
+                                 const size_t vecLen)
 {
-    const pair< size_t, size_t > key(precision, vectorLength);
+    const pair< size_t, size_t > key(PREC, vecLen);
 
     if (0 == _privateVars.count(key))
     {
-        AddrMem* newVar = new AddrMem(precision, vectorLength);
+        AddrMem* newVar = new AddrMem(PREC, vecLen);
         addPrivate(newVar);
         _privateVars[key] = newVar;
     }
@@ -203,10 +199,10 @@ AddrMem* Function::getPrivateVar(const size_t precision,
 }
 
 AddrMem* Function::createPrivate(const uint32_t variable,
-                                 const size_t precision,
-                                 const size_t vectorLength)
+                                 const size_t PREC,
+                                 const size_t vecLen)
 {
-    AddrMem* newVar = new AddrMem(precision, vectorLength);
+    AddrMem* newVar = new AddrMem(PREC, vecLen);
     if (newVar->fp64()) _fp64 = true;
 
     addPrivate(newVar);
@@ -218,10 +214,10 @@ AddrMem* Function::createPrivate(const uint32_t variable,
 }
 
 AddrMem* Function::createPrivate(const AstVariable* variable,
-                                 const size_t precision,
-                                 const size_t vectorLength)
+                                 const size_t PREC,
+                                 const size_t vecLen)
 {
-    AddrMem* newVar = new AddrMem(precision, vectorLength);
+    AddrMem* newVar = new AddrMem(PREC, vecLen);
     if (newVar->fp64()) _fp64 = true;
 
     addPrivate(newVar);
@@ -233,19 +229,19 @@ AddrMem* Function::createPrivate(const AstVariable* variable,
 }
 
 size_t Function::gatherVariable(const uint32_t varNum,
-                                const size_t vectorLength,
-                                const size_t width,
-                                const size_t height)
+                                const size_t vecLen,
+                                const size_t W,
+                                const size_t H)
 {
-    return _gathering.gatherVariable(varNum, vectorLength, width, height);
+    return _gathering.gatherVariable(varNum, vecLen, W, H);
 }
 
 size_t Function::gatherVariable(const AstVariable* varPtr,
-                                const size_t vectorLength,
-                                const size_t width,
-                                const size_t height)
+                                const size_t vecLen,
+                                const size_t W,
+                                const size_t H)
 {
-    return _gathering.gatherVariable(varPtr, vectorLength, width, height);
+    return _gathering.gatherVariable(varPtr, vecLen, W, H);
 }
 
 size_t Function::gatherSubscript(const size_t variableNumber,
@@ -302,17 +298,19 @@ void Function::gatherDecl(Subscript& subObj,
 
         Variable* vArg = gatherVarFromSubscript(i);
 
-        const size_t prec = vArg->precision();
-        const size_t vlen = vArg->vectorLength();
+        const size_t PREC = vArg->prec();
+        const size_t vecLen = vArg->vecLength();
 
-        const size_t effVLen = 0 == vlen ? PrecType::vecLength(prec) : vlen;
+        const size_t effVecLen = 0 == vecLen
+                                     ? PrecType::vecLength(PREC)
+                                     : vecLen;
 
-        const AddrMem vGather(prec, effVLen, CONST);
+        const AddrMem vGather(PREC, effVecLen, CONST);
 
-        const size_t width = _gathering.widthFromSubscript(i);
-        const size_t height = _gathering.widthFromSubscript(i);
+        const size_t W = _gathering.widthFromSubscript(i);
+        const size_t H = _gathering.widthFromSubscript(i);
 
-        subObj.setVariable(width, height, effVLen);
+        subObj.setVariable(W, H, effVecLen);
 
         stringstream ss;
 
@@ -320,7 +318,7 @@ void Function::gatherDecl(Subscript& subObj,
         vArg->identifierName(ss);
         ss << i << " = ";
 
-        if (0 == vlen)
+        if (0 == vecLen)
         {
             const uint32_t varNum = _gathering.traceVarFromSubscript(i);
 
@@ -328,7 +326,7 @@ void Function::gatherDecl(Subscript& subObj,
                                           ? false
                                           : traceSuppressTile.count(varNum);
 
-            switch (prec)
+            switch (PREC)
             {
                 case (PrecType::UInt32) :
                     ss << "read_imageui(";
@@ -354,7 +352,7 @@ void Function::gatherDecl(Subscript& subObj,
             if (suppressTile) subObj.disableBlocking();
             subObj.heightIdx(ss);
             if (suppressTile) subObj.enableBlocking();
-            switch (prec)
+            switch (PREC)
             {
                 case (PrecType::UInt32) :
                     ss << "))";
@@ -387,10 +385,10 @@ void Function::gatherDecl(Subscript& subObj,
     }
 }
 
-void Function::rngVecType(const size_t prec,
-                          const size_t vlen)
+void Function::rngVecType(const size_t PREC,
+                          const size_t vecLen)
 {
-    switch (prec)
+    switch (PREC)
     {
         case (PrecType::UInt32) :
         case (PrecType::Int32) :
@@ -405,15 +403,15 @@ void Function::rngVecType(const size_t prec,
 
     stringstream ss;
 
-    switch (vlen)
+    switch (vecLen)
     {
         case (1) :
         case (2) :
-            _random123.vlen2();
+            _random123.vecLength2();
             break;
 
         case (4) :
-            _random123.vlen4();
+            _random123.vecLength4();
             break;
     }
 }
@@ -432,8 +430,8 @@ void Function::rngVariant(const int variant)
     }
 }
 
-string Function::rngUniform(const size_t prec,
-                            const size_t vlen,
+string Function::rngUniform(const size_t PREC,
+                            const size_t vecLen,
                             const int variant,
                             const uint64_t seed,
                             Subscript& tid,
@@ -452,7 +450,7 @@ string Function::rngUniform(const size_t prec,
             break;
     }
 
-    ss << "_uniform_" << prec << "_" << vlen << "(";
+    ss << "_uniform_" << PREC << "_" << vecLen << "(";
 
     tid.disableSubscriptBrackets();
     tid.arraySub(ss);
@@ -468,8 +466,8 @@ string Function::rngUniform(const size_t prec,
     return ss.str();
 }
 
-string Function::rngNormal(const size_t prec,
-                           const size_t vlen,
+string Function::rngNormal(const size_t PREC,
+                           const size_t vecLen,
                            const int variant,
                            const uint64_t seed,
                            Subscript& tid,
@@ -488,7 +486,7 @@ string Function::rngNormal(const size_t prec,
             break;
     }
 
-    ss << "_normal_" << prec << "_" << vlen << "(";
+    ss << "_normal_" << PREC << "_" << vecLen << "(";
 
     tid.disableSubscriptBrackets();
     tid.arraySub(ss);
@@ -858,9 +856,7 @@ void Function::print(vector< string >& outText)
 
     // gather variables
     for (vector< string >::const_iterator
-         it = _gatherText.begin();
-         it != _gatherText.end();
-         it++)
+         it = _gatherText.begin(); it != _gatherText.end(); it++)
     {
         indent(ss) << (*it) << endl;
         outText.push_back(ss.str());
@@ -869,9 +865,7 @@ void Function::print(vector< string >& outText)
 
     // private variables declared at top function body
     for (vector< Variable* >::const_iterator
-         it = _privates.begin();
-         it != _privates.end();
-         it++)
+         it = _privates.begin(); it != _privates.end(); it++)
     {
         indent(ss);
 
@@ -886,9 +880,7 @@ void Function::print(vector< string >& outText)
 
     // body of function
     for (vector< string >::const_iterator
-         it = _bodyText.begin();
-         it != _bodyText.end();
-         it++)
+         it = _bodyText.begin(); it != _bodyText.end(); it++)
     {
         indent(ss) << (*it) << endl;
         outText.push_back(ss.str());

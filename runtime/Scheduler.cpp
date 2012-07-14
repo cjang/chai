@@ -2,15 +2,9 @@
 
 #include <algorithm>
 #include <errno.h>
-
-#ifdef __LOGGING_ENABLED__
-#include <sstream>
-#endif
-
 #include <stdint.h>
 #include <sys/time.h>
 
-#include "Logger.hpp"
 #include "OCLhacks.hpp"
 #include "Scheduler.hpp"
 #include "VectorTrace.hpp"
@@ -25,15 +19,19 @@ namespace chai_internal {
 void Scheduler::cleanup(void)
 {
     for (map< pthread_t, ArrayClient* >::const_iterator
-         it = _handles.begin();
-         it != _handles.end();
-         it++) { delete (*it).second; }
+         it = _handles.begin(); it != _handles.end(); it++)
+    {
+        delete (*it).second;
+    }
+
     _handles.clear();
 
     for (map< pthread_t, SingleTrace* >::const_iterator
-         it = _traceMap.begin();
-         it != _traceMap.end();
-         it++) { delete (*it).second; }
+         it = _traceMap.begin(); it != _traceMap.end(); it++)
+    {
+        delete (*it).second;
+    }
+
     _traceMap.clear();
 }
 
@@ -56,9 +54,7 @@ void Scheduler::bossLoopFun(void)
 /*TRACE_LOCK*/ pthread_mutex_lock(&_traceMtx);
         // collate client traces by hash code
         for (map< pthread_t, SingleTrace* >::iterator
-             it = _traceMap.begin();
-             it != _traceMap.end();
-             it++)
+             it = _traceMap.begin(); it != _traceMap.end(); it++)
         {
             SingleTrace* sitr = (*it).second;
 
@@ -73,9 +69,7 @@ void Scheduler::bossLoopFun(void)
 /*WORK_LOCK*/ pthread_mutex_lock(&_workMtx);
         // add to pending work
         for (map< uint64_t, map< pthread_t, SingleTrace* > >::const_iterator
-             it = currentWork.begin();
-             it != currentWork.end();
-             it++)
+             it = currentWork.begin(); it != currentWork.end(); it++)
         {
             _workMap[ (*it).first ].insert( (*it).second.begin(),
                                             (*it).second.end() );
@@ -97,22 +91,22 @@ void Scheduler::bossLoopFun(void)
 ////////////////////////////////////////
 // device threads
 
-void* Scheduler::deviceLoopThr(void* deviceCode)
+void* Scheduler::deviceLoopThr(void* deviceNum)
 {
     Scheduler::singleton()
-        .deviceLoopFun(reinterpret_cast< size_t >(deviceCode));
+        .deviceLoopFun( reinterpret_cast< size_t >(deviceNum) );
 
     return NULL;
 }
 
-void Scheduler::deviceLoopFun(const size_t deviceCode)
+void Scheduler::deviceLoopFun(const int deviceNum)
 {
     // stops deferral deadlock
     bool deferOverrideFlag = false;
 
     while (_deviceLoop)
     {
-        if (deviceCode >= MemManager::GPU_OPENCL)
+        if (deviceNum >= 0)
         {
 /*IDLEGPU_LOCK*/ pthread_mutex_lock(&_deviceMtx);
             _idleGPUCnt--;
@@ -130,14 +124,12 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
 
         // look for work
         for (map< uint64_t, map< pthread_t, SingleTrace* > >::const_iterator
-             it = _workMap.begin();
-             it != _workMap.end();
-             it++)
+             it = _workMap.begin(); it != _workMap.end(); it++)
         {
             const uint64_t hashCode = (*it).first;
 
             const pair< bool, bool > takeOrDefer
-                = deviceLoopChooseWork( deviceCode,
+                = deviceLoopChooseWork( deviceNum,
                                         hashCode,
                                         deferOverrideFlag );
 
@@ -147,11 +139,9 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
 
                 // copy work not stuck to another device
                 for (map< pthread_t, SingleTrace* >::const_iterator
-                     jt = (*it).second.begin();
-                     jt != (*it).second.end();
-                     jt++)
+                     jt = (*it).second.begin(); jt != (*it).second.end(); jt++)
                 {
-                    if ((*jt).second->stickyDevice( deviceCode ))
+                    if ((*jt).second->stickyDevice( deviceNum ))
                         workSelected[ hashCode ][ (*jt).first ] = (*jt).second;
                 }
             }
@@ -168,14 +158,10 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
 
         // remove work so other devices do not see it
         for (map< uint64_t, map< pthread_t, SingleTrace* > >::const_iterator
-             it = workSelected.begin();
-             it != workSelected.end();
-             it++)
+             it = workSelected.begin(); it != workSelected.end(); it++)
         {
             for (map< pthread_t, SingleTrace* >::const_iterator
-                 jt = (*it).second.begin();
-                 jt != (*it).second.end();
-                 jt++)
+                 jt = (*it).second.begin(); jt != (*it).second.end(); jt++)
             {
                 _workMap[ (*it).first ].erase( (*jt).first );
             }
@@ -188,50 +174,31 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
 
         // process the checked out work
         for (map< uint64_t, map< pthread_t, SingleTrace* > >::const_iterator
-             it = workSelected.begin();
-             it != workSelected.end();
-             it++)
+             it = workSelected.begin(); it != workSelected.end(); it++)
         {
             const uint64_t hashCode = (*it).first;
             const map< pthread_t, SingleTrace* >& traceSet = (*it).second;
-
-#ifdef __LOGGING_ENABLED__
-            for (map< pthread_t, SingleTrace* >::const_iterator
-                 jt = traceSet.begin();
-                 jt != traceSet.end();
-                 jt++)
-            {
-                stringstream ss;
-                ss << "thread=" << (*jt).first
-                   << " hash=" << hashCode
-                   << " device=" << deviceCode
-                   << " sticky=" << (*jt).second->stickyDevice();
-                LOGGER(ss.str())
-            }
-#endif
 
             // VECTOR TRACE
             VectorTrace vt(traceSet);
 
             // EXECUTOR (blocks and waits for the compute device)
-            const double goodnessTime = _executor->dispatch(deviceCode, vt);
+            const double goodnessTime = _executor->dispatch(deviceNum, vt);
 
 /*WORK_LOCK*/ pthread_mutex_lock(&_workMtx);
 
             // add to history
             for (map< pthread_t, SingleTrace* >::const_iterator
-                 jt = traceSet.begin();
-                 jt != traceSet.end();
-                 jt++)
+                 jt = traceSet.begin(); jt != traceSet.end(); jt++)
             {
                 _workHist[hashCode].insert((*jt).first);
             }
 
             // update statistics
-            if (_workStat[hashCode].count(deviceCode))
+            if (_workStat[hashCode].count(deviceNum))
             {
                 // device has run this kernel before
-                const double previousVal = _workStat[hashCode][deviceCode];
+                const double previousVal = _workStat[hashCode][deviceNum];
 
                 // update goodness time if faster (or failed)
                 // This should really be a median time.
@@ -240,14 +207,14 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
 
                 // note that failure codes are negative, so if a device
                 // works ok but then fails, it will be marked as failing
-                _workStat[hashCode][deviceCode] = goodnessTime < previousVal
-                                                      ? goodnessTime
-                                                      : previousVal;
+                _workStat[hashCode][deviceNum] = goodnessTime < previousVal
+                                                     ? goodnessTime
+                                                     : previousVal;
             }
             else
             {
                 // first time for this device
-                _workStat[hashCode][deviceCode] = goodnessTime;
+                _workStat[hashCode][deviceNum] = goodnessTime;
             }
 
             // if compute device did not do the work, must add it back
@@ -258,9 +225,7 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
 
                 // remove device stickyness
                 for (map< pthread_t, SingleTrace* >::const_iterator
-                     jt = traceSet.begin();
-                     jt != traceSet.end();
-                     jt++)
+                     jt = traceSet.begin(); jt != traceSet.end(); jt++)
                 {
                     (*jt).second->unstickyDevice();
                 }
@@ -274,9 +239,7 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
 /*TRACE_LOCK*/ pthread_mutex_lock(&_traceMtx);
 
                 for (map< pthread_t, SingleTrace* >::const_iterator
-                     jt = traceSet.begin();
-                     jt != traceSet.end();
-                     jt++)
+                     jt = traceSet.begin(); jt != traceSet.end(); jt++)
                 {
                     // remove entries for client threads
                     _traceMap.erase((*jt).first);
@@ -291,7 +254,7 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
             }
         }
 
-        if (deviceCode >= MemManager::GPU_OPENCL)
+        if (deviceNum >= 0)
         {
 /*IDLEGPU_LOCK*/ pthread_mutex_lock(&_deviceMtx);
             _idleGPUCnt++;
@@ -328,7 +291,7 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
                 deferOverrideFlag = true;
             }
 
-            if (deviceCode < MemManager::GPU_OPENCL)
+            if (deviceNum < 0)
             {
 /*IDLEGPU_LOCK*/ pthread_mutex_lock(&_deviceMtx);
                 waitForIdleGPUs = _idleGPUCnt > 0;
@@ -344,7 +307,7 @@ void Scheduler::deviceLoopFun(const size_t deviceCode)
 }
 
 pair< bool, bool > Scheduler::deviceLoopChooseWork(
-                                  const size_t deviceCode,
+                                  const int deviceNum,
                                   const uint64_t hashCode,
                                   const bool deferOverride)
 {
@@ -354,10 +317,10 @@ pair< bool, bool > Scheduler::deviceLoopChooseWork(
     if (_workHist.count(hashCode))
     {
         // is there any history for this device?
-        if (_workStat[hashCode].count(deviceCode))
+        if (_workStat[hashCode].count(deviceNum))
         {
             // ...and has it ever failed for this kernel?
-            if (_workStat[hashCode][deviceCode] > _executor->DEVICE_FAILURE)
+            if (_workStat[hashCode][deviceNum] > _executor->DEVICE_FAILURE)
             {
                 // it worked before
 
@@ -488,19 +451,19 @@ void Scheduler::init(istream& configSpec)
     // device threads
     _deviceLoop = true;
     _workMap.clear();
-    for (set< size_t >::const_iterator
-         it = _executor->deviceCodes().begin();
-         it != _executor->deviceCodes().end();
+    for (set< int >::const_iterator
+         it = _executor->deviceNums().begin();
+         it != _executor->deviceNums().end();
          it++)
     {
-        const size_t deviceCode = *it;
+        const int deviceNum = *it;
 
-        pthread_create( &_devicePth[deviceCode],
+        pthread_create( &_devicePth[deviceNum],
                         NULL,
                         deviceLoopThr,
-                        reinterpret_cast< void* >(deviceCode) );
+                        reinterpret_cast< void* >(deviceNum) );
 
-        if (deviceCode >= MemManager::GPU_OPENCL)
+        if (deviceNum >= 0)
         {
 /*IDLEGPU_LOCK*/ pthread_mutex_lock(&_deviceMtx);
             _idleGPUCnt++;
@@ -523,14 +486,14 @@ void Scheduler::shutdown(void)
 /*WORK_LOCK*/ pthread_mutex_lock(&_workMtx);
     pthread_cond_broadcast(&_workCond);
 /*WORK_UNLOCK*/ pthread_mutex_unlock(&_workMtx);
-    for (set< size_t >::const_iterator
-         it = _executor->deviceCodes().begin();
-         it != _executor->deviceCodes().end();
+    for (set< int >::const_iterator
+         it = _executor->deviceNums().begin();
+         it != _executor->deviceNums().end();
          it++)
     {
-        const size_t deviceCode = *it;
+        const int deviceNum = *it;
 
-        pthread_join(_devicePth[deviceCode], &status);
+        pthread_join(_devicePth[deviceNum], &status);
     }
     _devicePth.clear();
 

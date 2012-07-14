@@ -22,21 +22,23 @@ namespace chai_internal {
 
 class InterpLitdata : public BaseInterp
 {
-    const size_t   _precision;
+    const size_t   _prec;
+
+    const size_t   _N;
+
     const uint32_t _uintValue;
     const int32_t  _intValue;
     const float    _floatValue;
     const double   _doubleValue;
-    const size_t   _N;
 
 protected:
     void sub_eval(std::stack< std::vector< FrontMem* > >&);
 
 public:
-    InterpLitdata(const uint32_t a, const size_t N);
-    InterpLitdata(const int32_t a, const size_t N);
-    InterpLitdata(const float a, const size_t N);
-    InterpLitdata(const double a, const size_t N);
+    InterpLitdata(const size_t N, const uint32_t a);
+    InterpLitdata(const size_t N, const int32_t a);
+    InterpLitdata(const size_t N, const float a);
+    InterpLitdata(const size_t N, const double a);
 };
 
 }; // namespace chai_internal

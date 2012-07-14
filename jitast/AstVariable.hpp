@@ -36,7 +36,6 @@ class AstVariable : public BaseAst
 
     // the kind of this variable
     const Kindness _kindOfVariable;
-    const bool     _sameDataAcrossTraces;
 
     // do not use dot() hack for scalars when operation split reduction
     bool _disableDotHack;
@@ -47,7 +46,7 @@ public:
 
     // new introduced variable not from trace
     AstVariable(BaseAst* barg,
-                const bool writable);
+                const int dummy);
 
     // variable from trace
     AstVariable(BaseAst* barg,
@@ -62,8 +61,6 @@ public:
     uint32_t version(void) const;
 
     const std::vector< FrontMem* >& frontMem(void) const;
-
-    bool isSameDataAcrossTraces(void) const;
 
     bool isReadOnly(const bool appearsOnLHS, const bool appearsOnRHS) const;
     bool isWriteOnly(const bool appearsOnLHS, const bool appearsOnRHS) const;

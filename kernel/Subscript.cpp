@@ -21,9 +21,9 @@ size_t Subscript::varHeight(void) const
     return _varHeight;
 }
 
-size_t Subscript::varVectorLength(void) const
+size_t Subscript::varVecLength(void) const
 {
-    return _varVectorLength;
+    return _varVecLength;
 }
 
 bool Subscript::isTransposed(void) const
@@ -86,9 +86,9 @@ size_t Subscript::eligibleGatherYVecOffset(void) const
     return _eligibleGatherYVecOffset;
 }
 
-size_t Subscript::getMixedVectorLength(void) const
+size_t Subscript::getMixedVecLength(void) const
 {
-    return _mixedVectorLength;
+    return _mixedVecLength;
 }
 
 size_t Subscript::getMixedComponentIdx(void) const
@@ -100,19 +100,19 @@ size_t Subscript::mixedIndexSub(ostream& os) const
 {
     size_t largestWidth = boundingWidth();
 
-    if (isMixedVectorLength())
+    if (isMixedVecLength())
     {
-        if (getMixedVectorLength() < varVectorLength())
+        if (getMixedVecLength() < varVecLength())
         {
             // outer enclosing index range is for shorter vector elements
-            os << " / " << (varVectorLength() / getMixedVectorLength());
-            largestWidth /= (varVectorLength() / getMixedVectorLength());
+            os << " / " << (varVecLength() / getMixedVecLength());
+            largestWidth /= (varVecLength() / getMixedVecLength());
         }
-        else if (getMixedVectorLength() > varVectorLength())
+        else if (getMixedVecLength() > varVecLength())
         {
             // outer enclosing index range is for longer vector elements
-            os << " * " << (getMixedVectorLength() / varVectorLength());
-            largestWidth *= (getMixedVectorLength() / varVectorLength());
+            os << " * " << (getMixedVecLength() / varVecLength());
+            largestWidth *= (getMixedVecLength() / varVecLength());
         }
     }
 
@@ -130,7 +130,7 @@ Subscript::Subscript(void)
       _tileVar(-1),
       _varWidth(-1),
       _varHeight(-1),
-      _varVectorLength(-1),
+      _varVecLength(-1),
       _transposed(false),
       _outerProductLeft(false),
       _outerProductRight(false),
@@ -141,7 +141,7 @@ Subscript::Subscript(void)
       _eligibleGatherYHasIndex(false),
       _eligibleGatherXVecOffset(0),
       _eligibleGatherYVecOffset(0),
-      _mixedVectorLength(-1),
+      _mixedVecLength(-1),
       _mixedComponentIdx(-1),
       _readScalar(false),
       _subscriptBrackets(true) { }
@@ -269,9 +269,9 @@ void Subscript::unsetEligibleGather(void)
     _eligibleGatherYVecOffset = 0;
 }
 
-void Subscript::setMixedVectorLength(const size_t vectorLength)
+void Subscript::setMixedVecLength(const size_t vecLen)
 {
-    _mixedVectorLength = vectorLength;
+    _mixedVecLength = vecLen;
 }
 
 void Subscript::setMixedComponentIdx(const size_t idx)
@@ -279,19 +279,19 @@ void Subscript::setMixedComponentIdx(const size_t idx)
     _mixedComponentIdx = idx;
 }
 
-void Subscript::unsetMixedVectorLength(void)
+void Subscript::unsetMixedVecLength(void)
 {
-    _mixedVectorLength = -1;
+    _mixedVecLength = -1;
     _mixedComponentIdx = -1;
 }
 
 void Subscript::setVariable(const size_t width,
                             const size_t height,
-                            const size_t vectorLength)
+                            const size_t vecLen)
 {
     _varWidth = width;
     _varHeight = height;
-    _varVectorLength = vectorLength;
+    _varVecLength = vecLen;
 }
 
 void Subscript::setReadScalar(const bool v)
@@ -299,16 +299,16 @@ void Subscript::setReadScalar(const bool v)
     _readScalar = v;
 }
 
-bool Subscript::isMixedVectorLength(void) const
+bool Subscript::isMixedVecLength(void) const
 {
-    return -1 != _mixedVectorLength;
+    return -1 != _mixedVecLength;
 }
 
 bool Subscript::isMixedZero(void) const
 {
-    if (isMixedVectorLength() && -1 != getMixedComponentIdx())
+    if (isMixedVecLength() && -1 != getMixedComponentIdx())
     {
-        return getMixedComponentIdx() >= varVectorLength();
+        return getMixedComponentIdx() >= varVecLength();
     }
     else
     {
@@ -318,15 +318,15 @@ bool Subscript::isMixedZero(void) const
 
 void Subscript::mixedComponentSub(ostream& os) const
 {
-    if (isMixedVectorLength() && -1 != getMixedComponentIdx())
+    if (isMixedVecLength() && -1 != getMixedComponentIdx())
     {
-        if (getMixedVectorLength() < varVectorLength())
+        if (getMixedVecLength() < varVecLength())
         {
             // outer enclosing index range is for shorter vector elements
-            switch (getMixedVectorLength())
+            switch (getMixedVecLength())
             {
                 case (1) :
-                    os << ".s" << (getMixedComponentIdx() % varVectorLength());
+                    os << ".s" << (getMixedComponentIdx() % varVecLength());
                     break;
 
                 case (2) :
@@ -339,7 +339,7 @@ void Subscript::mixedComponentSub(ostream& os) const
                 // mixed vector length can not be 4 as strictly smaller
             }
         }
-        else if (getMixedVectorLength() > varVectorLength())
+        else if (getMixedVecLength() > varVecLength())
         {
             // outer enclosing index range is for longer vector elements
         }
@@ -360,10 +360,10 @@ void Subscript::arraySub(ostream& os) const
 {
     if (_blockingEnabled)
     {
-        const size_t largestVectorLength = 4;
+        const size_t largestVecLength = 4;
         const size_t blockSizeInElems
             = _readScalar ? 1
-                          : (_varWidth * _varHeight) / _varVectorLength;
+                          : (_varWidth * _varHeight) / _varVecLength;
 
         switch (_blocking)
         {
@@ -494,7 +494,7 @@ void ForLoopSubscript::arraySub(ostream& os) const
 
         // This could be a problem if the vector length is not 1
         // and a matrix is transposed.
-        const size_t width = varWidth() / varVectorLength();
+        const size_t width = varWidth() / varVecLength();
         const size_t height = varHeight();
 
         widthIdx(os);
@@ -525,7 +525,7 @@ void ForLoopSubscript::widthIdx(ostream& os) const
 
     // This could be a problem if the vector length is not 1 and
     // a matrix is transposed.
-    const size_t width = varWidth() / varVectorLength();
+    const size_t width = varWidth() / varVecLength();
 
     if (isEligibleGather())
     {
@@ -566,7 +566,7 @@ void ForLoopSubscript::heightIdx(ostream& os) const
 
     // This could be a problem if the vector length is not 1 and
     // a matrix is transposed.
-    const size_t width = varWidth() / varVectorLength();
+    const size_t width = varWidth() / varVecLength();
     const size_t height = varHeight();
 
     if (isEligibleGather())
@@ -668,7 +668,7 @@ void StreamSubscript::arraySub(ostream& os) const
         // More problems if a matrix is transposed and vector length
         // is not 1... Just adding a transposed matrix to a normal one
         // is problematic.
-        const size_t width = varWidth() / varVectorLength();
+        const size_t width = varWidth() / varVecLength();
 
         widthIdx(os);
 
@@ -692,14 +692,14 @@ void StreamSubscript::widthIdx(ostream& os) const
     const size_t x = isTransposed() ? 1 : 0;
 
     const size_t padW
-        = (0 != (varWidth() % varVectorLength()))
-          ? varVectorLength() * (1 + (varWidth() / varVectorLength()))
+        = (0 != (varWidth() % varVecLength()))
+          ? varVecLength() * (1 + (varWidth() / varVecLength()))
           : varWidth();
 
     // More problems if a matrix is transposed and the vector length
     // is not 1... Just adding a transposed matrix to a normal one
     // is problematic.
-    const size_t width = padW / varVectorLength();
+    const size_t width = padW / varVecLength();
 
     if (isEligibleGather())
     {
@@ -740,7 +740,7 @@ void StreamSubscript::heightIdx(ostream& os) const
     // Problems if a matrix is transposed and the vector length
     // is not 1... Just adding a transposed matrix to a normal one
     // is problematic.
-    const size_t width = varWidth() / varVectorLength();
+    const size_t width = varWidth() / varVecLength();
     const size_t height = varHeight();
 
     if (isEligibleGather())

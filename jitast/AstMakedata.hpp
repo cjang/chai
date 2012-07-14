@@ -21,9 +21,10 @@ class AstMakedata : public BaseAst
 public:
     AstMakedata(const std::vector< FrontMem* >& frontMem,
                 BackMem* backMem,
+                const size_t PREC,
                 const size_t W,
                 const size_t H,
-                const size_t precision);
+                const size_t slots);
 
     const std::vector< FrontMem* >& frontMem(void) const;
     BackMem* backMem(void) const;

@@ -38,6 +38,12 @@ void StmtRepeat::setLoopRoll(const bool loopRoll)
     _loopRoll = loopRoll;
 }
 
+bool StmtRepeat::randomness(void) const
+{
+    // repetition does not affect randomness
+    return _comStmt->randomness();
+}
+
 bool StmtRepeat::swappable(const Stmt& other) const
 {
     // repetition does not affect swappability
@@ -57,6 +63,16 @@ size_t StmtRepeat::numReps(void) const
 StmtCompound* StmtRepeat::stuffInside(void) const
 {
     return _comStmt;
+}
+
+set< AstVariable* > StmtRepeat::lhsInside(void) const
+{
+    return _comStmt->lhsInside();
+}
+
+set< AstVariable* > StmtRepeat::rhsInside(void) const
+{
+    return _comStmt->rhsInside();
 }
 
 }; // namespace chai_internal

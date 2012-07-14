@@ -3,7 +3,6 @@
 #ifndef _CHAI_TRANS_DOTPROD_HPP_
 #define _CHAI_TRANS_DOTPROD_HPP_
 
-#include "SimpleFuns.hpp"
 #include "BaseTrans.hpp"
 
 namespace chai_internal {

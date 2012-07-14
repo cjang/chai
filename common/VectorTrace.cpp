@@ -10,6 +10,7 @@ VectorTrace::VectorTrace(const map< pthread_t, SingleTrace* >& traceSet)
     : _numTraces(traceSet.size())
 {
     const SingleTrace* t = (*traceSet.begin()).second;
+
     _hashCode            = t->hashCode();
     _liveVariables       = t->_liveVariables;
     _lhsVariable         = t->_lhsVariable;
@@ -23,22 +24,18 @@ VectorTrace::VectorTrace(const map< pthread_t, SingleTrace* >& traceSet)
 
     // iterate over all single traces
     for (map< pthread_t, SingleTrace* >::const_iterator
-         it = traceSet.begin();
-         it != traceSet.end();
-         it++)
+         it = traceSet.begin(); it != traceSet.end(); it++)
     {
         SingleTrace* sitr = (*it).second;
 
         // statement pointers to array memory
         for (map< size_t, FrontMem* >::const_iterator
-             jt = sitr->_frontMem.begin();
-             jt != sitr->_frontMem.end();
-             jt++)
+             jt = sitr->_frontMem.begin(); jt != sitr->_frontMem.end(); jt++)
         {
             const size_t stmtIndex = (*jt).first;
 
             if (0 == stmtSlotCount.count(stmtIndex))
-                stmtSlotCount[stmtIndex] = 0;
+                stmtSlotCount[ stmtIndex ] = 0;
 
             if ((*jt).second->slotMem().empty())
             {
@@ -82,29 +79,18 @@ VectorTrace::VectorTrace(const map< pthread_t, SingleTrace* >& traceSet)
 
         // constrain vector length choices by JIT
         for (map< uint32_t, int >::const_iterator
-             jt = sitr->_forceVectorLength.begin();
-             jt != sitr->_forceVectorLength.end();
+             jt = sitr->_forceVecLength.begin();
+             jt != sitr->_forceVecLength.end();
              jt++)
         {
-            _forceVectorLength[ (*jt).first ] = (*jt).second;
-        }
-
-        // really a scalar
-        for (set< uint32_t >::const_iterator
-             jt = sitr->_readScalar.begin();
-             jt != sitr->_readScalar.end();
-             jt++)
-        {
-            _readScalar.insert( *jt );
+            _forceVecLength[ (*jt).first ] = (*jt).second;
         }
     }
 
     // 1. multiple single traces gathered by scheduler into a vector trace
     // 2. vector array data from a single trace forms a vector trace
     for (map< size_t, size_t >::const_iterator
-         it = stmtSlotCount.begin();
-         it != stmtSlotCount.end();
-         it++)
+         it = stmtSlotCount.begin(); it != stmtSlotCount.end(); it++)
     {
         const size_t numSlots = (*it).second;
 
@@ -116,9 +102,7 @@ VectorTrace::VectorTrace(const map< pthread_t, SingleTrace* >& traceSet)
 VectorTrace::~VectorTrace(void)
 {
     for (map< uint32_t, VectorNut* >::const_iterator
-         it = _vectorNuts.begin();
-         it != _vectorNuts.end();
-         it++)
+         it = _vectorNuts.begin(); it != _vectorNuts.end(); it++)
     {
         delete (*it).second;
     }
@@ -247,16 +231,6 @@ vector< size_t > VectorTrace::memallocFrontIndex(const uint32_t variable) const
     }
 }
 
-bool VectorTrace::getUnifySameData(const uint32_t variable) const
-{
-    return _unifySameData.count(variable);
-}
-
-void VectorTrace::setUnifySameData(const uint32_t variable)
-{
-    _unifySameData.insert(variable);
-}
-
 map< uint32_t, VectorNut* >& VectorTrace::vectorNuts(void)
 {
     return _vectorNuts;
@@ -272,14 +246,9 @@ const set< uint32_t >& VectorTrace::liveVariables(void) const
     return _liveVariables;
 }
 
-const map< uint32_t, int >& VectorTrace::forceVectorLength(void) const
+const map< uint32_t, int >& VectorTrace::forceVecLength(void) const
 {
-    return _forceVectorLength;
-}
-
-const set< uint32_t >& VectorTrace::readScalar(void) const
-{
-    return _readScalar;
+    return _forceVecLength;
 }
 
 }; // namespace chai_internal

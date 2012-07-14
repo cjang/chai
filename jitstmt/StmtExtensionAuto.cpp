@@ -23,7 +23,7 @@ string StmtExtensionAuto::extensionName(void) const
     return _extObj->extensionName();
 }
 
-bool StmtExtensionAuto::extensionEnqueueAuto(MemManager& memMgr,
+bool StmtExtensionAuto::extensionEnqueueAuto(MemTrans& memMgr,
                                              VectorTrace& vt)
 {
     return _extObj->extensionEnqueueAuto(memMgr, vt, _lhsVariable);
@@ -37,6 +37,11 @@ size_t StmtExtensionAuto::extensionWidth(void) const
 size_t StmtExtensionAuto::extensionHeight(void) const
 {
     return _extObj->H();
+}
+
+bool StmtExtensionAuto::randomness(void) const
+{
+    return false;
 }
 
 bool StmtExtensionAuto::swappable(const Stmt& other) const

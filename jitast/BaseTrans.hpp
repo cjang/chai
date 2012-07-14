@@ -12,7 +12,7 @@
 #include "chai/Stak.hpp"
 #include "chai/Visit.hpp"
 #include "FrontMem.hpp"
-#include "MemManager.hpp"
+#include "MemTrans.hpp"
 #include "VectorTrace.hpp"
 
 namespace chai_internal {
@@ -40,7 +40,7 @@ protected:
 
     // context
     VectorTrace* _vt;
-    MemManager*  _memManager;
+    MemTrans*    _memMgr;
 
     // implemented in derived class
     virtual BaseAst* sub_eval(void) const = 0;
@@ -54,7 +54,7 @@ public:
     virtual BaseTrans* clone(void) const;
 
     void setContext(VectorTrace& vt);
-    void setContext(MemManager& mm);
+    void setContext(MemTrans& mm);
 
     void eval(Stak<BC>& inStak,
               std::stack< BaseAst* >& outStack);

@@ -3,7 +3,8 @@
 #ifndef _CHAI_TRANS_FUN3_HPP_
 #define _CHAI_TRANS_FUN3_HPP_
 
-#include "SimpleFuns.hpp"
+#include <string>
+
 #include "BaseTrans.hpp"
 
 namespace chai_internal {
@@ -13,13 +14,13 @@ namespace chai_internal {
 
 class TransFun3 : public BaseTrans
 {
-    const SimpleFun3& _fun;
+    const std::string _fun;
 
 protected:
     BaseAst* sub_eval(void) const;
 
 public:
-    TransFun3(const SimpleFun3& fun);
+    TransFun3(const std::string& fun);
 };
 
 }; // namespace chai_internal

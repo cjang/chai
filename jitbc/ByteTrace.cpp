@@ -51,9 +51,7 @@ void ByteTrace::liftConstants(void)
 
     // only interested in variables without dependencies on other variables
     for (map< uint32_t, vector< size_t > >::const_iterator
-         it = varAssignIndex.begin();
-         it != varAssignIndex.end();
-         it++)
+         it = varAssignIndex.begin(); it != varAssignIndex.end(); it++)
     {
         // check if there is only one assignment to the variable
         if (1 == (*it).second.size())
@@ -72,9 +70,7 @@ void ByteTrace::liftConstants(void)
                 // random number generation is a special case
                 // inline OpenCL is a special case
                 // what looks like the same constant function is really not
-                if ( v.opCodes().count(ByteCodes::rng_normal_make_u32) ||
-                     v.opCodes().count(ByteCodes::rng_normal_make_i32) ||
-                     v.opCodes().count(ByteCodes::rng_normal_make_f32) ||
+                if ( v.opCodes().count(ByteCodes::rng_normal_make_f32) ||
                      v.opCodes().count(ByteCodes::rng_normal_make_f64) ||
                      v.opCodes().count(ByteCodes::rng_uniform_make_u32) ||
                      v.opCodes().count(ByteCodes::rng_uniform_make_i32) ||
@@ -104,9 +100,7 @@ void ByteTrace::liftConstants(void)
 
     // construct map of constant variable replacement
     for (map< uint64_t, set< uint32_t > >::const_iterator
-         it = constantHash.begin();
-         it != constantHash.end();
-         it++)
+         it = constantHash.begin(); it != constantHash.end(); it++)
     {
         // don't care about the hash code, only needed it to map the variables
 
@@ -114,9 +108,7 @@ void ByteTrace::liftConstants(void)
 
         // this is the reduce part, picking a representative variable
         for (set< uint32_t >::const_iterator
-             jt = (*it).second.begin();
-             jt != (*it).second.end();
-             jt++)
+             jt = (*it).second.begin(); jt != (*it).second.end(); jt++)
         {
             if (-1 == firstVar)
             {
@@ -134,9 +126,7 @@ void ByteTrace::liftConstants(void)
 
     // representative constant variables go first
     for (set< uint32_t >::const_iterator
-         it = constantReps.begin();
-         it != constantReps.end();
-         it++)
+         it = constantReps.begin(); it != constantReps.end(); it++)
     {
         const uint32_t variable = *it;
 
@@ -192,9 +182,7 @@ void ByteTrace::liftConstants(void)
 
     // destructors for representative constant variables
     for (set< uint32_t >::const_iterator
-         it = constantReps.begin();
-         it != constantReps.end();
-         it++)
+         it = constantReps.begin(); it != constantReps.end(); it++)
     {
         const uint32_t variable = *it;
 
@@ -211,9 +199,7 @@ void ByteTrace::liftConstants(void)
 
     // release unused statements
     for (vector< BCStmt* >::const_iterator
-         it = _statements.begin();
-         it != _statements.end();
-         it++)
+         it = _statements.begin(); it != _statements.end(); it++)
     {
         delete *it;
     }
@@ -242,9 +228,7 @@ void ByteTrace::rollLoops(void)
         map< size_t, size_t >          gapCount;
         map< size_t, set< uint64_t > > gapHashes;
         for (map< uint64_t, vector< size_t > >::const_iterator
-             it = hashIndexes.begin();
-             it != hashIndexes.end();
-             it++)
+             it = hashIndexes.begin(); it != hashIndexes.end(); it++)
         {
             const uint64_t hc = (*it).first;
 
@@ -268,9 +252,7 @@ void ByteTrace::rollLoops(void)
         // invert the gap histogram to find the most frequent gap size(s)
         map< size_t, set< size_t > > invertGapCount;
         for (map< size_t, size_t >::const_iterator
-             it = gapCount.begin();
-             it != gapCount.end();
-             it++)
+             it = gapCount.begin(); it != gapCount.end(); it++)
         {
             invertGapCount[ (*it).second ].insert( (*it).first );
         }
@@ -384,9 +366,7 @@ void ByteTrace::rollLoops(void)
 
                 // release unused statements
                 for (vector< BCStmt* >::const_iterator
-                     it = _statements.begin();
-                     it != _statements.end();
-                     it++)
+                     it = _statements.begin(); it != _statements.end(); it++)
                 {
                     delete *it;
                 }
@@ -424,9 +404,7 @@ ByteTrace::ByteTrace(VectorTrace& vt)
 ByteTrace::~ByteTrace(void)
 {
     for (vector< BCStmt* >::const_iterator
-         it = _statements.begin();
-         it != _statements.end();
-         it++)
+         it = _statements.begin(); it != _statements.end(); it++)
     {
         delete *it;
     }
@@ -450,9 +428,7 @@ size_t ByteTrace::numTraces(void) const
 void ByteTrace::traverse(VisitBCStmt& v)
 {
     for (vector< BCStmt* >::const_iterator
-         it = _statements.begin();
-         it != _statements.end();
-         it++)
+         it = _statements.begin(); it != _statements.end(); it++)
     {
         (*it)->accept(v);
     }

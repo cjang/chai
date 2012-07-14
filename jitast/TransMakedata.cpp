@@ -13,13 +13,14 @@ BaseAst* TransMakedata::sub_eval(void) const
     return
         new AstMakedata(_argMem[0],
                         _backMem[0],
+                        _prec,
                         _argScalar[0],
                         _argScalar[1],
-                        _precision);
+                        _argScalar[2]);
 }
 
-TransMakedata::TransMakedata(const size_t precision)
-    : BaseTrans(3, 0),
-      _precision(precision) { }
+TransMakedata::TransMakedata(const size_t PREC)
+    : BaseTrans(4, 0),
+      _prec(PREC) { }
 
 }; // namespace chai_internal

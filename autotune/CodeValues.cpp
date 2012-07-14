@@ -69,10 +69,10 @@ string ConstantValue::name(void) const
 
 // CastValue
 CastValue::CastValue(const IValue& value,
-                     const size_t precision,
-                     const size_t vectorLength)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+                     const size_t PREC,
+                     const size_t vecLen)
+    : _prec(PREC),
+      _vecLen(vecLen),
       _value(value) { }
 
 string CastValue::name(void) const
@@ -80,7 +80,7 @@ string CastValue::name(void) const
     stringstream ss;
 
     ss << "("
-       << NameOf::privatevar(_precision, _vectorLength, true)
+       << NameOf::privatevar(_prec, _vecLen, true)
        << ")("
        << _value.name()
        << ")";
@@ -90,11 +90,11 @@ string CastValue::name(void) const
 
 // ReinterpretValue
 ReinterpretValue::ReinterpretValue(const IValue& value,
-                                   const size_t precision,
-                                   const size_t vectorLength,
+                                   const size_t PREC,
+                                   const size_t vecLen,
                                    const bool doApply)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+    : _prec(PREC),
+      _vecLen(vecLen),
       _value(value),
       _doApply(doApply) { }
 
@@ -105,7 +105,7 @@ string ReinterpretValue::name(void) const
     if (_doApply)
     {
         ss << "as_"
-           << NameOf::privatevar(_precision, _vectorLength, true)
+           << NameOf::privatevar(_prec, _vecLen, true)
            << "("
            << _value.name()
            << ")";
@@ -120,11 +120,11 @@ string ReinterpretValue::name(void) const
 
 // ConvertValue
 ConvertValue::ConvertValue(const IValue& value,
-                           const size_t precision,
-                           const size_t vectorLength,
+                           const size_t PREC,
+                           const size_t vecLen,
                            const bool doApply)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+    : _prec(PREC),
+      _vecLen(vecLen),
       _value(value),
       _doApply(doApply) { }
 
@@ -135,7 +135,7 @@ string ConvertValue::name(void) const
     if (_doApply)
     {
         ss << "convert_"
-           << NameOf::privatevar(_precision, _vectorLength, true)
+           << NameOf::privatevar(_prec, _vecLen, true)
            << "("
            << _value.name()
            << ")";

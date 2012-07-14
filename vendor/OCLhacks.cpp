@@ -293,9 +293,7 @@ void OCLhacks::initHacks(const OCLinit& oclInit,
 
     // find indexes for compute devices
     for (set< string >::const_iterator
-         it = _deviceNames.begin();
-         it != _deviceNames.end();
-         it++)
+         it = _deviceNames.begin(); it != _deviceNames.end(); it++)
     {
         const string deviceName = *it;
 
@@ -365,9 +363,7 @@ void OCLhacks::initHacks(const OCLinit& oclInit,
 
     // first Evergreen device
     for (vector< string >::const_iterator
-         it = evergreenDevices.begin();
-         it != evergreenDevices.end();
-         it++)
+         it = evergreenDevices.begin(); it != evergreenDevices.end(); it++)
     {
         const size_t deviceIdx = device2index[*it];
 
@@ -393,9 +389,7 @@ size_t OCLhacks::firstEvergreen(void) const
 bool OCLhacks::shutdownNOP(void)
 {
     for (set< size_t >::const_iterator
-         it = _deviceIndexes.begin();
-         it != _deviceIndexes.end();
-         it++)
+         it = _deviceIndexes.begin(); it != _deviceIndexes.end(); it++)
     {
         if (shutdownNOP(*it))
             return true;

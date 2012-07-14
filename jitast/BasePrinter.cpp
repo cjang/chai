@@ -51,9 +51,7 @@ void BasePrinter::descendAst(const size_t idx, BaseAst& v)
 void BasePrinter::printFrontMem(const vector< FrontMem* >& vecFrontMem)
 {
     for (vector< FrontMem* >::const_iterator
-         it = vecFrontMem.begin();
-         it != vecFrontMem.end();
-         it++)
+         it = vecFrontMem.begin(); it != vecFrontMem.end(); it++)
     {
         _os << "PTR(" << (*it)->ptrMem() << ")";
     }
@@ -99,7 +97,7 @@ void BasePrinter::visit(AstConvert& v)
     {
         _os << "convert_";
 
-        switch (v.precision())
+        switch (v.prec())
         {
             case (PrecType::UInt32) : _os << "u32"; break;
             case (PrecType::Int32) : _os << "i32"; break;
@@ -140,16 +138,16 @@ void BasePrinter::visit(AstExtension& v)
 
 void BasePrinter::visit(AstFun1& v)
 {
-    _os << v.fun().str() << "(";
+    _os << v.fun() << "(";
     descendAst(0, v);
     _os << ")";
 }
 
 void BasePrinter::visit(AstFun2& v)
 {
-    const string funStr = v.fun().str();
+    const string funStr = v.fun();
 
-    if (v.fun().infix())
+    if (v.infix())
     {
         _os << "(";
         descendAst(0, v);
@@ -169,7 +167,7 @@ void BasePrinter::visit(AstFun2& v)
 
 void BasePrinter::visit(AstFun3& v)
 {
-    const string funStr = v.fun().str();
+    const string funStr = v.fun();
 
     _os << funStr << "(";
     descendAst(0, v);
@@ -198,7 +196,7 @@ void BasePrinter::visit(AstIdxdata& v)
 {
     _os << "indexX_";
 
-    switch (v.precision())
+    switch (v.prec())
     {
         case (PrecType::UInt32) : _os << "u32"; break;
         case (PrecType::Int32) : _os << "i32"; break;
@@ -211,7 +209,7 @@ void BasePrinter::visit(AstIdxdata& v)
 
 void BasePrinter::visit(AstLitdata& v)
 {
-    switch (v.precision())
+    switch (v.prec())
     {
         case (PrecType::UInt32) :
             _os << (0 == v.uintValue() ? "zeros" : "ones");
@@ -229,7 +227,7 @@ void BasePrinter::visit(AstLitdata& v)
 
     _os << "X_";
 
-    switch (v.precision())
+    switch (v.prec())
     {
         case (PrecType::UInt32) : _os << "u32"; break;
         case (PrecType::Int32) : _os << "i32"; break;
@@ -244,7 +242,7 @@ void BasePrinter::visit(AstMakedata& v)
 {
     _os << "makeX_";
 
-    switch (v.precision())
+    switch (v.prec())
     {
         case (PrecType::UInt32) : _os << "u32"; break;
         case (PrecType::Int32) : _os << "i32"; break;
@@ -298,9 +296,7 @@ void BasePrinter::visit(AstMatmulVV& v)
 void BasePrinter::visit(AstOpenCL& v)
 {
     for (vector< string >::const_iterator
-         it = v.programSource().begin();
-         it != v.programSource().end();
-         it++)
+         it = v.programSource().begin(); it != v.programSource().end(); it++)
     {
         _os << (*it) << endl;
     }
@@ -321,10 +317,8 @@ void BasePrinter::visit(AstRNGnormal& v)
 {
     _os << "rng_normal_make_";
 
-    switch (v.precision())
+    switch (v.prec())
     {
-        case (PrecType::UInt32) : _os << "u32"; break;
-        case (PrecType::Int32) : _os << "i32"; break;
         case (PrecType::Float) : _os << "f32"; break;
         case (PrecType::Double) : _os << "f64"; break;
     }
@@ -336,7 +330,7 @@ void BasePrinter::visit(AstRNGuniform& v)
 {
     _os << "rng_uniform_make_";
 
-    switch (v.precision())
+    switch (v.prec())
     {
         case (PrecType::UInt32) : _os << "u32"; break;
         case (PrecType::Int32) : _os << "i32"; break;
@@ -344,17 +338,17 @@ void BasePrinter::visit(AstRNGuniform& v)
         case (PrecType::Double) : _os << "f64"; break;
     }
 
-    _os << "("
-        << v.W() << ", "
-        << v.step() << ", "
-        << v.minlimit() << ", "
-        << v.maxlimit()
-        << ")";
+    _os << "(" << v.W() << ", " << v.H();
+
+    if (v.hasLimits())
+        _os << ", " << v.minLimit() << ", " << v.maxLimit();
+
+    _os << ")";
 }
 
 void BasePrinter::visit(AstScalar& v)
 {
-    switch (v.precision())
+    switch (v.prec())
     {
         case (PrecType::UInt32) : _os << v.uintValue(); break;
         case (PrecType::Int32) : _os << v.intValue(); break;
@@ -386,7 +380,7 @@ void BasePrinter::visit(AstVariable& v)
         const string prefix = v.isLiveVariable() ? "VAR" : "var";
 
         // bytes to bits
-        const size_t precision = PrecType::sizeOf(v.precision()) * 8;
+        const size_t precision = PrecType::sizeOf(v.prec()) * 8;
 
         _os << prefix << precision << "(";
 

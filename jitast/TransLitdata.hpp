@@ -15,7 +15,8 @@ namespace chai_internal {
 class TransLitdata : public BaseTrans
 {
     const size_t   _N;
-    const size_t   _precision;
+    const size_t   _prec;
+
     const uint32_t _uintValue;
     const int32_t  _intValue;
     const float    _floatValue;

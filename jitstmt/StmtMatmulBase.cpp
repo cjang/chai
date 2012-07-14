@@ -68,6 +68,11 @@ StmtMatmulBase::StmtMatmulBase(AstVariable* lhs,
 
 StmtMatmulBase::~StmtMatmulBase(void) { }
 
+bool StmtMatmulBase::randomness(void) const
+{
+    return false; // matmul() statements always separate kernels
+}
+
 bool StmtMatmulBase::swappable(const Stmt& other) const
 {
     return Stmt::swappable(other);
@@ -172,19 +177,19 @@ size_t StmtMatmulBase::heightC(void) const
     return _lhsVariable->H();
 }
 
-size_t StmtMatmulBase::precisionA(void) const
+size_t StmtMatmulBase::precA(void) const
 {
-    return _matmulBase->leftPrecision();
+    return _matmulBase->leftPrec();
 }
 
-size_t StmtMatmulBase::precisionB(void) const
+size_t StmtMatmulBase::precB(void) const
 {
-    return _matmulBase->rightPrecision();
+    return _matmulBase->rightPrec();
 }
 
-size_t StmtMatmulBase::precisionC(void) const
+size_t StmtMatmulBase::precC(void) const
 {
-    return _lhsVariable->precision();
+    return _lhsVariable->prec();
 }
 
 }; // namespace chai_internal

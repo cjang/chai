@@ -123,14 +123,12 @@ namespace ByteCodes {
     ////////////////////////////////////////
     // random numbers (110 - 119)
 
-    static const uint32_t rng_normal_make_u32     = 110;
-    static const uint32_t rng_normal_make_i32     = 111;
-    static const uint32_t rng_normal_make_f32     = 112;
-    static const uint32_t rng_normal_make_f64     = 113;
-    static const uint32_t rng_uniform_make_u32    = 114;
-    static const uint32_t rng_uniform_make_i32    = 115;
-    static const uint32_t rng_uniform_make_f32    = 116;
-    static const uint32_t rng_uniform_make_f64    = 117;
+    static const uint32_t rng_normal_make_f32     = 110;
+    static const uint32_t rng_normal_make_f64     = 111;
+    static const uint32_t rng_uniform_make_u32    = 112;
+    static const uint32_t rng_uniform_make_i32    = 113;
+    static const uint32_t rng_uniform_make_f32    = 114;
+    static const uint32_t rng_uniform_make_f64    = 115;
 
     ////////////////////////////////////////
     // auto-tuned matrix multipy (120 - 129)

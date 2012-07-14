@@ -14,23 +14,23 @@ BaseAst* TransIdxdata::sub_eval(void) const
     {
         return
             new AstIdxdata(_argScalar[0],
-                           _argScalar[1],
-                           _precision);
+                           _prec,
+                           _argScalar[1]);
     }
     else
     {
         return
             new AstIdxdata(_argScalar[0],
+                           _prec,
                            _argScalar[1],
-                           _argScalar[2],
-                           _precision);
+                           _argScalar[2]);
     }
 }
 
 TransIdxdata::TransIdxdata(const size_t N,
-                           const size_t precision)
+                           const size_t PREC)
     : BaseTrans(N+1, 0),
       _N(N),
-      _precision(precision) { }
+      _prec(PREC) { }
 
 }; // namespace chai_internal

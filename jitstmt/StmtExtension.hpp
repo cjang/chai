@@ -6,7 +6,7 @@
 #include "AstExtension.hpp"
 #include "AstVariable.hpp"
 #include "BaseAst.hpp"
-#include "MemManager.hpp"
+#include "MemTrans.hpp"
 #include "VectorTrace.hpp"
 #include "VisitAst.hpp"
 #include "Stmt.hpp"
@@ -28,7 +28,9 @@ public:
     ~StmtExtension(void);
 
     std::string extensionName(void) const;
-    bool extensionEnqueue(MemManager&, VectorTrace&);
+    bool extensionEnqueue(MemTrans&, VectorTrace&);
+
+    bool randomness(void) const;
 
     virtual bool swappable(const Stmt&) const;
     void accept(VisitStmt&);

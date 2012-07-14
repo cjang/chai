@@ -20,8 +20,6 @@ uint64_t BCStmtSingle::computeHash(VectorTrace& vt)
 
     // for RNG loop rolling, hash the seed argument with a zero
     EditStak rngEdit;
-    rngEdit.nullifyOpArg(ByteCodes::rng_normal_make_u32, 1);
-    rngEdit.nullifyOpArg(ByteCodes::rng_normal_make_i32, 1);
     rngEdit.nullifyOpArg(ByteCodes::rng_normal_make_f32, 1);
     rngEdit.nullifyOpArg(ByteCodes::rng_normal_make_f64, 1);
     rngEdit.nullifyOpArg(ByteCodes::rng_uniform_make_u32, 1);
@@ -47,9 +45,7 @@ uint64_t BCStmtSingle::computeHash(VectorTrace& vt)
     }
 
     for (set< uint32_t >::const_iterator
-         it = v.variables().begin();
-         it != v.variables().end();
-         it++)
+         it = v.variables().begin(); it != v.variables().end(); it++)
     {
         _vectorNuts[*it] = vt.vectorNuts()[*it];
     }
@@ -200,9 +196,7 @@ void BCStmtSingle::debug(ostream& os)
         os << "( ";
 
         for (vector< FrontMem* >::const_iterator
-             it = _frontMem.begin();
-             it != _frontMem.end();
-             it++)
+             it = _frontMem.begin(); it != _frontMem.end(); it++)
         {
             os << (*it) << " ";
         }

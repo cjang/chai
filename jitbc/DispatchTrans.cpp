@@ -12,9 +12,7 @@ DispatchTrans::DispatchTrans(void)
 DispatchTrans::~DispatchTrans(void)
 {
     for (map< uint32_t, BaseTrans* >::const_iterator
-         it = _dtable.begin();
-         it != _dtable.end();
-         it++)
+         it = _dtable.begin(); it != _dtable.end(); it++)
     {
         delete (*it).second;
     }
@@ -52,20 +50,16 @@ void DispatchTrans::setContext(stack< BaseAst* >& outStack)
 void DispatchTrans::setContext(VectorTrace& vt)
 {
     for (map< uint32_t, BaseTrans* >::const_iterator
-         it = _dtable.begin();
-         it != _dtable.end();
-         it++)
+         it = _dtable.begin(); it != _dtable.end(); it++)
     {
         (*it).second->setContext(vt);
     }
 }
 
-void DispatchTrans::setContext(MemManager& mm)
+void DispatchTrans::setContext(MemTrans& mm)
 {
     for (map< uint32_t, BaseTrans* >::const_iterator
-         it = _dtable.begin();
-         it != _dtable.end();
-         it++)
+         it = _dtable.begin(); it != _dtable.end(); it++)
     {
         (*it).second->setContext(mm);
     }

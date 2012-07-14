@@ -15,7 +15,7 @@ FrontMem::FrontMem(const size_t W,
       _W(W),
       _H(H),
       _slots(1),
-      _precision(PrecType::Float),
+      _prec(PrecType::Float),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -29,7 +29,7 @@ FrontMem::FrontMem(const size_t W,
       _W(W),
       _H(H),
       _slots(1),
-      _precision(PrecType::Double),
+      _prec(PrecType::Double),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -43,7 +43,7 @@ FrontMem::FrontMem(const size_t W,
       _W(W),
       _H(H),
       _slots(1),
-      _precision(PrecType::Int32),
+      _prec(PrecType::Int32),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -57,38 +57,38 @@ FrontMem::FrontMem(const size_t W,
       _W(W),
       _H(H),
       _slots(1),
-      _precision(PrecType::UInt32),
+      _prec(PrecType::UInt32),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
       _slotMem() { }
 
 FrontMem::FrontMem(const uint32_t variable,
+                   const size_t PREC,
                    const size_t W,
-                   const size_t H,
-                   const size_t precision)
+                   const size_t H)
     : RefObj(),
       _variable(variable),
       _W(W),
       _H(H),
       _slots(1),
-      _precision(precision),
+      _prec(PREC),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
       _slotMem() { }
 
 FrontMem::FrontMem(const uint32_t variable,
+                   const size_t PREC,
                    const size_t W,
                    const size_t H,
-                   const size_t precision,
                    const size_t slots)
     : RefObj(),
       _variable(variable),
       _W(W),
       _H(H),
       _slots(slots),
-      _precision(precision),
+      _prec(PREC),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
@@ -96,7 +96,7 @@ FrontMem::FrontMem(const uint32_t variable,
 {
     for (size_t i = 0; i < slots; i++)
     {
-        FrontMem* fm = new FrontMem(variable, W, H, precision);
+        FrontMem* fm = new FrontMem(variable, PREC, W, H);
         fm->owned();
         fm->checkout(true);
         _slotMem.push_back(fm);
@@ -112,7 +112,7 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(1),
-      _precision(PrecType::Float),
+      _prec(PrecType::Float),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -127,7 +127,7 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(1),
-      _precision(PrecType::Double),
+      _prec(PrecType::Double),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -142,7 +142,7 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(1),
-      _precision(PrecType::Int32),
+      _prec(PrecType::Int32),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -157,7 +157,7 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(1),
-      _precision(PrecType::UInt32),
+      _prec(PrecType::UInt32),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(dataPtr),
@@ -172,16 +172,14 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(dataPtr.size()),
-      _precision(PrecType::Float),
+      _prec(PrecType::Float),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
       _slotMem()
 {
     for (vector< float* >::const_iterator
-         it = dataPtr.begin();
-         it != dataPtr.end();
-         it++)
+         it = dataPtr.begin(); it != dataPtr.end(); it++)
     {
         FrontMem *fm = new FrontMem(variable, W, H, *it);
         fm->owned();
@@ -199,16 +197,14 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(dataPtr.size()),
-      _precision(PrecType::Double),
+      _prec(PrecType::Double),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
       _slotMem()
 {
     for (vector< double* >::const_iterator
-         it = dataPtr.begin();
-         it != dataPtr.end();
-         it++)
+         it = dataPtr.begin(); it != dataPtr.end(); it++)
     {
         FrontMem *fm = new FrontMem(variable, W, H, *it);
         fm->owned();
@@ -226,16 +222,14 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(dataPtr.size()),
-      _precision(PrecType::Int32),
+      _prec(PrecType::Int32),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
       _slotMem()
 {
     for (vector< int32_t* >::const_iterator
-         it = dataPtr.begin();
-         it != dataPtr.end();
-         it++)
+         it = dataPtr.begin(); it != dataPtr.end(); it++)
     {
         FrontMem *fm = new FrontMem(variable, W, H, *it);
         fm->owned();
@@ -253,16 +247,14 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(W),
       _H(H),
       _slots(dataPtr.size()),
-      _precision(PrecType::UInt32),
+      _prec(PrecType::UInt32),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(NULL),
       _slotMem()
 {
     for (vector< uint32_t* >::const_iterator
-         it = dataPtr.begin();
-         it != dataPtr.end();
-         it++)
+         it = dataPtr.begin(); it != dataPtr.end(); it++)
     {
         FrontMem *fm = new FrontMem(variable, W, H, *it);
         fm->owned();
@@ -278,7 +270,7 @@ FrontMem::FrontMem(const uint32_t variable,
       _W(0),
       _H(0),
       _slots(0),
-      _precision(-1),
+      _prec(-1),
       _ptrMem(NULL),
       _backObj(NULL),
       _dataPtr(ptr),
@@ -287,9 +279,7 @@ FrontMem::FrontMem(const uint32_t variable,
 FrontMem::~FrontMem(void)
 {
     for (vector< FrontMem* >::const_iterator
-         it = _slotMem.begin();
-         it != _slotMem.end();
-         it++)
+         it = _slotMem.begin(); it != _slotMem.end(); it++)
     {
         delete *it;
     }
@@ -302,7 +292,7 @@ FrontMem::~FrontMem(void)
 
 size_t FrontMem::sizeBytes(void) const
 {
-    return _W * _H * PrecType::sizeOf(_precision);
+    return _W * _H * PrecType::sizeOf(_prec);
 }
 
 uint32_t FrontMem::variable(void) const
@@ -325,9 +315,9 @@ size_t FrontMem::slots(void) const
     return _slots;
 }
 
-size_t FrontMem::precision(void) const
+size_t FrontMem::prec(void) const
 {
-    return _precision;
+    return _prec;
 }
 
 void FrontMem::swizzle(const size_t uniqueKey)
@@ -341,28 +331,28 @@ void FrontMem::swizzle(const size_t uniqueKey)
 
 float* FrontMem::floatPtr(void) const
 {
-    return PrecType::Float == _precision
+    return PrecType::Float == _prec
                ? static_cast< float* >(_ptrMem)
                : NULL;
 }
 
 double* FrontMem::doublePtr(void) const
 {
-    return PrecType::Double == _precision
+    return PrecType::Double == _prec
                ? static_cast< double* >(_ptrMem)
                : NULL;
 }
 
 int32_t* FrontMem::intPtr(void) const
 {
-    return PrecType::Int32 == _precision
+    return PrecType::Int32 == _prec
                ? static_cast< int32_t* >(_ptrMem)
                : NULL;
 }
 
 uint32_t* FrontMem::uintPtr(void) const
 {
-    return PrecType::UInt32 == _precision
+    return PrecType::UInt32 == _prec
                ? static_cast< uint32_t* >(_ptrMem)
                : NULL;
 }
@@ -372,9 +362,9 @@ void* FrontMem::ptrMem(void) const
     return _ptrMem;
 }
 
-void* FrontMem::ptrMem(const size_t precision) const
+void* FrontMem::ptrMem(const size_t PREC) const
 {
-    switch (precision)
+    switch (PREC)
     {
         case (PrecType::UInt32) : return uintPtr();
         case (PrecType::Int32) : return intPtr();

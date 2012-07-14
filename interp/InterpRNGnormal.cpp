@@ -10,8 +10,6 @@ using namespace std;
 namespace chai_internal {
 
 ////////////////////////////////////////
-// rng_normal_make_u32
-// rng_normal_make_i32
 // rng_normal_make_f32
 // rng_normal_make_f64
 
@@ -19,42 +17,36 @@ void InterpRNGnormal::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
     const size_t variant    = _argScalar[0]; // not used
     const unsigned int seed = _argScalar[1]; // not used
-    const size_t len        = _argScalar[2];
+    const size_t WIDTH      = _argScalar[2];
+    const size_t HEIGHT     = _argScalar[3];
+    const size_t SLOTS      = _argScalar[4];
+
+    const size_t LEN        = WIDTH * HEIGHT;
 
     _gen.seed(random());
 
     // first allocate backing memory
-    BackMem* backMem = allocBackMem(len, 1, _precision);
+    BackMem* backMem = allocBackMem(_prec, WIDTH, HEIGHT, SLOTS);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
     // calculate and create fronts
-    for (size_t i = 0; i < numTraces(); i++)
+    for (size_t i = 0; i < SLOTS; i++)
     {
-        FrontMem* m = allocFrontMem(len, 1, _precision, backMem, i);
+        FrontMem* m = allocFrontMem(_prec, WIDTH, HEIGHT, backMem, i);
 
         frontMem.push_back(m);
 
-        switch (_precision)
+        switch (_prec)
         {
-            case (PrecType::UInt32) :
-                for (size_t j = 0; j < len; j++)
-                    m->uintPtr()[j] = _gen.normal<uint32_t>();
-                break;
-
-            case (PrecType::Int32) :
-                for (size_t j = 0; j < len; j++)
-                    m->intPtr()[j] = _gen.normal<int32_t>();
-                break;
-
             case (PrecType::Float) :
-                for (size_t j = 0; j < len; j++)
+                for (size_t j = 0; j < LEN; j++)
                     m->floatPtr()[j] = _gen.normal<float>();
                 break;
 
             case (PrecType::Double) :
-                for (size_t j = 0; j < len; j++)
+                for (size_t j = 0; j < LEN; j++)
                     m->doublePtr()[j] = _gen.normal<double>();
                 break;
         }
@@ -64,9 +56,9 @@ void InterpRNGnormal::sub_eval(stack< vector< FrontMem* > >& outStack)
     outStack.push(frontMem);
 }
 
-InterpRNGnormal::InterpRNGnormal(const size_t precision, InterpRNG& gen)
-    : BaseInterp(3, 0),
-      _precision(precision),
+InterpRNGnormal::InterpRNGnormal(const size_t PREC, InterpRNG& gen)
+    : BaseInterp(5, 0),
+      _prec(PREC),
       _gen(gen) { }
 
 }; // namespace chai_internal

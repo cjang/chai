@@ -20,6 +20,8 @@ class StmtReadData : public Stmt
 public:
     StmtReadData(AstVariable* lhs, AstReadout* rhs);
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
 
     void accept(VisitStmt&);

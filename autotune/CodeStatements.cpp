@@ -54,9 +54,7 @@ string declare(const vector< PrivateVar >& lhs,
     stringstream ss;
 
     for (vector< PrivateVar >::const_iterator
-         it = lhs.begin();
-         it != lhs.end();
-         it++)
+         it = lhs.begin(); it != lhs.end(); it++)
     {
         ss << indent
            << (*it).declaredName()
@@ -74,9 +72,7 @@ string declare(const vector< PrivateVar >& lhs,
     stringstream ss;
 
     for (vector< PrivateVar >::const_iterator
-         it = lhs.begin();
-         it != lhs.end();
-         it++)
+         it = lhs.begin(); it != lhs.end(); it++)
     {
         ss << indent
            << (*it).declaredName()
@@ -194,9 +190,7 @@ string assign(const vector< PrivateVar >& lhs,
     stringstream ss;
 
     for (vector< PrivateVar >::const_iterator
-         it = lhs.begin();
-         it != lhs.end();
-         it++)
+         it = lhs.begin(); it != lhs.end(); it++)
     {
         ss << indent
            << (*it).name()
@@ -298,9 +292,7 @@ string increment(const vector< PrivateVar >& lhs,
     stringstream ss;
 
     for (vector< PrivateVar >::const_iterator
-         it = lhs.begin();
-         it != lhs.end();
-         it++)
+         it = lhs.begin(); it != lhs.end(); it++)
     {
         ss << indent
            << (*it).name()

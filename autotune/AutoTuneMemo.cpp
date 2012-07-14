@@ -108,9 +108,7 @@ bool AutoTuneMemo::addEntry(const string& kernelName,
     bool rc = true;
 
     for (set< string >::const_iterator
-         it = _journalFile.begin();
-         it != _journalFile.end();
-         it++)
+         it = _journalFile.begin(); it != _journalFile.end(); it++)
     {
         ofstream ofs((*it).c_str(), ios::app);
 
@@ -171,9 +169,7 @@ bool AutoTuneMemo::loadMemoFile(const string& fileName)
         //   BEFORE_CHECK
         // must have hung or crashed
         for (map< string, long >::const_iterator
-             it = _workingState.begin();
-             it != _workingState.end();
-             it++)
+             it = _workingState.begin(); it != _workingState.end(); it++)
         {
             if (COMPILE_KERNEL == (*it).second ||
                 START_TIMER == (*it).second ||
@@ -196,9 +192,7 @@ bool AutoTuneMemo::loadMemoFile(const set< string >& fileName)
     bool rc = true;
 
     for (set< string >::const_iterator
-         it = fileName.begin();
-         it != fileName.end();
-         it++)
+         it = fileName.begin(); it != fileName.end(); it++)
     {
         rc = rc && loadMemoFile(*it);
     }
@@ -214,9 +208,7 @@ bool AutoTuneMemo::saveMemoFile(const string& fileName)
     {
         // entry states
         for (map< string, long >::const_iterator
-             it = _workingState.begin();
-             it != _workingState.end();
-             it++)
+             it = _workingState.begin(); it != _workingState.end(); it++)
         {
             const string kernelName = (*it).first;
             const long entryState = (*it).second;
@@ -229,16 +221,12 @@ bool AutoTuneMemo::saveMemoFile(const string& fileName)
 
         // benchmark times
         for (map< string, vector< size_t > >::const_iterator
-             it = _benchTime.begin();
-             it != _benchTime.end();
-             it++)
+             it = _benchTime.begin(); it != _benchTime.end(); it++)
         {
             const string kernelName = (*it).first;
 
             for (vector< size_t >::const_iterator
-                 jt = (*it).second.begin();
-                 jt != (*it).second.end();
-                 jt++)
+                 jt = (*it).second.begin(); jt != (*it).second.end(); jt++)
             {
                 const size_t microseconds = *jt;
 

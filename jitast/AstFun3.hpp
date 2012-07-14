@@ -3,8 +3,9 @@
 #ifndef _CHAI_AST_FUN3_HPP_
 #define _CHAI_AST_FUN3_HPP_
 
+#include <string>
+
 #include "BaseAst.hpp"
-#include "SimpleFuns.hpp"
 
 namespace chai_internal {
 
@@ -13,29 +14,15 @@ namespace chai_internal {
 
 class AstFun3 : public BaseAst
 {
-    const SimpleFun3& _fun;
-
-    const size_t _leftW;
-    const size_t _leftH;
-    const size_t _middleW;
-    const size_t _middleH;
-    const size_t _rightW;
-    const size_t _rightH;
+    const std::string _fun;
 
 public:
-    AstFun3(const SimpleFun3& fun,
+    AstFun3(const std::string& fun,
             BaseAst* bargLeft,
             BaseAst* bargMiddle,
             BaseAst* bargRight);
 
-    const SimpleFun3& fun(void) const;
-
-    size_t leftW(void) const;
-    size_t leftH(void) const;
-    size_t middleW(void) const;
-    size_t middleH(void) const;
-    size_t rightW(void) const;
-    size_t rightH(void) const;
+    const std::string& fun(void) const;
 
     void accept(VisitAst&);
 };

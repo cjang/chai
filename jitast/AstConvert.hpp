@@ -17,7 +17,7 @@ class AstConvert : public BaseAst
 
 public:
     AstConvert(BaseAst* barg,
-               const size_t precision);
+               const size_t PREC);
 
     bool isNOP(void) const;
 

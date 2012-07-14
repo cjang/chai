@@ -5,14 +5,16 @@
 namespace chai_internal {
 
 ////////////////////////////////////////////////
-// rng_normal_make_u32, rng_normal_make_i64
-// rng_normal_make_f32, rng_normal_make_f64
+// rng_normal_make_f32
+// rng_normal_make_f64
 
 AstRNGnormal::AstRNGnormal(const int variant,
                            const uint64_t seed,
-                           const size_t len,
-                           const size_t precision)
-    : BaseAst(len, 1, precision),
+                           const size_t PREC,
+                           const size_t W,
+                           const size_t H,
+                           const size_t slots)
+    : BaseAst(PREC, W, H, slots, true),
       _rngVariant(variant),
       _rngSeed(seed) { }
 

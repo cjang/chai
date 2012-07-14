@@ -45,7 +45,10 @@ void StmtReduce::descendAst(BaseAst& v)
 StmtReduce::StmtReduce(AstVariable* lhs,
                        AstAccum* rhs)
     : _rhsAccum(rhs),
-      _rhsDotprod(NULL)
+      _rhsDotprod(NULL),
+      _rhsW(rhs->insideW()),
+      _rhsH(rhs->insideH()),
+      _nestStmt()
 {
     // set LHS variable
     lhsVariable(lhs);
@@ -58,7 +61,10 @@ StmtReduce::StmtReduce(AstVariable* lhs,
 StmtReduce::StmtReduce(AstVariable* lhs,
                        AstDotprod* rhs)
     : _rhsAccum(NULL),
-      _rhsDotprod(rhs)
+      _rhsDotprod(rhs),
+      _rhsW(rhs->insideW()),
+      _rhsH(rhs->insideH()),
+      _nestStmt()
 {
     // set LHS variable
     lhsVariable(lhs);
@@ -68,9 +74,24 @@ StmtReduce::StmtReduce(AstVariable* lhs,
     descendAst(*lhs);
 }
 
+bool StmtReduce::randomness(void) const
+{
+    return lhsVariable()->randomness();
+}
+
 bool StmtReduce::swappable(const Stmt& other) const
 {
     return Stmt::swappable(other);
+}
+
+const vector< Stmt* >& StmtReduce::nestStmt(void) const
+{
+    return _nestStmt;
+}
+
+void StmtReduce::nestStmt(Stmt* s)
+{
+    _nestStmt.push_back(s);
 }
 
 void StmtReduce::accept(VisitStmt& v)
@@ -86,6 +107,16 @@ AstAccum* StmtReduce::accumPtr(void) const
 AstDotprod* StmtReduce::dotprodPtr(void) const
 {
     return _rhsDotprod;
+}
+
+size_t StmtReduce::rhsW(void) const
+{
+    return _rhsW;
+}
+
+size_t StmtReduce::rhsH(void) const
+{
+    return _rhsH;
 }
 
 ////////////////////////////////////////

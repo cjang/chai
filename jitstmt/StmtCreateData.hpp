@@ -41,6 +41,8 @@ public:
     void initializeData(const float value);
     void initializeData(const double value);
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
 
     void accept(VisitStmt&);

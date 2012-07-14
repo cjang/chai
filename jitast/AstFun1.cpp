@@ -9,15 +9,19 @@ namespace chai_internal {
 ////////////////////////////////////////////////
 // single argument functions
 
-AstFun1::AstFun1(const SimpleFun1& fun,
+AstFun1::AstFun1(const string& fun,
                  BaseAst* barg)
-    : BaseAst(barg->W(), barg->H(), barg->precision()),
+    : BaseAst(barg->prec(),
+              barg->W(),
+              barg->H(),
+              barg->slots(),
+              barg->randomness()),
       _fun(fun)
 {
     pushArg(barg);
 }
 
-const SimpleFun1& AstFun1::fun(void) const
+const string& AstFun1::fun(void) const
 {
     return _fun;
 }

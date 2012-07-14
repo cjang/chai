@@ -416,99 +416,141 @@ enum RNGVariant
     RNG_DEFAULT = RNG_PHILOX
 };
 
-#define DECL_RNG(FP, X) \
-class RNG ## FP { \
-    const RNGVariant _rngVariant; \
-    X _rngSeed; \
+#define DECL_RNG(FP, PREC) \
+class RNG ## FP : public RNGBase ## PREC { \
 public: \
-    RNG ## FP (const RNGVariant, const X); \
-    RNGVariant rngVariant(void) const; \
-    X rngSeed(void) const; \
-    void incSeed(void); \
+    RNG ## FP (const RNGVariant, const uint ## PREC ## _t seed); \
 };
 
-DECL_RNG(u32, uint32_t)
-DECL_RNG(i32, uint32_t)
-DECL_RNG(f32, uint32_t)
-DECL_RNG(f64, uint64_t)
+// 32 bit generator
+class RNGBase32
+{
+    const RNGVariant _rngVariant;
+    uint32_t         _rngSeed;
 
+protected:
+    RNGBase32(const RNGVariant, const uint32_t seed);
+
+public:
+    RNGVariant rngVariant(void) const;
+    uint32_t rngSeed(void) const;
+    void incSeed(const uint32_t);
+};
+
+DECL_RNG(u32, 32)
+DECL_RNG(i32, 32)
+DECL_RNG(f32, 32)
+
+// 64 bit generator
+class RNGBase64
+{
+    const RNGVariant _rngVariant;
+    uint64_t         _rngSeed;
+
+protected:
+    RNGBase64(const RNGVariant, const uint64_t seed);
+
+public:
+    RNGVariant rngVariant(void) const;
+    uint64_t rngSeed(void) const;
+    void incSeed(const uint64_t);
+};
+
+DECL_RNG(f64, 64)
+
+// RNG function object
 class RngFun : public ArrayExp
 {
-    const size_t _length;
+    chai_internal::ArrayClient* _client;
+
+    const size_t _W;
+    const size_t _H;
+    const size_t _slots;
 
     chai_internal::Stak<chai_internal::BC> _rngBC;
 
 public:
-    // uniform
-    RngFun(RNGu32& generator,
-           const size_t length,
-           const size_t step,
-           const uint32_t minLimit,
-           const uint32_t maxLimit);
+    // uniform (u32, i32) or normal (f32)
+    RngFun(RNGBase32& generator,
+           const uint32_t opCode,
+           const size_t W,
+           const size_t H,
+           const size_t slots);
 
-    // uniform
-    RngFun(RNGi32& generator,
-           const size_t length,
-           const size_t step,
-           const int32_t minLimit,
-           const int32_t maxLimit);
+    // normal (f64)
+    RngFun(RNGBase64& generator,
+           const uint32_t opCode,
+           const size_t W,
+           const size_t H,
+           const size_t slots);
 
-    // uniform
+    // uniform (f32)
     RngFun(RNGf32& generator,
-           const size_t length,
-           const size_t step,
-           const float minLimit,
-           const float maxLimit);
+           const size_t W,
+           const size_t H,
+           const size_t slots,
+           const float minLimit, const float maxLimit);
 
-    // uniform
+    // uniform (f64)
     RngFun(RNGf64& generator,
-           const size_t length,
-           const size_t step,
-           const double minLimit,
-           const double maxLimit);
-
-    // normal
-    RngFun(RNGu32& generator, const size_t length);
-    RngFun(RNGi32& generator, const size_t length);
-    RngFun(RNGf32& generator, const size_t length);
-    RngFun(RNGf64& generator, const size_t length);
+           const size_t W,
+           const size_t H,
+           const size_t slots,
+           const double minLimit, const double maxLimit);
 
     void accept(chai_internal::Stak<chai_internal::BC>&) const;
     void accept(std::stack< ArrayDim >&) const;
 };
 
+// RNG functions
+RngFun rng_uniform_make(RNGu32& generator, const size_t W);
+RngFun rng_uniform_make(RNGu32& generator, const size_t W, const size_t H);
 RngFun rng_uniform_make(RNGu32& generator,
-                        const size_t length,
-                        const size_t step);
+                        const size_t W, const size_t H, const size_t slots);
 
+RngFun rng_uniform_make(RNGi32& generator, const size_t W);
+RngFun rng_uniform_make(RNGi32& generator, const size_t W, const size_t H);
 RngFun rng_uniform_make(RNGi32& generator,
-                        const size_t length,
-                        const size_t step);
+                        const size_t W, const size_t H, const size_t slots);
 
+RngFun rng_uniform_make(RNGf32& generator, const size_t W,
+                        const float minLimit,
+                        const float maxLimit);
+RngFun rng_uniform_make(RNGf32& generator, const size_t W, const size_t H,
+                        const float minLimit,
+                        const float maxLimit);
 RngFun rng_uniform_make(RNGf32& generator,
-                        const size_t length,
-                        const size_t step,
+                        const size_t W, const size_t H, const size_t slots,
                         const float minLimit,
                         const float maxLimit);
 
+RngFun rng_uniform_make(RNGf64& generator, const size_t W,
+                        const float minLimit,
+                        const float maxLimit);
+RngFun rng_uniform_make(RNGf64& generator, const size_t W, const size_t H,
+                        const float minLimit,
+                        const float maxLimit);
 RngFun rng_uniform_make(RNGf64& generator,
-                        const size_t length,
-                        const size_t step,
+                        const size_t W, const size_t H, const size_t slots,
                         const float minLimit,
                         const float maxLimit);
 
+RngFun rng_normal_make(RNGf32& generator, const size_t W);
+RngFun rng_normal_make(RNGf32& generator, const size_t W, const size_t H);
 RngFun rng_normal_make(RNGf32& generator,
-                       const size_t length);
+                       const size_t W, const size_t H, const size_t slots);
 
+RngFun rng_normal_make(RNGf64& generator, const size_t W);
+RngFun rng_normal_make(RNGf64& generator, const size_t W, const size_t H);
 RngFun rng_normal_make(RNGf64& generator,
-                       const size_t length);
+                       const size_t W, const size_t H, const size_t slots);
 
 ////////////////////////////////////////
 // array variable abstract base class
 
 class ArrayBase : public ArrayExp
 {
-    const size_t                _prectype;
+    const size_t                _prec;
     chai_internal::ArrayClient* _client;
     uint32_t                    _variable;
     uint32_t                    _version;
@@ -525,16 +567,16 @@ class ArrayBase : public ArrayExp
                      const size_t slots);
 
 protected:
-    ArrayBase(const size_t prectype);
+    ArrayBase(const size_t PREC);
 
-    ArrayBase(const size_t prectype,
+    ArrayBase(const size_t PREC,
               const size_t W,
               const size_t H,
               const size_t slots);
 
     ArrayBase(const ArrayBase&);
 
-    ArrayBase(const size_t prectype,
+    ArrayBase(const size_t PREC,
               const ArrayExp&);
 
     virtual ~ArrayBase(void);
@@ -553,7 +595,7 @@ protected:
 
 public:
     chai_internal::ArrayClient* getArrayClient(void) const;
-    size_t getArrayPrecType(void) const;
+    size_t getArrayPrec(void) const;
     uint32_t getArrayVarNum(void) const;
 };
 

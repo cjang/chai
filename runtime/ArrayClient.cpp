@@ -42,20 +42,20 @@ Stak<BC>& ArrayClient::assignment(const uint32_t variable,
 }
 
 FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t PREC,
                                 const size_t W,
-                                const size_t H,
-                                const size_t precision)
+                                const size_t H)
 {
-    return _trace.memalloc(variable, W, H, precision);
+    return _trace.memalloc(variable, PREC, W, H);
 }
 
 FrontMem* ArrayClient::memalloc(const uint32_t variable,
+                                const size_t PREC,
                                 const size_t W,
                                 const size_t H,
-                                const size_t precision,
                                 const size_t slots)
 {
-    return _trace.memalloc(variable, W, H, precision, slots);
+    return _trace.memalloc(variable, PREC, W, H, slots);
 }
 
 FrontMem* ArrayClient::memalloc(const uint32_t variable,
@@ -139,15 +139,10 @@ void ArrayClient::schedule(void)
     Scheduler::singleton().wait(_ptself, _trace);
 }
 
-void ArrayClient::forceVectorLength(const uint32_t variable,
-                                    const int constraint)
+void ArrayClient::forceVecLength(const uint32_t variable,
+                                 const int constraint)
 {
-    _trace.forceVectorLength(variable, constraint);
-}
-
-void ArrayClient::readScalar(const uint32_t variable)
-{
-    _trace.readScalar(variable);
+    _trace.forceVecLength(variable, constraint);
 }
 
 }; // namespace chai_internal

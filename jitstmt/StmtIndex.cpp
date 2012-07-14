@@ -19,6 +19,11 @@ StmtIndex::StmtIndex(AstVariable* lhs,
     buoyancySink();
 }
 
+bool StmtIndex::randomness(void) const
+{
+    return false;
+}
+
 bool StmtIndex::swappable(const Stmt& other) const
 {
     return Stmt::swappable(other);

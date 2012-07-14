@@ -11,10 +11,10 @@ namespace chai_internal {
 
 AstAccum::AstAccum(BaseAst* barg,
                    const bool takeAvg)
-    : BaseAst(1, 1, barg->precision()),
+    : BaseAst(barg->prec(), 1, 1, barg->slots(), barg->randomness()),
       _takeAvg(takeAvg),
-      _argW(barg->W()),
-      _argH(barg->H())
+      _insideW(barg->W()),
+      _insideH(barg->H())
 {
     pushArg(barg);
 }
@@ -24,14 +24,14 @@ bool AstAccum::takeAvg(void) const
     return _takeAvg;
 }
 
-size_t AstAccum::argW(void) const
+size_t AstAccum::insideW(void) const
 {
-    return _argW;
+    return _insideW;
 }
 
-size_t AstAccum::argH(void) const
+size_t AstAccum::insideH(void) const
 {
-    return _argH;
+    return _insideH;
 }
 
 void AstAccum::accept(VisitAst& v)

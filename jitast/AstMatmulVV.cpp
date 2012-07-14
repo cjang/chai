@@ -12,13 +12,13 @@ namespace chai_internal {
 
 AstMatmulVV::AstMatmulVV(BaseAst* bargLeft,
                          BaseAst* bargRight)
-    : AstMatmulBase(bargRight->W(),
+    : AstMatmulBase(max<size_t>(bargLeft->prec(), bargRight->prec()),
+                    bargRight->W(),
                     bargLeft->W(),
-                    max<size_t>(bargLeft->precision(), bargRight->precision()),
+                    max<size_t>(bargLeft->slots(), bargRight->slots()),
+                    bargLeft->randomness() || bargRight->randomness(),
                     bargLeft,
-                    bargRight)
-{
-}
+                    bargRight) { }
 
 void AstMatmulVV::accept(VisitAst& v)
 {

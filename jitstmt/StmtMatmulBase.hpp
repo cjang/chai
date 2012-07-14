@@ -31,6 +31,8 @@ protected:
 public:
     virtual ~StmtMatmulBase(void);
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
 
     const AstVariable* astvarA(void) const;
@@ -59,9 +61,9 @@ public:
     size_t heightB(void) const;
     size_t heightC(void) const;
 
-    size_t precisionA(void) const;
-    size_t precisionB(void) const;
-    size_t precisionC(void) const;
+    size_t precA(void) const;
+    size_t precB(void) const;
+    size_t precC(void) const;
 };
 
 }; // namespace chai_internal

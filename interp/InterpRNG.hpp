@@ -24,14 +24,27 @@ public:
     void seed(const unsigned int seed);
 
     template <typename X>
-    X uniform(const size_t step, const X minlimit, const X maxlimit)
+    X uniform(const size_t step)
     {
         int32_t randresult;
+
         for (size_t i = 0; i < step; i++)
             random_r(&_randbuf, &randresult);
+
+        return randresult;
+    }
+
+    template <typename X>
+    X uniform(const size_t step, const X minLimit, const X maxLimit)
+    {
+        int32_t randresult;
+
+        for (size_t i = 0; i < step; i++)
+            random_r(&_randbuf, &randresult);
+
         X x = randresult;
         x /= RAND_MAX;
-        return x * (maxlimit - minlimit) + minlimit;
+        return x * (maxLimit - minLimit) + minLimit;
     }
 
     template <typename X>

@@ -9,13 +9,17 @@ namespace chai_internal {
 ////////////////////////////////////////////////
 // base of JIT AST streams
 
-BaseAst::BaseAst(const size_t W,
+BaseAst::BaseAst(const size_t PREC,
+                 const size_t W,
                  const size_t H,
-                 const size_t precision)
+                 const size_t slots,
+                 const bool randomness)
     : RefObj(),
+      _prec(PREC),
       _W(W),
       _H(H),
-      _precision(precision),
+      _slots(slots),
+      _randomness(randomness),
       _refs(),
       _argAst() { }
 
@@ -37,9 +41,19 @@ size_t BaseAst::H(void) const
     return _H;
 }
 
-size_t BaseAst::precision(void) const
+size_t BaseAst::slots(void) const
 {
-    return _precision;
+    return _slots;
+}
+
+size_t BaseAst::prec(void) const
+{
+    return _prec;
+}
+
+bool BaseAst::randomness(void) const
+{
+    return _randomness;
 }
 
 size_t BaseAst::numArg(void) const

@@ -17,12 +17,12 @@
 namespace chai_internal {
 
 ////////////////////////////////////////
-// number codes for all compute devices
+// all compute devices
 
 class DeviceMap
 {
-    std::set< size_t >              _allCodes;
-    std::map< size_t, DeviceBase* > _codeDevice;
+    std::set< int >              _allDevnums;
+    std::map< int, DeviceBase* > _deviceMap;
 
 public:
     DeviceMap(OCLinit& oclInit, std::istream& configSpec);
@@ -33,8 +33,8 @@ public:
                         const BaseInterp& interpHandler,
                         const BaseTrans& jitHandler);
 
-    const std::set< size_t >& allCodes(void) const;
-    DeviceBase* getDevice(const size_t deviceCode);
+    const std::set< int >& allDevnums(void) const;
+    DeviceBase* getDevice(const int deviceNum);
 };
 
 }; // namespace chai_internal

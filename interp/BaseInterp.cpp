@@ -12,9 +12,9 @@ namespace chai_internal {
 // common base for all bytecode
 // interpreter operations
 
-size_t BaseInterp::precision(const size_t argStackIndex) const
+size_t BaseInterp::prec(const size_t argStackIndex) const
 {
-    return _argStack[argStackIndex].front()->precision();
+    return _argStack[argStackIndex].front()->prec();
 }
 
 size_t BaseInterp::W(const size_t argStackIndex) const
@@ -27,26 +27,24 @@ size_t BaseInterp::H(const size_t argStackIndex) const
     return _argStack[argStackIndex].front()->H();
 }
 
+size_t BaseInterp::slots(const size_t argStackIndex) const
+{
+    return _argStack[argStackIndex].size();
+}
+
 size_t BaseInterp::frontSize(const size_t argStackIndex) const
 {
-    const size_t prec = precision(argStackIndex);
-
-    // standard vector length is double2 and float4
-    const size_t standardVectorLength = PrecType::vecLength(prec);
+    const size_t PREC   = prec(argStackIndex);
+    const size_t WIDTH  = W(argStackIndex);
+    const size_t HEIGHT = H(argStackIndex);
 
     // special case for scalar reductions
     // relies on implicit convention of array dimensions
-    const bool specialCaseReadScalar
-        = 1 == H(argStackIndex) && 1 == W(argStackIndex);
+    const bool readScalar = 1 == WIDTH && 1 == HEIGHT;
 
-    return PrecType::sizeOf(prec) *
-           (specialCaseReadScalar ? standardVectorLength
-                                  : W(argStackIndex) * H(argStackIndex));
-}
-
-size_t BaseInterp::numTraces(void) const
-{
-    return _vt->numTraces();
+    return PrecType::sizeOf(PREC) * ( readScalar
+                                          ? PrecType::vecLength(PREC)
+                                          : WIDTH * HEIGHT );
 }
 
 size_t BaseInterp::idx(const size_t argStackIndex,
@@ -72,9 +70,7 @@ void BaseInterp::swizzle(const size_t argStackIndex) const
     const vector< FrontMem* >& vref = _argStack[argStackIndex];
 
     for (vector< FrontMem* >::const_iterator
-         it = vref.begin();
-         it != vref.end();
-         it++)
+         it = vref.begin(); it != vref.end(); it++)
     {
         (*it)->swizzle(_uniqueSwizzleKey);
     }
@@ -108,20 +104,21 @@ uint32_t* BaseInterp::uintPtr(const size_t argStackIndex,
     return vref[vecIndex % vref.size()]->uintPtr();
 }
 
-BackMem* BaseInterp::allocBackMem(const size_t W,
+BackMem* BaseInterp::allocBackMem(const size_t PREC,
+                                  const size_t W,
                                   const size_t H,
-                                  const size_t prec) const
+                                  const size_t slots) const
 {
-    return _memManager->allocBackMem(W, H, prec, numTraces());
+    return _memMgr->allocBackMem(PREC, W, H, slots);
 }
 
-FrontMem* BaseInterp::allocFrontMem(const size_t W,
+FrontMem* BaseInterp::allocFrontMem(const size_t PREC,
+                                    const size_t W,
                                     const size_t H,
-                                    const size_t prec,
                                     BackMem* backMem,
                                     const size_t vecIndex) const
 {
-    return _memManager->allocFrontMem(W, H, prec, backMem, vecIndex);
+    return _memMgr->allocFrontMem(PREC, W, H, backMem, vecIndex);
 }
 
 BaseInterp::BaseInterp(const size_t inCount,
@@ -130,7 +127,7 @@ BaseInterp::BaseInterp(const size_t inCount,
       _inCount(inCount),
       _outCount(outCount),
       _vt(NULL),
-      _memManager(NULL) { }
+      _memMgr(NULL) { }
 
 BaseInterp::~BaseInterp(void) { }
 
@@ -147,9 +144,9 @@ void BaseInterp::setContext(VectorTrace& vt,
     _uniqueSwizzleKey = uniqueSwizzleKey;
 }
 
-void BaseInterp::setContext(MemManager& mm)
+void BaseInterp::setContext(MemInterp& mm)
 {
-    _memManager = &mm;
+    _memMgr = &mm;
 }
 
 void BaseInterp::eval(Stak<BC>& inStak,

@@ -25,9 +25,7 @@ void PrintBCStmt::visit(BCStmtCompound& s)
 {
     // visit each statement inside compound
     for (vector< BCStmt* >::const_iterator
-         it = s.stuffInside().begin();
-         it != s.stuffInside().end();
-         it++)
+         it = s.stuffInside().begin(); it != s.stuffInside().end(); it++)
     {
         (*it)->accept(*this);
     }

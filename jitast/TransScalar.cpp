@@ -11,21 +11,24 @@ namespace chai_internal {
 
 BaseAst* TransScalar::sub_eval(void) const
 {
-    switch (_precision)
+    switch (_prec)
     {
         case (PrecType::UInt32) :
             return new AstScalar(static_cast<uint32_t>(_argScalar[0]));
+
         case (PrecType::Int32) :
             return new AstScalar(static_cast<int32_t>(_argScalar[0]));
+
         case (PrecType::Float) :
             return new AstScalar(static_cast<float>(_argScalar[0]));
+
         case (PrecType::Double) :
             return new AstScalar(static_cast<double>(_argScalar[0]));
     }
 }
 
-TransScalar::TransScalar(const size_t precision)
+TransScalar::TransScalar(const size_t PREC)
     : BaseTrans(1, 0),
-      _precision(precision) { }
+      _prec(PREC) { }
 
 }; // namespace chai_internal

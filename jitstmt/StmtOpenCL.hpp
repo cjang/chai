@@ -19,6 +19,8 @@ class StmtOpenCL : public Stmt
 public:
     StmtOpenCL(AstOpenCL* rhs);
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
 
     void accept(VisitStmt&);

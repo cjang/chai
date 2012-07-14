@@ -10,7 +10,11 @@ namespace chai_internal {
 // transpose
 
 AstTranspose::AstTranspose(BaseAst* barg)
-    : BaseAst(barg->H(), barg->W(), precision())
+    : BaseAst(barg->prec(),
+              barg->H(),
+              barg->W(),
+              barg->slots(),
+              barg->randomness())
 {
     pushArg(barg);
 }

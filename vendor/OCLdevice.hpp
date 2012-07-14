@@ -244,14 +244,14 @@ class OCLHeapOfImages
                const bool pinned,
                void* ptr,
                const bool freePtr,
-               const size_t precTypeSizeCode);
+               const size_t PREC);
 
     int create(const size_t width,  // texel dimensions (x4 or x2 for matrix)
                const size_t height, // texel dimensions
                const OCLImageMode& mode,
                const bool pinned,
                const size_t alignment,
-               const size_t precTypeSizeCode);
+               const size_t PREC);
 
     OCLHeapOfImages(const cl_context context,
                     const cl_command_queue queue,
@@ -275,7 +275,7 @@ public:
                        false,
                        ptr,
                        false,
-                       PrecType::getSizeCode<SCALAR>() );
+                       PrecType::getCode<SCALAR>() );
     }
 
     template <typename SCALAR>
@@ -310,7 +310,7 @@ public:
                        mode,
                        false,
                        alignMult * imgveclen<SCALAR>() * MEMORY_ALIGNMENT,
-                       PrecType::getSizeCode<SCALAR>() );
+                       PrecType::getCode<SCALAR>() );
     }
 
     template <typename SCALAR>
@@ -333,7 +333,7 @@ public:
                        mode,
                        pinned,
                        alignMult * imgveclen<SCALAR>() * MEMORY_ALIGNMENT,
-                       PrecType::getSizeCode<SCALAR>() );
+                       PrecType::getCode<SCALAR>() );
     }
 
     template <typename SCALAR>

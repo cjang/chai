@@ -3,6 +3,8 @@
 #include "AstGather.hpp"
 #include "TransGather.hpp"
 
+using namespace std;
+
 namespace chai_internal {
 
 ////////////////////////////////////////

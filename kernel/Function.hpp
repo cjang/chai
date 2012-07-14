@@ -120,25 +120,26 @@ public:
     void addArgument(const AstVariable*, AddrMem*);
     void addArgument(const AstVariable*, Integer*);
 
-    AddrMem* getPrivateVar(const size_t precision,
-                           const size_t vectorLength);
+    AddrMem* getPrivateVar(const size_t PREC,
+                           const size_t vecLen);
 
     AddrMem* createPrivate(const uint32_t,
-                           const size_t precision,
-                           const size_t vectorLength);
+                           const size_t PREC,
+                           const size_t vecLen);
+
     AddrMem* createPrivate(const AstVariable*,
-                           const size_t precision,
-                           const size_t vectorLength);
+                           const size_t PREC,
+                           const size_t vecLen);
 
     size_t gatherVariable(const uint32_t varNum,
-                          const size_t vectorLength,
-                          const size_t width,
-                          const size_t height);
+                          const size_t vecLen,
+                          const size_t W,
+                          const size_t H);
 
     size_t gatherVariable(const AstVariable* varPtr,
-                          const size_t vectorLength,
-                          const size_t width,
-                          const size_t height);
+                          const size_t vecLen,
+                          const size_t W,
+                          const size_t H);
 
     size_t gatherSubscript(const size_t variableNumber,
                            const size_t N,
@@ -153,19 +154,19 @@ public:
     void gatherDecl(Subscript& subObj,
                     const std::set< uint32_t >& traceSuppressTile);
 
-    void rngVecType(const size_t prec,
-                    const size_t vlen);
+    void rngVecType(const size_t PREC,
+                    const size_t vecLen);
     void rngVariant(const int variant);
 
-    std::string rngUniform(const size_t prec,
-                           const size_t vlen,
+    std::string rngUniform(const size_t PREC,
+                           const size_t vecLen,
                            const int variant,
                            const uint64_t seed,
                            Subscript& tid,
                            const size_t repeatIdx) const;
 
-    std::string rngNormal(const size_t prec,
-                          const size_t vlen,
+    std::string rngNormal(const size_t PREC,
+                          const size_t vecLen,
                           const int variant,
                           const uint64_t seed,
                           Subscript& tid,

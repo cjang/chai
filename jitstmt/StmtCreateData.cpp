@@ -79,6 +79,11 @@ void StmtCreateData::initializeData(const double value)
     _doubleValue = value;
 }
 
+bool StmtCreateData::randomness(void) const
+{
+    return false;
+}
+
 bool StmtCreateData::swappable(const Stmt& other) const
 {
     return Stmt::swappable(other);

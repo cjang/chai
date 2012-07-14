@@ -102,3 +102,10 @@ Mixed language programming with OpenCL kernels and PeakStream DSL. Very large
 .cpp files for API, enqueue trace, and memory manager broken up into more
 manageably sized pieces. Fixed one unhappy path: array variable width can be
 arbitrary, does not need to be a multiple of the underlying vector length.
+
+July 14 2012 - alpha 5 release, extensive refactoring, no functionality changes
+Source code restructuring and cleanup motivated by future embedded platform
+support (configurable build in Buildroot style? i.e. Buildchai). Interpreter
+and JIT are separate paths. Significant false sharing of common code removed -
+recognizes the interpreter is mostly for debugging as full language API through
+the JIT is supported.

@@ -32,7 +32,7 @@ class Subscript
     // variable dimensions
     size_t       _varWidth;
     size_t       _varHeight;
-    size_t       _varVectorLength;
+    size_t       _varVecLength;
 
     // special modes
     bool         _transposed;
@@ -47,7 +47,7 @@ class Subscript
     size_t       _eligibleGatherYVecOffset;
 
     // mixed vector lengths in statement
-    size_t       _mixedVectorLength;
+    size_t       _mixedVecLength;
     size_t       _mixedComponentIdx;
 
     bool         _readScalar; // special case for read_scalar() variables
@@ -57,7 +57,7 @@ class Subscript
 protected:
     size_t varWidth(void) const;
     size_t varHeight(void) const;
-    size_t varVectorLength(void) const;
+    size_t varVecLength(void) const;
 
     bool isTransposed(void) const;
     bool isOuterProductLeft(void) const;
@@ -74,7 +74,7 @@ protected:
     size_t eligibleGatherXVecOffset(void) const;
     size_t eligibleGatherYVecOffset(void) const;
 
-    size_t getMixedVectorLength(void) const;
+    size_t getMixedVecLength(void) const;
     size_t getMixedComponentIdx(void) const;
     size_t mixedIndexSub(std::ostream& os) const;
 
@@ -112,17 +112,17 @@ public:
     void setGatherHeightIndex(const std::string&);
     void unsetGatherIndex(void);
 
-    void setMixedVectorLength(const size_t vectorLength);
+    void setMixedVecLength(const size_t vecLen);
     void setMixedComponentIdx(const size_t idx);
-    void unsetMixedVectorLength(void);
+    void unsetMixedVecLength(void);
 
     void setVariable(const size_t width,
                      const size_t height,
-                     const size_t vectorLength);
+                     const size_t vecLen);
 
     void setReadScalar(const bool v = true);
 
-    bool isMixedVectorLength(void) const;
+    bool isMixedVecLength(void) const;
     bool isMixedZero(void) const;
     void mixedComponentSub(std::ostream& os) const;
 

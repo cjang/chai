@@ -3,6 +3,8 @@
 #include "AstFun3.hpp"
 #include "TransFun3.hpp"
 
+using namespace std;
+
 namespace chai_internal {
 
 ////////////////////////////////////////
@@ -17,7 +19,7 @@ BaseAst* TransFun3::sub_eval(void) const
                     _argStack[2]);
 }
 
-TransFun3::TransFun3(const SimpleFun3& fun)
+TransFun3::TransFun3(const string& fun)
     : BaseTrans(0, 3),
       _fun(fun) { }
 

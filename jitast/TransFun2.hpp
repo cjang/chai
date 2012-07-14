@@ -3,7 +3,8 @@
 #ifndef _CHAI_TRANS_FUN2_HPP_
 #define _CHAI_TRANS_FUN2_HPP_
 
-#include "SimpleFuns.hpp"
+#include <string>
+
 #include "BaseTrans.hpp"
 
 namespace chai_internal {
@@ -13,13 +14,15 @@ namespace chai_internal {
 
 class TransFun2 : public BaseTrans
 {
-    const SimpleFun2& _fun;
+    const std::string _fun;
+    const bool        _infix;
 
 protected:
     BaseAst* sub_eval(void) const;
 
 public:
-    TransFun2(const SimpleFun2& fun);
+    TransFun2(const std::string& fun,
+              const bool infix);
 };
 
 }; // namespace chai_internal

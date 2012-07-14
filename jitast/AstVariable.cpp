@@ -1,7 +1,6 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include "AstVariable.hpp"
-#include "MemManager.hpp"
 
 using namespace std;
 
@@ -11,29 +10,35 @@ namespace chai_internal {
 // represents a LHS/RHS variable
 
 AstVariable::AstVariable(AstArrayMem* barg)
-    : BaseAst(barg->W(), barg->H(), barg->precision()),
+    : BaseAst(barg->prec(),
+              barg->W(),
+              barg->H(),
+              barg->slots(),
+              barg->randomness()),
       _isTraceVariable(false),
       _isLiveVariable(false),
       _variable(-1),
       _version(-1),
       _frontMem(barg->frontMem()),
       _kindOfVariable(SPLIT_ARRAY_MEMORY),
-      _sameDataAcrossTraces(barg->sameDataAcrossTraces()),
       _disableDotHack(false)
 {
     pushArg(barg);
 }
 
 AstVariable::AstVariable(BaseAst* barg,
-                         const bool writable)
-    : BaseAst(barg->W(), barg->H(), barg->precision()),
+                         const int dummy)
+    : BaseAst(barg->prec(),
+              barg->W(),
+              barg->H(),
+              barg->slots(),
+              barg->randomness()),
       _isTraceVariable(false),
       _isLiveVariable(false),
       _variable(-1),
       _version(-1),
       _frontMem(),
       _kindOfVariable(SPLIT_OPERATION),
-      _sameDataAcrossTraces(false),
       _disableDotHack(false)
 {
     pushArg(barg);
@@ -44,14 +49,17 @@ AstVariable::AstVariable(BaseAst* barg,
                          const uint32_t version,
                          const bool isLive,
                          const vector< FrontMem* >& frontMem)
-    : BaseAst(barg->W(), barg->H(), barg->precision()),
+    : BaseAst(barg->prec(),
+              barg->W(),
+              barg->H(),
+              barg->slots(),
+              barg->randomness()),
       _isTraceVariable(true),
       _isLiveVariable(isLive),
       _variable(variable),
       _version(version),
       _frontMem(frontMem),
       _kindOfVariable(TRACE_VARIABLE),
-      _sameDataAcrossTraces(MemManager::checkSameDataAcrossTraces(frontMem)),
       _disableDotHack(false)
 {
     pushArg(barg);
@@ -80,11 +88,6 @@ uint32_t AstVariable::version(void) const
 const vector< FrontMem* >& AstVariable::frontMem(void) const
 {
     return _frontMem;
-}
-
-bool AstVariable::isSameDataAcrossTraces(void) const
-{
-    return _sameDataAcrossTraces;
 }
 
 bool AstVariable::isReadOnly(const bool appearsOnLHS,

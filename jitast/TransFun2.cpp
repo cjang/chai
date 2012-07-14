@@ -3,6 +3,8 @@
 #include "AstFun2.hpp"
 #include "TransFun2.hpp"
 
+using namespace std;
+
 namespace chai_internal {
 
 ////////////////////////////////////////
@@ -12,12 +14,15 @@ BaseAst* TransFun2::sub_eval(void) const
 {
     return
         new AstFun2(_fun,
+                    _infix,
                     _argStack[0],
                     _argStack[1]);
 }
 
-TransFun2::TransFun2(const SimpleFun2& fun)
+TransFun2::TransFun2(const string& fun,
+                     const bool infix)
     : BaseTrans(0, 2),
-      _fun(fun) { }
+      _fun(fun),
+      _infix(infix) { }
 
 }; // namespace chai_internal

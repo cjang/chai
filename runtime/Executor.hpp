@@ -35,9 +35,9 @@ public:
                         const BaseInterp& interpHandler,
                         const BaseTrans& jitHandler);
 
-    const std::set< size_t >& deviceCodes(void) const;
+    const std::set< int >& deviceNums(void) const;
 
-    double dispatch(const size_t deviceCode,
+    double dispatch(const int deviceNum,
                     VectorTrace& traceVec);
 };
 

@@ -51,15 +51,15 @@ int main(int argc, char *argv[])
 
     // ATI Evergreen matrix multiply
     Evergreen::MatmulMV matvec(deviceIdx);
-    matvec.setPacking(1);     // default
+    matvec.setBatching(1);     // default
     matvec.setGeneral(false); // default
     pargs.setOpt(matvec);
 
     // some compute devices are single precision only
     if (! OCLhacks::singleton().supportFP64(deviceIdx) &&
-        (PrecType::Double == matvec.precisionA() ||
-         PrecType::Double == matvec.precisionB() ||
-         PrecType::Double == matvec.precisionC()) )
+        (PrecType::Double == matvec.precA() ||
+         PrecType::Double == matvec.precB() ||
+         PrecType::Double == matvec.precC()) )
     {
         cerr << "error: compute device single precision only" << endl;
         exit(1);

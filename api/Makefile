@@ -4,13 +4,25 @@ include ../Makefile.common
 USE_CFLAGS=$(SHARED_CFLAGS)
 
 LIBRARY_OBJECT_CODE = \
-	chaiArray.o \
-	chaiCL.o \
-	chaiExp.o \
-	chaiFun.o \
-	chaiLit.o \
-	chaiRNG.o \
-	chaiVM.o
+	ArrayBase.o \
+	ArrayExp.o \
+	ArrayFP.o \
+	ArrayFun.o \
+	ArrayLit.o \
+	DuoFun.o \
+	IndexFun.o \
+	ManageVM.o \
+	MatmulFun.o \
+	OpsArrayFun1.o \
+	OpsArrayFun2.o \
+	OpsArrayFun3.o \
+	OpsCond.o \
+	OpsDuoFun.o \
+	OpsRngFun.o \
+	ProgramCL.o \
+	RNGBase.o \
+	RngFun.o \
+	TriFun.o
 
 EXTERNAL_HEADER_FILES = \
 	chai.h

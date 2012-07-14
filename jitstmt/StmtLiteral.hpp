@@ -23,6 +23,8 @@ public:
     StmtLiteral(AstVariable* lhs, AstLitdata* rhs);
     StmtLiteral(AstVariable* lhs, AstScalar* rhs);
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
 
     void accept(VisitStmt&);

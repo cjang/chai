@@ -53,10 +53,7 @@ class SingleTrace : public RefObj
     ClientTrace&                     _origin;
 
     // constrain vector length choice by JIT
-    const std::map< uint32_t, int >  _forceVectorLength;
-
-    // really a scalar
-    const std::set< uint32_t >       _readScalar;
+    const std::map< uint32_t, int >  _forceVecLength;
 
     uint64_t computeHash(ClientTrace&);
 
@@ -66,7 +63,6 @@ public:
     uint64_t hashCode(void) const;
     const std::vector< uint64_t >& hashCodeHistory(void) const;
 
-    size_t stickyDevice(void) const;
     bool stickyDevice(const size_t deviceCode);
     void unstickyDevice(void);
     bool stickyMovement(void) const;

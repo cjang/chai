@@ -82,9 +82,7 @@ OCLkernel* KernelCache::factoryLookup(KernelUnit& func)
 #ifdef __LOGGING_ENABLED__
     // print out generated custom kernel source text for debugging
     for (vector< string >::const_iterator
-         it = sourceText.begin();
-         it != sourceText.end();
-         it++)
+         it = sourceText.begin(); it != sourceText.end(); it++)
     {
         cerr << "OpenCL: " << *it;
     }

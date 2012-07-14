@@ -18,7 +18,7 @@ namespace Evergreen {
 // Evergreen::MatmulBase
 
 class MatmulBase : public KernelBase,
-                   protected Packing,
+                   protected Batching,
                    protected General,
                    protected Precision,
                    protected Dimensions,
@@ -32,10 +32,10 @@ public:
     static std::string deviceFamily(void);
 
     // set parameters
-    using Packing::setPacking;
-    using Packing::setDifferentData;
-    using Packing::setSameDataMatrixA;
-    using Packing::setSameDataMatrixB;
+    using Batching::setBatching;
+    using Batching::setDifferentData;
+    using Batching::setSameDataMatrixA;
+    using Batching::setSameDataMatrixB;
     using General::setGeneral;
     using Precision::setPrecision;
     using Dimensions::setDimensions;
@@ -60,30 +60,23 @@ public:
     using ExtraParam::inactiveOptimizeExtraParam;
 
     // get parameters
-    using VectorLength::vectorLengthA;
-    using VectorLength::vectorLengthB;
-    using VectorLength::vectorLengthC;
-    using Precision::precisionA;
-    using Precision::precisionB;
-    using Precision::precisionC;
+    using VectorLength::vecLengthA;
+    using VectorLength::vecLengthB;
+    using VectorLength::vecLengthC;
+    using Precision::precA;
+    using Precision::precB;
+    using Precision::precC;
 
 protected:
     MatmulBase(void);
     virtual ~MatmulBase(void);
 
-    bool validArrayType(const size_t precision,
-                        const size_t vectorLength) const;
+    bool validArrayType(const size_t PREC,
+                        const size_t vecLen) const;
 
-    size_t maxPrecision(const size_t precisionA,
-                        const size_t precisionB) const;
-
-    size_t maxPrecision(const size_t precisionA,
-                        const size_t precisionB,
-                        const size_t precisionC) const;
-
-    size_t effVectorLengthA(void) const;
-    size_t effVectorLengthB(void) const;
-    size_t effVectorLengthC(void) const;
+    size_t effVecLengthA(void) const;
+    size_t effVecLengthB(void) const;
+    size_t effVecLengthC(void) const;
 
     bool useMADFunction(void) const;
 

@@ -1,12 +1,9 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
-#ifdef __LOGGING_ENABLED__
-#include <sstream>
-#endif
+#include <stdlib.h>
 
 #include "BackMem.hpp"
-#include "Logger.hpp"
-#include "MemManager.hpp"
+#include "MemCallback.hpp"
 #include "PrecType.hpp"
 
 using namespace std;
@@ -15,61 +12,61 @@ namespace chai_internal {
 
 BackMem::BackMem(const size_t W,
                  const size_t H,
-                 const size_t packing,
+                 const size_t slots,
                  const size_t frontCount,
                  float* ptr,
-                 MemManager* mm)
+                 MemCallback* mm)
     : RefObj(false),
       _W(W),
       _H(H),
-      _packing(packing),
+      _slots(slots),
       _frontCount(frontCount),
-      _precision(PrecType::Float),
+      _prec(PrecType::Float),
       _ptrMem(ptr),
       _memMgr(mm) { }
 
 BackMem::BackMem(const size_t W,
                  const size_t H,
-                 const size_t packing,
+                 const size_t slots,
                  const size_t frontCount,
                  double* ptr,
-                 MemManager* mm)
+                 MemCallback* mm)
     : RefObj(),
       _W(W),
       _H(H),
-      _packing(packing),
+      _slots(slots),
       _frontCount(frontCount),
-      _precision(PrecType::Double),
+      _prec(PrecType::Double),
       _ptrMem(ptr),
       _memMgr(mm) { }
 
 BackMem::BackMem(const size_t W,
                  const size_t H,
-                 const size_t packing,
+                 const size_t slots,
                  const size_t frontCount,
                  int32_t* ptr,
-                 MemManager* mm)
+                 MemCallback* mm)
     : RefObj(false),
       _W(W),
       _H(H),
-      _packing(packing),
+      _slots(slots),
       _frontCount(frontCount),
-      _precision(PrecType::Int32),
+      _prec(PrecType::Int32),
       _ptrMem(ptr),
       _memMgr(mm) { }
 
 BackMem::BackMem(const size_t W,
                  const size_t H,
-                 const size_t packing,
+                 const size_t slots,
                  const size_t frontCount,
                  uint32_t* ptr,
-                 MemManager* mm)
+                 MemCallback* mm)
     : RefObj(false),
       _W(W),
       _H(H),
-      _packing(packing),
+      _slots(slots),
       _frontCount(frontCount),
-      _precision(PrecType::UInt32),
+      _prec(PrecType::UInt32),
       _ptrMem(ptr),
       _memMgr(mm) { }
 
@@ -86,7 +83,7 @@ BackMem::~BackMem(void)
 
 size_t BackMem::sizeElems(void) const
 {
-    return _W * _H * _packing;
+    return _W * _H * _slots;
 }
 
 size_t BackMem::W(void) const
@@ -99,9 +96,9 @@ size_t BackMem::H(void) const
     return _H;
 }
 
-size_t BackMem::packing(void) const
+size_t BackMem::slots(void) const
 {
-    return _packing;
+    return _slots;
 }
 
 size_t BackMem::frontCount(void) const
@@ -109,9 +106,9 @@ size_t BackMem::frontCount(void) const
     return _frontCount;
 }
 
-size_t BackMem::precision(void) const
+size_t BackMem::prec(void) const
 {
-    return _precision;
+    return _prec;
 }
 
 void* BackMem::ptrMem(void) const
@@ -121,15 +118,6 @@ void* BackMem::ptrMem(void) const
 
 void BackMem::swizzle(void)
 {
-#ifdef __LOGGING_ENABLED__
-    stringstream ss;
-    ss << "this=" << this
-       << " _memMgr=" << _memMgr
-       << " W=" << _W
-       << " H=" << _H;
-    LOGGER(ss.str())
-#endif
-
     // Translator scheduling explicitly transfers memory to and from compute
     // devices with read_scalar(), read1() and read2() calls in the execution
     // trace. There is only one agent that swizzles, the translator itself.

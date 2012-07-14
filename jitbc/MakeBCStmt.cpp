@@ -24,9 +24,7 @@ void MakeBCStmt::visit(BCStmtCompound& s)
 {
     // visit each statement inside compound
     for (vector< BCStmt* >::const_iterator
-         it = s.stuffInside().begin();
-         it != s.stuffInside().end();
-         it++)
+         it = s.stuffInside().begin(); it != s.stuffInside().end(); it++)
     {
         (*it)->accept(*this);
     }
@@ -76,10 +74,13 @@ void MakeBCStmt::visit(BCStmtSingle& s)
     }
     else
     {
+        const uint32_t variableNum = s.lhsVariable();
+        const uint32_t variableVer = s.lhsVersion();
+
         s.setAst(
             new AstVariable(_outStack.top(),
-                            s.lhsVariable(),
-                            s.lhsVersion(),
+                            variableNum,
+                            variableVer,
                             s.lhsVariableIsLive(),
                             s.frontMem()) ); // statement memory
                                              // assigned to variable

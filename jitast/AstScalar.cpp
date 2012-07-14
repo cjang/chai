@@ -12,28 +12,28 @@ namespace chai_internal {
 // scalar_f32, scalar_f64
 
 AstScalar::AstScalar(const uint32_t uintValue)
-    : BaseAst(1, 1, PrecType::UInt32),
+    : BaseAst(PrecType::UInt32, 1, 1, 1, false),
       _uintValue(uintValue),
       _intValue(0),
       _floatValue(0),
       _doubleValue(0) { }
 
 AstScalar::AstScalar(const int32_t intValue)
-    : BaseAst(1, 1, PrecType::Int32),
+    : BaseAst(PrecType::Int32, 1, 1, 1, false),
       _uintValue(0),
       _intValue(intValue),
       _floatValue(0),
       _doubleValue(0) { }
 
 AstScalar::AstScalar(const float floatValue)
-    : BaseAst(1, 1, PrecType::Float),
+    : BaseAst(PrecType::Float, 1, 1, 1, false),
       _uintValue(0),
       _intValue(0),
       _floatValue(floatValue),
       _doubleValue(0) { }
 
 AstScalar::AstScalar(const double doubleValue)
-    : BaseAst(1, 1, PrecType::Double),
+    : BaseAst(PrecType::Double, 1, 1, 1, false),
       _uintValue(0),
       _intValue(0),
       _floatValue(0),
@@ -61,7 +61,7 @@ double AstScalar::doubleValue(void) const
 
 int AstScalar::floorValue(void) const
 {
-    switch (precision())
+    switch (prec())
     {
         case (PrecType::UInt32) : return _uintValue;
         case (PrecType::Int32) : return _intValue;

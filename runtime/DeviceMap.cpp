@@ -2,7 +2,6 @@
 
 #include "DeviceMap.hpp"
 #include "Interpreter.hpp"
-#include "MemManager.hpp"
 #include "OCLhacks.hpp"
 #include "Translator.hpp"
 
@@ -18,37 +17,29 @@ DeviceMap::DeviceMap(OCLinit& oclInit, istream& configSpec)
     if (OCLhacks::singleton().enableInterpreter())
     {
         // interpreter on one CPU core
-        for (size_t coreIndex = 0;
-             coreIndex < 1;
-             coreIndex++)
-        {
-            const size_t deviceCode = MemManager::CPU_INTERP + coreIndex;
-            _allCodes.insert( deviceCode );
-           _codeDevice[ deviceCode ] = new Interpreter(deviceCode);
-            _codeDevice[ deviceCode ]->initDevice();
-        }
+        const int devnum = -1;
+        _allDevnums.insert( devnum );
+        _deviceMap[ devnum ] = new Interpreter( devnum );
+        _deviceMap[ devnum ]->initDevice();
     }
 
-    // OpenCL compute device
+    // OpenCL compute devices
     for (set< size_t >::const_iterator
          it = OCLhacks::singleton().deviceIndexes().begin();
          it != OCLhacks::singleton().deviceIndexes().end();
          it++)
     {
-        const size_t deviceIndex = *it;
-        const size_t deviceCode = MemManager::GPU_OPENCL + deviceIndex;
-        _allCodes.insert( deviceCode );
-        _codeDevice[ deviceCode ] = new Translator(deviceCode);
-        _codeDevice[ deviceCode ]->initDevice(oclInit, deviceIndex);
+        const int devnum = *it;
+        _allDevnums.insert( devnum );
+        _deviceMap[ devnum ] = new Translator( devnum );
+        _deviceMap[ devnum ]->initDevice( oclInit );
     }
 }
 
 DeviceMap::~DeviceMap(void)
 {
-    for (map<size_t, DeviceBase* >::const_iterator
-         it = _codeDevice.begin();
-         it != _codeDevice.end();
-         it++)
+    for (map< int, DeviceBase* >::const_iterator
+         it = _deviceMap.begin(); it != _deviceMap.end(); it++)
     {
         delete (*it).second;
     }
@@ -61,39 +52,29 @@ void DeviceMap::extendLanguage(const uint32_t opCode,
     if (OCLhacks::singleton().enableInterpreter())
     {
         // interpreter on one CPU core
-        for (size_t coreIndex = 0;
-             coreIndex < 1;
-             coreIndex++)
-        {
-            const size_t deviceCode = MemManager::CPU_INTERP + coreIndex;
-
-            _codeDevice[ deviceCode ]->extendLanguage(opCode,
-                                                      interpHandler);
-        }
+        const int devnum = -1;
+        _deviceMap[ devnum ]->extendLanguage( opCode, interpHandler );
     }
 
-    // OpenCL compute device
+    // OpenCL compute devices
     for (set< size_t >::const_iterator
          it = OCLhacks::singleton().deviceIndexes().begin();
          it != OCLhacks::singleton().deviceIndexes().end();
          it++)
     {
-        const size_t deviceIndex = *it;
-        const size_t deviceCode = MemManager::GPU_OPENCL + deviceIndex;
-
-        _codeDevice[ deviceCode ]->extendLanguage(opCode,
-                                                  jitHandler);
+        const int devnum = *it;
+        _deviceMap[ devnum ]->extendLanguage( opCode, jitHandler );
     }
 }
 
-const set< size_t >& DeviceMap::allCodes(void) const
+const set< int >& DeviceMap::allDevnums(void) const
 {
-    return _allCodes;
+    return _allDevnums;
 }
 
-DeviceBase* DeviceMap::getDevice(const size_t deviceCode)
+DeviceBase* DeviceMap::getDevice(const int deviceNum)
 {
-    return _codeDevice[deviceCode];
+    return _deviceMap[ deviceNum ];
 }
 
 }; // namespace chai_internal

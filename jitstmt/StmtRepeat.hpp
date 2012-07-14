@@ -3,8 +3,9 @@
 #ifndef _CHAI_STMT_REPEAT_HPP_
 #define _CHAI_STMT_REPEAT_HPP_
 
-#include <cstddef>
+#include <set>
 
+#include "AstVariable.hpp"
 #include "Stmt.hpp"
 #include "StmtCompound.hpp"
 
@@ -30,6 +31,8 @@ public:
     bool getLoopRoll(void) const;
     void setLoopRoll(const bool);
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
 
     void accept(VisitStmt&);
@@ -37,6 +40,9 @@ public:
     size_t numReps(void) const;
 
     StmtCompound* stuffInside(void) const;
+
+    std::set< AstVariable* > lhsInside(void) const;
+    std::set< AstVariable* > rhsInside(void) const;
 };
 
 }; // namespace chai_internal

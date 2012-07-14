@@ -86,7 +86,11 @@ void AstGather::descendAst(BaseAst& v)
 
 AstGather::AstGather(BaseAst* bargData,
                      BaseAst* bargX)
-    : BaseAst(bargData->W(), bargData->H(), bargData->precision()),
+    : BaseAst(bargData->prec(),
+              bargData->W(),
+              bargData->H(),
+              bargData->slots(),
+              bargData->randomness() || bargX->randomness()),
       _N(1),
       _eligible(false),
       _dataVariable(NULL),
@@ -125,7 +129,13 @@ AstGather::AstGather(BaseAst* bargData,
 AstGather::AstGather(BaseAst* bargData,
                      BaseAst* bargX,
                      BaseAst* bargY)
-    : BaseAst(bargData->W(), bargData->H(), bargData->precision()),
+    : BaseAst(bargData->prec(),
+              bargData->W(),
+              bargData->H(),
+              bargData->slots(),
+              bargData->randomness() ||
+              bargX->randomness() ||
+              bargY->randomness()),
       _N(2),
       _eligible(false),
       _dataVariable(NULL),
@@ -261,9 +271,9 @@ void AstGather::visit(AstFun2& v)
 {
     _countNode++;
 
-    if (v.fun().infix())
+    if (v.infix())
     {
-        const string opName = v.fun().str();
+        const string opName = v.fun();
 
         if ("+" == opName)
         {

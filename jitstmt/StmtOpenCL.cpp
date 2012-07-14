@@ -18,6 +18,11 @@ StmtOpenCL::StmtOpenCL(AstOpenCL* rhs)
     buoyancyNeutral();
 }
 
+bool StmtOpenCL::randomness(void) const
+{
+    return false;
+}
+
 bool StmtOpenCL::swappable(const Stmt& other) const
 {
     return false;

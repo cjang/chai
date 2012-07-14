@@ -8,7 +8,8 @@
 
 #include "BaseInterp.hpp"
 #include "BaseTrans.hpp"
-#include "MemManager.hpp"
+#include "MemInterp.hpp"
+#include "MemTrans.hpp"
 #include "OCLdevice.hpp"
 #include "OCLinit.hpp"
 #include "VectorTrace.hpp"
@@ -20,19 +21,24 @@ namespace chai_internal {
 
 class DeviceBase
 {
-    const size_t _deviceCode;
-    bool         _deviceIsCPU;
-    MemManager*  _memManager;
-    OCLdevice*   _oclDevice;
+    const int   _deviceNum;
+    bool        _deviceIsCPU;
+
+    MemInterp*  _memMgrInterp;
+    MemTrans*   _memMgrTrans;
+
+    OCLdevice*  _oclDevice;
 
 protected:
-    DeviceBase(const size_t deviceCode);
-
-    size_t getDeviceCode(void) const;
-    size_t getDeviceIndex(void) const;
+    int getDeviceNum(void) const;
     bool deviceIsCPU(void) const;
-    MemManager& getMemManager(void) const;
+
+    MemInterp& getMemInterp(void) const;
+    MemTrans& getMemTrans(void) const;
+
     OCLdevice& getOclDevice(void) const;
+
+    DeviceBase(const int deviceNum);
 
 public:
     virtual ~DeviceBase(void);
@@ -44,10 +50,13 @@ public:
                                 const BaseTrans& opHandler);
 
     void initDevice(void);
-    void initDevice(OCLinit&, const size_t deviceIndex);
+    void initDevice(OCLinit&);
+
     bool evaluate(VectorTrace&);
 
-    virtual void sub_initDevice(MemManager&) = 0;
+    virtual void sub_initDevice(MemInterp&);
+    virtual void sub_initDevice(MemTrans&);
+
     virtual bool sub_evaluate(VectorTrace&) = 0;
 };
 

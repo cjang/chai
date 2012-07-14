@@ -16,14 +16,18 @@ namespace chai_internal {
 
 class InterpRNGuniform : public BaseInterp
 {
-    const size_t _precision;
+    const size_t _prec;
     InterpRNG&   _gen;
+
+    const bool   _hasLimits;
+
+    static size_t numberArgs(const size_t PREC);
 
 protected:
     void sub_eval(std::stack< std::vector< FrontMem* > >&);
 
 public:
-    InterpRNGuniform(const size_t precision, InterpRNG& gen);
+    InterpRNGuniform(const size_t PREC, InterpRNG& gen);
 };
 
 }; // namespace chai_internal

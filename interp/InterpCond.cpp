@@ -17,28 +17,33 @@ void InterpCond::sub_eval(stack< vector< FrontMem* > >& outStack)
     swizzle(1);
     swizzle(2);
 
-    const size_t prec0 = precision(0);
-    const size_t prec1 = precision(1);
-    const size_t prec2 = precision(2);
-    const size_t precOut = prec1 < prec2 ? prec2 : prec1;
+    const size_t prec0  = prec(0);
+    const size_t prec1  = prec(1);
+    const size_t prec2  = prec(2);
+    const size_t PREC   = max<size_t>(prec1, prec2);
+
+    const size_t WIDTH  = max<size_t>(W(1), W(2));
+    const size_t HEIGHT = max<size_t>(H(1), H(2));
+
+    const size_t slots1 = slots(1);
+    const size_t slots2 = slots(2);
+    const size_t SLOTS  = slots1 < slots2 ? slots2 : slots1;
 
     // first allocate backing memory
-    const size_t maxW = max<size_t>(W(1), W(2));
-    const size_t maxH = max<size_t>(H(1), H(2));
-    BackMem* backMem = allocBackMem(maxW, maxH, precOut);
+    BackMem* backMem = allocBackMem(PREC, WIDTH, HEIGHT, SLOTS);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
     // calculate and create fronts
-    for (size_t i = 0; i < numTraces(); i++)
+    for (size_t i = 0; i < SLOTS; i++)
     {
-        FrontMem* m = allocFrontMem(maxW, maxH, precOut, backMem, i);
+        FrontMem* m = allocFrontMem(PREC, WIDTH, HEIGHT, backMem, i);
 
         frontMem.push_back(m);
 
-        for (size_t x = 0; x < maxW; x++)
-        for (size_t y = 0; y < maxH; y++)
+        for (size_t x = 0; x < WIDTH; x++)
+        for (size_t y = 0; y < HEIGHT; y++)
         {
             size_t getIndex;
             switch (prec0)
@@ -61,7 +66,7 @@ void InterpCond::sub_eval(stack< vector< FrontMem* > >& outStack)
             }
 
             double value;
-            switch (precision(getIndex))
+            switch (prec(getIndex))
             {
                 case (PrecType::UInt32) :
                     value = uintPtr(getIndex, i)[idx(getIndex, x, y)];
@@ -80,22 +85,22 @@ void InterpCond::sub_eval(stack< vector< FrontMem* > >& outStack)
                     break;
             }
 
-            switch (precOut)
+            switch (PREC)
             {
                 case (PrecType::UInt32) :
-                    m->uintPtr()[ x + y * maxW ] = value;
+                    m->uintPtr()[ x + y * WIDTH ] = value;
                     break;
 
                 case (PrecType::Int32) :
-                    m->intPtr()[ x + y * maxW ] = value;
+                    m->intPtr()[ x + y * WIDTH ] = value;
                     break;
 
                 case (PrecType::Float) :
-                    m->floatPtr()[ x + y * maxW ] = value;
+                    m->floatPtr()[ x + y * WIDTH ] = value;
                     break;
 
                 case (PrecType::Double) :
-                    m->doublePtr()[ x + y * maxW ] = value;
+                    m->doublePtr()[ x + y * WIDTH ] = value;
                     break;
             }
         }

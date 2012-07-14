@@ -14,13 +14,13 @@ namespace chai_internal {
 
 class TransConvert : public BaseTrans
 {
-    const size_t _precision;
+    const size_t _prec;
 
 protected:
     BaseAst* sub_eval(void) const;
 
 public:
-    TransConvert(const size_t precision);
+    TransConvert(const size_t PREC);
 };
 
 }; // namespace chai_internal

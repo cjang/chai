@@ -5,7 +5,6 @@ USE_CFLAGS=$(SHARED_CFLAGS)
 
 LIBRARY_OBJECT_CODE = \
 	ArrayBuf.o \
-	ArrayBufUtil.o \
 	AutoTuneBench.o \
 	AutoTuneEM.o \
 	AutoTuneMemo.o \

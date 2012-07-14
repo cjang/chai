@@ -15,14 +15,14 @@ namespace chai_internal {
 
 class InterpIdxdata : public BaseInterp
 {
-    const size_t _precision;
     const size_t _N;
+    const size_t _prec;
 
 protected:
     void sub_eval(std::stack< std::vector< FrontMem* > >&);
 
 public:
-    InterpIdxdata(const size_t precision, const size_t N);
+    InterpIdxdata(const size_t N, const size_t PREC);
 };
 
 }; // namespace chai_internal

@@ -15,62 +15,75 @@ namespace chai_internal {
 // rng_uniform_make_f32
 // rng_uniform_make_f64
 
+size_t InterpRNGuniform::numberArgs(const size_t PREC)
+{
+    switch (PREC)
+    {
+        case (PrecType::UInt32) :
+        case (PrecType::Int32) :
+            return 5;
+
+        case (PrecType::Float) :
+        case (PrecType::Double) :
+            return 7;
+    }
+}
+
 void InterpRNGuniform::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
     const size_t variant    = _argScalar[0]; // not used
     const unsigned int seed = _argScalar[1]; // not used
-    const size_t len        = _argScalar[2];
-    const size_t step       = _argScalar[3];
-    const double minlimit   = _argScalar[4];
-    const double maxlimit   = _argScalar[5];
+    const size_t WIDTH      = _argScalar[2];
+    const size_t HEIGHT     = _argScalar[3];
+    const size_t SLOTS      = _argScalar[4];
+    const double minLimit   = _hasLimits ? _argScalar[5] : 0;
+    const double maxLimit   = _hasLimits ? _argScalar[6] : 0;
+
+    const size_t LEN        = WIDTH * HEIGHT;
+
+    const size_t STEP = 1;
 
     _gen.seed(random());
 
     // first allocate backing memory
-    BackMem* backMem = allocBackMem(len, 1, _precision);
+    BackMem* backMem = allocBackMem(_prec, WIDTH, HEIGHT, SLOTS);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
     // calculate and create fronts
-    for (size_t i = 0; i < numTraces(); i++)
+    for (size_t i = 0; i < SLOTS; i++)
     {
-        FrontMem* m = allocFrontMem(len, 1, _precision, backMem, i);
+        FrontMem* m = allocFrontMem(_prec, WIDTH, HEIGHT, backMem, i);
 
         frontMem.push_back(m);
 
-        switch (_precision)
+        switch (_prec)
         {
             case (PrecType::UInt32) :
-                for (size_t j = 0; j < len; j++)
-                    m->uintPtr()[j] = _gen.uniform<uint32_t>(
-                                            step,
-                                            static_cast<uint32_t>(minlimit),
-                                            static_cast<uint32_t>(maxlimit));
+                for (size_t j = 0; j < LEN; j++)
+                    m->uintPtr()[j] = _gen.uniform<uint32_t>(STEP);
                 break;
 
             case (PrecType::Int32) :
-                for (size_t j = 0; j < len; j++)
-                    m->intPtr()[j] = _gen.uniform<int32_t>(
-                                            step,
-                                            static_cast<int32_t>(minlimit),
-                                            static_cast<int32_t>(maxlimit));
+                for (size_t j = 0; j < LEN; j++)
+                    m->intPtr()[j] = _gen.uniform<int32_t>(STEP);
                 break;
 
             case (PrecType::Float) :
-                for (size_t j = 0; j < len; j++)
+                for (size_t j = 0; j < LEN; j++)
                     m->floatPtr()[j] = _gen.uniform<float>(
-                                            step,
-                                            static_cast<float>(minlimit),
-                                            static_cast<float>(maxlimit));
+                                           STEP,
+                                           static_cast<float>(minLimit),
+                                           static_cast<float>(maxLimit));
                 break;
 
             case (PrecType::Double) :
-                for (size_t j = 0; j < len; j++)
+                for (size_t j = 0; j < LEN; j++)
                     m->doublePtr()[j] = _gen.uniform<double>(
-                                            step,
-                                            minlimit,
-                                            maxlimit);
+                                            STEP,
+                                            minLimit,
+                                            maxLimit);
                 break;
         }
     }
@@ -79,9 +92,10 @@ void InterpRNGuniform::sub_eval(stack< vector< FrontMem* > >& outStack)
     outStack.push(frontMem);
 }
 
-InterpRNGuniform::InterpRNGuniform(const size_t precision, InterpRNG& gen)
-    : BaseInterp(6, 0),
-      _precision(precision),
-      _gen(gen) { }
+InterpRNGuniform::InterpRNGuniform(const size_t PREC, InterpRNG& gen)
+    : BaseInterp(numberArgs(PREC), 0),
+      _prec(PREC),
+      _gen(gen),
+      _hasLimits(7 == numberArgs(PREC)) { }
 
 }; // namespace chai_internal

@@ -7,7 +7,7 @@
 
 #include "AstVariable.hpp"
 #include "BaseAst.hpp"
-#include "MemManager.hpp"
+#include "MemTrans.hpp"
 #include "VectorTrace.hpp"
 
 namespace chai_internal {
@@ -18,20 +18,21 @@ namespace chai_internal {
 class AstExtension : public BaseAst
 {
 public:
-    AstExtension(const size_t W,
+    AstExtension(const size_t PREC,
+                 const size_t W,
                  const size_t H,
-                 const size_t precision);
+                 const size_t slots);
 
     virtual ~AstExtension(void);
 
     virtual void accept(VisitAst&) = 0;
     virtual std::string extensionName(void) const = 0;
 
-    virtual bool extensionEnqueue(MemManager&,
+    virtual bool extensionEnqueue(MemTrans&,
                                   VectorTrace&,
                                   AstVariable* lhs) = 0;
 
-    virtual bool extensionEnqueueAuto(MemManager&,
+    virtual bool extensionEnqueueAuto(MemTrans&,
                                       VectorTrace&,
                                       AstVariable* lhs) = 0;
 };

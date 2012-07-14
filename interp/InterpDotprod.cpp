@@ -16,23 +16,23 @@ void InterpDotprod::sub_eval(stack< vector< FrontMem* > >& outStack)
     swizzle(0);
     swizzle(1);
 
-    const size_t prec0 = precision(0);
-    const size_t prec1 = precision(1);
-    const size_t precOut = prec0 < prec1 ? prec1 : prec0;
+    const size_t prec0  = prec(0);
+    const size_t prec1  = prec(1);
+    const size_t PREC   = max<size_t>(prec0, prec1);
+
+    const size_t LEN    = max<size_t>(W(0), W(1)) * max<size_t>(H(0), H(1));
+    const size_t SLOTS  = max<size_t>(slots(0), slots(1));
 
     // first allocate backing memory
-    BackMem* backMem = allocBackMem(1, 1, precOut);
+    BackMem* backMem = allocBackMem(PREC, 1, 1, SLOTS);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
-    const size_t maxW = max<size_t>(W(0), W(1));
-    const size_t maxH = max<size_t>(H(0), H(1));
-
     // calculate and create fronts
-    for (size_t i = 0; i < numTraces(); i++)
+    for (size_t i = 0; i < SLOTS; i++)
     {
-        FrontMem* m = allocFrontMem(1, 1, precOut, backMem, i);
+        FrontMem* m = allocFrontMem(PREC, 1, 1, backMem, i);
 
         frontMem.push_back(m);
 
@@ -44,22 +44,22 @@ void InterpDotprod::sub_eval(stack< vector< FrontMem* > >& outStack)
                 switch (prec1)
                 {
                     case (PrecType::UInt32) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += uintPtr(0, i)[j] * uintPtr(1, i)[j];
                         break;
 
                     case (PrecType::Int32) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += uintPtr(0, i)[j] * intPtr(1, i)[j];
                         break;
 
                     case (PrecType::Float) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += uintPtr(0, i)[j] * floatPtr(1, i)[j];
                         break;
 
                     case (PrecType::Double) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += uintPtr(0, i)[j] * doublePtr(1, i)[j];
                         break;
                 }
@@ -69,22 +69,22 @@ void InterpDotprod::sub_eval(stack< vector< FrontMem* > >& outStack)
                 switch (prec1)
                 {
                     case (PrecType::UInt32) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += intPtr(0, i)[j] * uintPtr(1, i)[j];
                         break;
 
                     case (PrecType::Int32) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += intPtr(0, i)[j] * intPtr(1, i)[j];
                         break;
 
                     case (PrecType::Float) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += intPtr(0, i)[j] * floatPtr(1, i)[j];
                         break;
 
                     case (PrecType::Double) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += intPtr(0, i)[j] * doublePtr(1, i)[j];
                         break;
                 }
@@ -94,22 +94,22 @@ void InterpDotprod::sub_eval(stack< vector< FrontMem* > >& outStack)
                 switch (prec1)
                 {
                     case (PrecType::UInt32) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += floatPtr(0, i)[j] * uintPtr(1, i)[j];
                         break;
 
                     case (PrecType::Int32) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += floatPtr(0, i)[j] * intPtr(1, i)[j];
                         break;
 
                     case (PrecType::Float) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += floatPtr(0, i)[j] * floatPtr(1, i)[j];
                         break;
 
                     case (PrecType::Double) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += floatPtr(0, i)[j] * doublePtr(1, i)[j];
                         break;
                 }
@@ -119,29 +119,29 @@ void InterpDotprod::sub_eval(stack< vector< FrontMem* > >& outStack)
                 switch (prec1)
                 {
                     case (PrecType::UInt32) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += doublePtr(0, i)[j] * uintPtr(1, i)[j];
                         break;
 
                     case (PrecType::Int32) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += doublePtr(0, i)[j] * intPtr(1, i)[j];
                         break;
 
                     case (PrecType::Float) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += doublePtr(0, i)[j] * floatPtr(1, i)[j];
                         break;
 
                     case (PrecType::Double) :
-                        for (size_t j = 0; j < maxW * maxH; j++)
+                        for (size_t j = 0; j < LEN; j++)
                             accum += doublePtr(0, i)[j] * doublePtr(1, i)[j];
                         break;
                 }
                 break;
         }
 
-        switch (precOut)
+        switch (PREC)
         {
             case (PrecType::UInt32) :
                 m->uintPtr()[0] = accum;

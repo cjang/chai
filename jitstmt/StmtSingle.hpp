@@ -26,13 +26,15 @@ class StmtSingle : public Stmt,
 public:
     StmtSingle(AstVariable* lhs);
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
 
     void accept(VisitStmt&);
 
     size_t W(void) const;
     size_t H(void) const;
-    size_t precision(void) const;
+    size_t prec(void) const;
 
     void scalarToScalar(const bool);
     bool scalarToScalar(void) const;

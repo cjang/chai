@@ -28,7 +28,7 @@ class Stmt
 
     // used for kernels, set externally
     std::set< AstVariable* > _underlyingVars;
-    bool                     _scalarVectorLength;
+    bool                     _scalarVecLength;
 
     bool _constructorLHS;
     bool _destructorLHS;
@@ -67,10 +67,12 @@ public:
     const std::set< AstVariable* >& underlyingVars(void) const;
     void underlyingVars(const std::set< AstVariable* >& underlyingVars);
 
-    bool scalarVectorLength(void) const;
-    void scalarVectorLength(const bool);
+    bool scalarVecLength(void) const;
+    void scalarVecLength(const bool);
 
     virtual bool trackLHS(void) const;
+
+    virtual bool randomness(void) const = 0;
 
     virtual bool swappable(const Stmt&) const = 0;
 

@@ -2,7 +2,6 @@
 
 #include "ClientTrace.hpp"
 #include "MemalignSTL.hpp"
-#include "MemManager.hpp"
 
 using namespace std;
 
@@ -11,9 +10,9 @@ namespace chai_internal {
 ClientTrace::ClientTrace(void)
     : _refs(),
       _scheduleCheckpoint(0),
-      _stickyDeviceCode()
+      _stickyDeviceNum()
 {
-    _stickyDeviceCode.push_back(-1); // no device yet
+    _stickyDeviceNum.push_back(0); // no device yet
 }
 
 size_t ClientTrace::getScheduleCheckpoint(void)
@@ -36,30 +35,30 @@ const vector< uint64_t >& ClientTrace::hashCodeHistory(void) const
     return _hashCodeHistory;
 }
 
-size_t ClientTrace::stickyDevice(void) const
+bool ClientTrace::stickyDevice(const int deviceNum)
 {
-    return _stickyDeviceCode.back();
-}
+    // negative is interpreter, 0 is no device, positive is compute device
+    const int devNum = deviceNum < 0 ? deviceNum : deviceNum + 1;
 
-bool ClientTrace::stickyDevice(const size_t deviceCode)
-{
-    if (-1 == _stickyDeviceCode.back())
+    const int currentDevNum = _stickyDeviceNum.back();
+
+    if (0 == currentDevNum)
     {
         // not stuck to a device, so can stick to specified device
-        _stickyDeviceCode.push_back(deviceCode);
+        _stickyDeviceNum.push_back(devNum);
         return true;
     }
     else
     {
         // stuck to a device already
-        return deviceCode == _stickyDeviceCode.back();
+        return devNum == currentDevNum;
     }
 }
 
 void ClientTrace::unstickyDevice(void)
 {
     // unstick from device by adding to history
-    _stickyDeviceCode.push_back(-1);
+    _stickyDeviceNum.push_back(0);
 }
 
 bool ClientTrace::stickyMovement(void) const
@@ -70,26 +69,22 @@ bool ClientTrace::stickyMovement(void) const
     // this means array memory needs to swizzle from the last compute device
     // to the cpu host and then transfer over to the new compute device
 
-    size_t lastStuck = -1, nextLastStuck = -1;
+    int lastStuck = 0, nextLastStuck = 0;
 
-    for (vector< size_t >::const_iterator
-         it = _stickyDeviceCode.begin();
-         it != _stickyDeviceCode.end();
-         it++)
+    for (vector< int >::const_iterator
+         it = _stickyDeviceNum.begin(); it != _stickyDeviceNum.end(); it++)
     {
-        const size_t deviceCode = *it;
+        const int devNum = *it;
 
-        if (-1 != deviceCode)
+        if (0 != devNum)
         {
             nextLastStuck = lastStuck;
-            lastStuck = deviceCode;
+            lastStuck = devNum;
         }
     }
 
-    return -1 != lastStuck &&
-           -1 != nextLastStuck &&
-           MemManager::GPU_OPENCL <= lastStuck &&
-           MemManager::GPU_OPENCL <= nextLastStuck &&
+    return 0 < lastStuck &&
+           0 < nextLastStuck &&
            lastStuck != nextLastStuck;
 }
 
@@ -111,8 +106,10 @@ void ClientTrace::clear(void)
     _scheduleCheckpoint = 0;
 
     _hashCodeHistory.clear();
-    _stickyDeviceCode.clear();
-    _stickyDeviceCode.push_back(-1);
+    _stickyDeviceNum.clear();
+    _stickyDeviceNum.push_back(0);
+
+    _forceVecLength.clear();
 }
 
 bool ClientTrace::final(void) const
@@ -156,28 +153,28 @@ Stak<BC>& ClientTrace::assignment(const uint32_t variable,
 }
 
 FrontMem* ClientTrace::memalloc(const uint32_t variable,
+                                const size_t PREC,
                                 const size_t W,
-                                const size_t H,
-                                const size_t precision)
+                                const size_t H)
 {
     // memory manager sees this FrontMem when it allocates backing storage
     // note this allocation occurs before scheduling so it is associated
     // with the client application thread, not anything managed yet
-    FrontMem* m = new FrontMem(variable, W, H, precision);
+    FrontMem* m = new FrontMem(variable, PREC, W, H);
     _refs.checkout(m);
     return m;
 }
 
 FrontMem* ClientTrace::memalloc(const uint32_t variable,
+                                const size_t PREC,
                                 const size_t W,
                                 const size_t H,
-                                const size_t precision,
                                 const size_t slots)
 {
     // memory manager sees this FrontMem when it allocates backing storage
     // note this allocation occurs before scheduling so it is associated
     // with the client application thread, not anything managed yet
-    FrontMem* m = new FrontMem(variable, W, H, precision, slots);
+    FrontMem* m = new FrontMem(variable, PREC, W, H, slots);
     _refs.checkout(m);
     return m;
 }
@@ -305,15 +302,10 @@ size_t ClientTrace::frontMem(const uint32_t variable,
     return frontMem(m);
 }
 
-void ClientTrace::forceVectorLength(const uint32_t variable,
-                                    const int constraint)
+void ClientTrace::forceVecLength(const uint32_t variable,
+                                 const int constraint)
 {
-    _forceVectorLength[ variable ] = constraint;
-}
-
-void ClientTrace::readScalar(const uint32_t variable)
-{
-    _readScalar.insert(variable);
+    _forceVecLength[ variable ] = constraint;
 }
 
 }; // namespace chai_internal

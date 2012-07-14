@@ -19,9 +19,7 @@ SourceKernel::SourceKernel(const string& functionName,
 SourceKernel::~SourceKernel(void)
 {
     for (vector< Variable* >::const_iterator
-         it = _arguments.begin();
-         it != _arguments.end();
-         it++)
+         it = _arguments.begin(); it != _arguments.end(); it++)
     {
         delete *it;
     }
@@ -37,10 +35,10 @@ const vector< Variable* >& SourceKernel::arguments(void) const
     return _arguments;
 }
 
-void SourceKernel::pushArgArray(const size_t precType,
+void SourceKernel::pushArgArray(const size_t PREC,
                                 const uint32_t varNum)
 {
-    ArrayVariable* v = new ArrayVariable(precType, varNum);
+    ArrayVariable* v = new ArrayVariable(PREC, varNum);
 
     _varTrace[ v ] = varNum;
     _traceVar[ varNum ] = v;
@@ -48,10 +46,10 @@ void SourceKernel::pushArgArray(const size_t precType,
     _arguments.push_back( v );
 }
 
-void SourceKernel::pushArgLocal(const size_t precType,
+void SourceKernel::pushArgLocal(const size_t PREC,
                                 const size_t length)
 {
-    LocalMemory* v = new LocalMemory(precType, length);
+    LocalMemory* v = new LocalMemory(PREC, length);
 
     _arguments.push_back( v );
 }
@@ -121,9 +119,7 @@ Variable* SourceKernel::splitVar(const AstVariable* variable)
 void SourceKernel::print(vector< string >& outText)
 {
     for (vector< string >::const_iterator
-         it = _sourceText.begin();
-         it != _sourceText.end();
-         it++)
+         it = _sourceText.begin(); it != _sourceText.end(); it++)
     {
         outText.push_back( *it );
     }

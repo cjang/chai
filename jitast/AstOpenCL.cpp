@@ -13,7 +13,7 @@ namespace chai_internal {
 AstOpenCL::AstOpenCL(const vector< string >& programSource,
                      const uint64_t programHashCode,
                      const string& kernelName)
-    : BaseAst(-1, -1, -1),
+    : BaseAst(-1, -1, -1, -1, false),
       _programSource(programSource),
       _programHashCode(programHashCode),
       _kernelName(kernelName) { }
@@ -69,56 +69,56 @@ void AstOpenCL::setWorkSpace(const size_t global0,
 }
 
 void AstOpenCL::setArgArray(const size_t i,
-                            const size_t precType,
+                            const size_t PREC,
                             const uint32_t varNum)
 {
     _argKind[ i ]     = ARRAY_VARIABLE;
-    _argPrecType[ i ] = precType;
+    _argPrec[ i ] = PREC;
     _argValue[ i ].u  = varNum;
 }
 
 void AstOpenCL::setArgLocal(const size_t i,
-                            const size_t precType,
+                            const size_t PREC,
                             const size_t n)
 {
     _argKind[ i ]     = LOCAL_MEM;
-    _argPrecType[ i ] = precType;
+    _argPrec[ i ] = PREC;
     _argValue[ i ].s  = n;
 }
 
 void AstOpenCL::setArgScalar(const size_t i,
-                             const size_t precType,
+                             const size_t PREC,
                              const uint32_t a)
 {
     _argKind[ i ]     = SCALAR;
-    _argPrecType[ i ] = precType;
+    _argPrec[ i ] = PREC;
     _argValue[ i ].u  = a;
 }
 
 void AstOpenCL::setArgScalar(const size_t i,
-                             const size_t precType,
+                             const size_t PREC,
                              const int32_t a)
 {
     _argKind[ i ]     = SCALAR;
-    _argPrecType[ i ] = precType;
+    _argPrec[ i ] = PREC;
     _argValue[ i ].i  = a;
 }
 
 void AstOpenCL::setArgScalar(const size_t i,
-                             const size_t precType,
+                             const size_t PREC,
                              const float a)
 {
     _argKind[ i ]     = SCALAR;
-    _argPrecType[ i ] = precType;
+    _argPrec[ i ] = PREC;
     _argValue[ i ].f  = a;
 }
 
 void AstOpenCL::setArgScalar(const size_t i,
-                             const size_t precType,
+                             const size_t PREC,
                              const double a)
 {
     _argKind[ i ]     = SCALAR;
-    _argPrecType[ i ] = precType;
+    _argPrec[ i ] = PREC;
     _argValue[ i ].d  = a;
 }
 
@@ -127,9 +127,7 @@ size_t AstOpenCL::getNumArgs(void) const
     set< size_t > s;
 
     for (map< size_t, ArgumentKind >::const_iterator
-         it = _argKind.begin();
-         it != _argKind.end();
-         it++)
+         it = _argKind.begin(); it != _argKind.end(); it++)
     {
         s.insert( (*it).first );
     }
@@ -152,9 +150,9 @@ bool AstOpenCL::isArgScalar(const size_t i)
     return SCALAR == _argKind[ i ];
 }
 
-size_t AstOpenCL::getArgPrecType(const size_t i)
+size_t AstOpenCL::getArgPrec(const size_t i)
 {
-    return _argPrecType[ i ];
+    return _argPrec[ i ];
 }
 
 size_t AstOpenCL::getArgSizeT(const size_t i)

@@ -45,7 +45,7 @@ string ReadImage::name(void) const
 {
     stringstream ss;
 
-    switch (_image.precision())
+    switch (_image.prec())
     {
         case (PrecType::UInt32) :
             ss << "read_imageui(";
@@ -88,7 +88,7 @@ ostream& WriteImage::print(ostream& os) const
 {
     os << _indent;
 
-    switch (_image.precision())
+    switch (_image.prec())
     {
         case (PrecType::UInt32) :
             os << "write_imageui(";

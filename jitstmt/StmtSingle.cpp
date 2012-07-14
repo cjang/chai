@@ -53,6 +53,11 @@ StmtSingle::StmtSingle(AstVariable* lhs)
     descendAst(*lhs);
 }
 
+bool StmtSingle::randomness(void) const
+{
+    return lhsVariable()->randomness();
+}
+
 bool StmtSingle::swappable(const Stmt& other) const
 {
     return Stmt::swappable(other);
@@ -73,9 +78,9 @@ size_t StmtSingle::H(void) const
     return lhsVariable()->H();
 }
 
-size_t StmtSingle::precision(void) const
+size_t StmtSingle::prec(void) const
 {
-    return lhsVariable()->precision();
+    return lhsVariable()->prec();
 }
 
 void StmtSingle::scalarToScalar(const bool v)

@@ -11,10 +11,10 @@ namespace chai_internal {
 ////////////////////////////////////////
 // abstract base class for variables
 
-Variable::Variable(const size_t precision,
-                   const size_t vectorLength)
-    : _precision(precision),
-      _vectorLength(vectorLength),
+Variable::Variable(const size_t PREC,
+                   const size_t vecLen)
+    : _prec(PREC),
+      _vecLen(vecLen),
       _func(NULL) { }
 
 Variable::~Variable(void) { }
@@ -29,14 +29,14 @@ void Variable::identifierName(ostream& os) const
     os << _func->varNameLookup(this);
 }
 
-size_t Variable::precision(void) const
+size_t Variable::prec(void) const
 {
-    return _precision;
+    return _prec;
 }
 
-size_t Variable::vectorLength(void) const
+size_t Variable::vecLength(void) const
 {
-    return _vectorLength;
+    return _vecLen;
 }
 
 ////////////////////////////////////////
@@ -58,10 +58,10 @@ void Sampler::convertType(ostream& os) const
 ////////////////////////////////////////
 // image texture
 
-Image2D::Image2D(const size_t precision,
-                 const size_t vectorLength,
+Image2D::Image2D(const size_t PREC,
+                 const size_t vecLen,
                  const ImageAccess& rw)
-    : Variable(precision, vectorLength),
+    : Variable(PREC, vecLen),
       _imgAccess(rw) { }
 
 void Image2D::declareType(ostream& os) const
@@ -84,44 +84,44 @@ ConstPointerVariableDecl::ConstPointerVariableDecl(void) { }
 ////////////////////////////////////////
 // memory buffer
 
-AddrMem::AddrMem(const size_t precision,
-                 const size_t vectorLength,
+AddrMem::AddrMem(const size_t PREC,
+                 const size_t vecLen,
                  const AddressSpace& qualifier)
-    : Variable(precision, vectorLength),
+    : Variable(PREC, vecLen),
       _isConst(false),
       _isPointer(false),
       _addrSpace(qualifier) { }
 
-AddrMem::AddrMem(const size_t precision,
-                 const size_t vectorLength,
+AddrMem::AddrMem(const size_t PREC,
+                 const size_t vecLen,
                  const ConstVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : Variable(precision, vectorLength),
+    : Variable(PREC, vecLen),
       _isConst(true),
       _isPointer(false),
       _addrSpace(qualifier) { }
 
-AddrMem::AddrMem(const size_t precision,
-                 const size_t vectorLength,
+AddrMem::AddrMem(const size_t PREC,
+                 const size_t vecLen,
                  const PointerVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : Variable(precision, vectorLength),
+    : Variable(PREC, vecLen),
       _isConst(false),
       _isPointer(true),
       _addrSpace(qualifier) { }
 
-AddrMem::AddrMem(const size_t precision,
-                 const size_t vectorLength,
+AddrMem::AddrMem(const size_t PREC,
+                 const size_t vecLen,
                  const ConstPointerVariableDecl& varDecl,
                  const AddressSpace& qualifier)
-    : Variable(precision, vectorLength),
+    : Variable(PREC, vecLen),
       _isConst(true),
       _isPointer(true),
       _addrSpace(qualifier) { }
 
 bool AddrMem::fp64(void) const
 {
-    return PrecType::Double == precision();
+    return PrecType::Double == prec();
 }
 
 void AddrMem::declareType(ostream& os) const
@@ -130,9 +130,9 @@ void AddrMem::declareType(ostream& os) const
 
     if (_isConst) os << "const ";
 
-    os << PrecType::getPrimitiveName(precision());
+    os << PrecType::getName(prec());
 
-    if (vectorLength() > 1) os << vectorLength();
+    if (vecLength() > 1) os << vecLength();
 
     os << (_isPointer ? " * " : " ");
 }
@@ -141,9 +141,9 @@ void AddrMem::convertType(ostream& os) const
 {
     os << "(";
 
-    os << PrecType::getPrimitiveName(precision());
+    os << PrecType::getName(prec());
 
-    if (vectorLength() > 1) os << vectorLength();
+    if (vecLength() > 1) os << vecLength();
 
     os << ")";
 }
@@ -179,9 +179,9 @@ void Integer::convertType(ostream& os) const
 ////////////////////////////////////////
 // (source kernel) array variable
 
-ArrayVariable::ArrayVariable(const size_t precType,
+ArrayVariable::ArrayVariable(const size_t PREC,
                              const uint32_t varNum)
-    : Variable(precType, 0),
+    : Variable(PREC, 0),
       _variable(varNum) { }
 
 uint32_t ArrayVariable::variable(void) const
@@ -200,9 +200,9 @@ void ArrayVariable::convertType(ostream& os) const
 ////////////////////////////////////////
 // (source kernel) local memory
 
-LocalMemory::LocalMemory(const size_t precType,
+LocalMemory::LocalMemory(const size_t PREC,
                          const size_t length)
-    : Variable(precType, 0),
+    : Variable(PREC, 0),
       _length(length) { }
 
 size_t LocalMemory::length(void) const

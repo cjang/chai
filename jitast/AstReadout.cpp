@@ -13,7 +13,11 @@ AstReadout::AstReadout(const vector< FrontMem* >& frontMem,
                        BackMem* backMem,
                        BaseAst* barg,
                        const size_t readVarDim)
-    : BaseAst(barg->W(), barg->H(), barg->precision()),
+    : BaseAst(barg->prec(),
+              barg->W(),
+              barg->H(),
+              barg->slots(),
+              barg->randomness()),
       _frontMem(frontMem),
       _backMem(backMem),
       _readVarDim(readVarDim)

@@ -14,21 +14,26 @@ namespace chai_internal {
 //   matrix * matrix
 //   matrix * vector
 //   vector * matrix
+//   vector * vector
 
 class AstMatmulBase : public BaseAst
 {
     bool   _isGEMM;
     double _alpha;
     double _beta;
+
     bool   _transposeA;
     bool   _transposeB;
-    bool   _sameDataA;
-    bool   _sameDataB;
+
+    const bool _sameDataA;
+    const bool _sameDataB;
 
 protected:
-    AstMatmulBase(const size_t width,
-                  const size_t height,
-                  const size_t precision,
+    AstMatmulBase(const size_t PREC,
+                  const size_t W,
+                  const size_t H,
+                  const size_t slots,
+                  const bool randomness,
                   BaseAst* bargLeft,
                   BaseAst* bargRight);
 
@@ -37,11 +42,13 @@ public:
 
     size_t leftW(void) const;
     size_t leftH(void) const;
-    size_t leftPrecision(void) const;
+    size_t leftSlots(void) const;
+    size_t leftPrec(void) const;
 
     size_t rightW(void) const;
     size_t rightH(void) const;
-    size_t rightPrecision(void) const;
+    size_t rightSlots(void) const;
+    size_t rightPrec(void) const;
 
     void setGEMM(AstVariable* lhsVariable,
                  AstScalar* alpha,
@@ -58,8 +65,6 @@ public:
     bool getTransposeA(void) const;
     bool getTransposeB(void) const;
 
-    void setSameDataA(void);
-    void setSameDataB(void);
     bool getSameDataA(void) const;
     bool getSameDataB(void) const;
 };

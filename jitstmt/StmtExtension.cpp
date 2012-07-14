@@ -25,7 +25,7 @@
 #include "AstTranspose.hpp"
 #include "AstVariable.hpp"
 #include "BaseAst.hpp"
-#include "MemManager.hpp"
+#include "MemTrans.hpp"
 #include "StmtExtension.hpp"
 
 using namespace std;
@@ -63,10 +63,15 @@ string StmtExtension::extensionName(void) const
     return _extObj->extensionName();
 }
 
-bool StmtExtension::extensionEnqueue(MemManager& memMgr,
+bool StmtExtension::extensionEnqueue(MemTrans& memMgr,
                                      VectorTrace& vt)
 {
     return _extObj->extensionEnqueue(memMgr, vt, lhsVariable());
+}
+
+bool StmtExtension::randomness(void) const
+{
+    return false;
 }
 
 bool StmtExtension::swappable(const Stmt& other) const

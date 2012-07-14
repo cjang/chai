@@ -12,11 +12,11 @@ BaseAst* TransConvert::sub_eval(void) const
 {
     return
         new AstConvert(_argStack[0],
-                       _precision);
+                       _prec);
 }
 
-TransConvert::TransConvert(const size_t precision)
+TransConvert::TransConvert(const size_t PREC)
     : BaseTrans(0, 1),
-      _precision(precision) { }
+      _prec(PREC) { }
 
 }; // namespace chai_internal

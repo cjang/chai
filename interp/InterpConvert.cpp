@@ -12,10 +12,14 @@ namespace chai_internal {
 
 void InterpConvert::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
-    const size_t prec0 = precision(0);
+    const size_t PREC   = prec(0);
+    const size_t WIDTH  = W(0);
+    const size_t HEIGHT = H(0);
+    const size_t LEN    = WIDTH * HEIGHT;
+    const size_t SLOTS  = slots(0);
 
     // precision matches, no conversion
-    if (_precision == prec0)
+    if (_prec == PREC)
     {
         checkout(0);
         outStack.push(_argStack[0]);
@@ -27,22 +31,22 @@ void InterpConvert::sub_eval(stack< vector< FrontMem* > >& outStack)
     swizzle(0);
 
     // first allocate backing memory
-    BackMem* backMem = allocBackMem(W(0), H(0), _precision);
+    BackMem* backMem = allocBackMem(_prec, WIDTH, HEIGHT, SLOTS);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
     // calculate and create fronts
-    for (size_t i = 0; i < numTraces(); i++)
+    for (size_t i = 0; i < SLOTS; i++)
     {
-        FrontMem* m = allocFrontMem(W(0), H(0), _precision, backMem, i);
+        FrontMem* m = allocFrontMem(_prec, WIDTH, HEIGHT, backMem, i);
 
         frontMem.push_back(m);
 
-        for (size_t j = 0; j < W(0) * H(0); j++)
+        for (size_t j = 0; j < LEN; j++)
         {
             double value;
-            switch (prec0)
+            switch (PREC)
             {
                 case (PrecType::UInt32) :
                     value = uintPtr(0, i)[j];
@@ -61,7 +65,7 @@ void InterpConvert::sub_eval(stack< vector< FrontMem* > >& outStack)
                     break;
             }
 
-            switch (_precision)
+            switch (_prec)
             {
                 case (PrecType::UInt32) :
                     m->uintPtr()[j] = value;
@@ -86,8 +90,8 @@ void InterpConvert::sub_eval(stack< vector< FrontMem* > >& outStack)
     outStack.push(frontMem);
 }
 
-InterpConvert::InterpConvert(const size_t precision)
+InterpConvert::InterpConvert(const size_t PREC)
     : BaseInterp(0, 1),
-      _precision(precision) { }
+      _prec(PREC) { }
 
 }; // namespace chai_internal

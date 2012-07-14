@@ -2,16 +2,11 @@
 
 #include <set>
 
-#ifdef __LOGGING_ENABLED__
-#include <sstream>
-#endif
-
 #include "AstArrayMem.hpp"
 #include "AstVariable.hpp"
 #include "BackMem.hpp"
 #include "BaseTrans.hpp"
 #include "FrontMem.hpp"
-#include "Logger.hpp"
 #include "MemalignSTL.hpp"
 
 using namespace std;
@@ -23,7 +18,7 @@ BaseTrans::BaseTrans(const size_t inCount,
     : _inCount(inCount),
       _outCount(outCount),
       _vt(NULL),
-      _memManager(NULL) { }
+      _memMgr(NULL) { }
 
 BaseTrans::~BaseTrans(void) { }
 
@@ -38,9 +33,9 @@ void BaseTrans::setContext(VectorTrace& vt)
     _vt = &vt;
 }
 
-void BaseTrans::setContext(MemManager& mm)
+void BaseTrans::setContext(MemTrans& mm)
 {
-    _memManager = &mm;
+    _memMgr = &mm;
 }
 
 void BaseTrans::eval(Stak<BC>& inStak,
@@ -71,16 +66,8 @@ void BaseTrans::push(const uint32_t variable,
                      const uint32_t version,
                      stack< BaseAst* >& outStack)
 {
-#ifdef __LOGGING_ENABLED__
-    stringstream ss;
-    ss << "variable=" << variable
-       << " version=" << version
-       << " outStack=" << outStack.size();
-    LOGGER(ss.str())
-#endif
-
-    vector< FrontMem* > frontMem = _vt->vectorNuts()[variable]
-                                      ->getNutMem(version);
+    const vector< FrontMem* > frontMem = _vt->vectorNuts()[variable]
+                                            ->getNutMem(version);
 
     if (frontMem.empty())
     {
@@ -95,7 +82,7 @@ void BaseTrans::push(const uint32_t variable,
         outStack.push(
             new AstArrayMem(
                     frontMem,
-                    _memManager->unifyBackMem(variable, version, frontMem),
+                    _memMgr->unifyBackMem(variable, version, frontMem),
                     variable,
                     version ) );
     }

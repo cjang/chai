@@ -15,9 +15,13 @@ namespace chai_internal {
 
 class BaseAst : public RefObj
 {
+    const size_t _prec;
     const size_t _W;
     const size_t _H;
-    const size_t _precision;
+    const size_t _slots;
+
+    // loss of referential transparency (randomness)
+    const bool _randomness;
 
     // This may be horrible for performance.
     // Nuts own nested sub-trees of AST streams.
@@ -28,9 +32,11 @@ class BaseAst : public RefObj
     std::vector< BaseAst* > _argAst;
 
 protected:
-    BaseAst(const size_t W,
+    BaseAst(const size_t PREC,
+            const size_t W,
             const size_t H,
-            const size_t precision);
+            const size_t slots,
+            const bool randomness);
 
     void pushArg(BaseAst*);
 
@@ -39,8 +45,11 @@ public:
 
     size_t W(void) const;
     size_t H(void) const;
+    size_t slots(void) const;
 
-    size_t precision(void) const;
+    size_t prec(void) const;
+
+    bool randomness(void) const;
 
     size_t numArg(void) const;
     BaseAst* getArg(const size_t) const;

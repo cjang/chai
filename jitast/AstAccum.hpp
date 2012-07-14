@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #ifndef _CHAI_AST_ACCUM_HPP_
 #define _CHAI_AST_ACCUM_HPP_
@@ -14,8 +14,8 @@ class AstAccum : public BaseAst
 {
     const bool _takeAvg;
 
-    const size_t _argW;
-    const size_t _argH;
+    const size_t _insideW;
+    const size_t _insideH;
 
 public:
     AstAccum(BaseAst* barg,
@@ -23,8 +23,8 @@ public:
 
     bool takeAvg(void) const;
 
-    size_t argW(void) const;
-    size_t argH(void) const;
+    size_t insideW(void) const;
+    size_t insideH(void) const;
 
     void accept(VisitAst&);
 };

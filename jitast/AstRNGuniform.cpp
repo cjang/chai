@@ -5,23 +5,40 @@
 namespace chai_internal {
 
 ////////////////////////////////////////////////
-// rng_uniform_make_u32, rng_uniform_make_i32
-// rng_uniform_make_f32, rng_uniform_make_f64
+// rng_uniform_make_u32
+// rng_uniform_make_i32
+// rng_uniform_make_f32
+// rng_uniform_make_f64
 
 AstRNGuniform::AstRNGuniform(const int variant,
                              const uint64_t seed,
-                             const size_t len,
-                             const size_t step,
-                             const double minlimit,
-                             const double maxlimit,
-                             const size_t precision)
-    : BaseAst(len, 1, precision),
+                             const size_t PREC,
+                             const size_t W,
+                             const size_t H,
+                             const size_t slots)
+    : BaseAst(PREC, W, H, slots, true),
       _rngVariant(variant),
       _rngSeed(seed),
-      _step(step),
-      _minlimit(minlimit),
-      _maxlimit(maxlimit),
-      _precision(precision) { }
+      _minLimit(0),
+      _maxLimit(0),
+      _prec(PREC),
+      _hasLimits(false) { }
+
+AstRNGuniform::AstRNGuniform(const int variant,
+                             const uint64_t seed,
+                             const size_t PREC,
+                             const size_t W,
+                             const size_t H,
+                             const size_t slots,
+                             const double minLimit,
+                             const double maxLimit)
+    : BaseAst(PREC, W, H, slots, true),
+      _rngVariant(variant),
+      _rngSeed(seed),
+      _minLimit(minLimit),
+      _maxLimit(maxLimit),
+      _prec(PREC),
+      _hasLimits(true) { }
 
 int AstRNGuniform::rngVariant(void) const
 {
@@ -33,19 +50,19 @@ uint64_t AstRNGuniform::rngSeed(void) const
     return _rngSeed;
 }
 
-size_t AstRNGuniform::step(void) const
+bool AstRNGuniform::hasLimits(void) const
 {
-    return _step;
+    return _hasLimits;
 }
 
-double AstRNGuniform::minlimit(void) const
+double AstRNGuniform::minLimit(void) const
 {
-    return _minlimit;
+    return _minLimit;
 }
 
-double AstRNGuniform::maxlimit(void) const
+double AstRNGuniform::maxLimit(void) const
 {
-    return _maxlimit;
+    return _maxLimit;
 }
 
 void AstRNGuniform::accept(VisitAst& v)

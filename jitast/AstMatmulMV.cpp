@@ -12,13 +12,13 @@ namespace chai_internal {
 
 AstMatmulMV::AstMatmulMV(BaseAst* bargLeft,
                          BaseAst* bargRight)
-    : AstMatmulBase(bargLeft->H(),
+    : AstMatmulBase(max<size_t>(bargLeft->prec(), bargRight->prec()),
+                    bargLeft->H(),
                     1,
-                    max<size_t>(bargLeft->precision(), bargRight->precision()),
+                    max<size_t>(bargLeft->slots(), bargRight->slots()),
+                    false, // matrix * vector is separate kernel
                     bargLeft,
-                    bargRight)
-{
-}
+                    bargRight) { }
 
 void AstMatmulMV::accept(VisitAst& v)
 {

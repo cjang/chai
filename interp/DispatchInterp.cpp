@@ -12,9 +12,7 @@ DispatchInterp::DispatchInterp(void)
 DispatchInterp::~DispatchInterp(void)
 {
     for (map< uint32_t, BaseInterp* >::const_iterator
-         it = _dtable.begin();
-         it != _dtable.end();
-         it++)
+         it = _dtable.begin(); it != _dtable.end(); it++)
     {
         delete (*it).second;
     }
@@ -53,20 +51,16 @@ void DispatchInterp::setContext(VectorTrace& vt,
                                 const size_t uniqueSwizzleKey)
 {
     for (map< uint32_t, BaseInterp* >::const_iterator
-         it = _dtable.begin();
-         it != _dtable.end();
-         it++)
+         it = _dtable.begin(); it != _dtable.end(); it++)
     {
         (*it).second->setContext(vt, uniqueSwizzleKey);
     }
 }
 
-void DispatchInterp::setContext(MemManager& mm)
+void DispatchInterp::setContext(MemInterp& mm)
 {
     for (map< uint32_t, BaseInterp* >::const_iterator
-         it = _dtable.begin();
-         it != _dtable.end();
-         it++)
+         it = _dtable.begin(); it != _dtable.end(); it++)
     {
         (*it).second->setContext(mm);
     }

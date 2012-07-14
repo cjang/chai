@@ -26,8 +26,8 @@ namespace chai {
 ////////////////////////////////////////
 // parse command line arguments
 
-void ParseArgs::setVectorLength(const char tok,
-                                size_t& vecLen) const
+void ParseArgs::setVecLength(const char tok,
+                             size_t& vecLen) const
 {
     switch (tok)
     {
@@ -38,20 +38,18 @@ void ParseArgs::setVectorLength(const char tok,
     }
 }
 
-void ParseArgs::setVectorLengthLimits(const size_t vectorLength,
-                                      const bool useImages,
-                                      size_t& startIdx,
-                                      size_t& stopIdx) const
+void ParseArgs::setVecLengthLimits(const size_t vecLen,
+                                   const bool useImages,
+                                   size_t& startIdx,
+                                   size_t& stopIdx) const
 {
-    const size_t vlen0 = useImages
-                             ? 0  // use images
-                             : 1; // no image support
-
-    switch (vectorLength)
+    switch (vecLen)
     {
         // all vector lengths, images and memory buffers
         case (-1) :
-            startIdx = vlen0;
+            startIdx = useImages
+                           ? 0  // use images
+                           : 1; // no image support
             stopIdx = 4;
             break;
 
@@ -63,12 +61,12 @@ void ParseArgs::setVectorLengthLimits(const size_t vectorLength,
 
         // fixed to specified vector length
         default :
-            startIdx = stopIdx = vectorLength;
+            startIdx = stopIdx = vecLen;
             break;
     }
 }
 
-size_t ParseArgs::precisionChar(const char UISD) const
+size_t ParseArgs::precChar(const char UISD) const
 {
     switch (UISD)
     {
@@ -93,7 +91,7 @@ ParseArgs::ParseArgs(int argc, char *argv[])
     : _argc(argc),
       _argv(argv),
       _deviceIdx(-1),
-      _packing(-1),
+      _batching(-1),
       _general(-1),
       _precA(-1),
       _precB(-1),
@@ -107,7 +105,15 @@ ParseArgs::ParseArgs(int argc, char *argv[])
       _transA(-1),
       _transB(-1),
       _includeSendDataToDevice(false),
-      _includeReadDataFromDevice(false) { }
+      _includeReadDataFromDevice(false),
+      _noInterpret(false) { }
+
+ParseArgs& ParseArgs::noInterpret(void)
+{
+    _noInterpret = true;
+
+    return *this;
+}
 
 void ParseArgs::initVM(void)
 {
@@ -130,15 +136,24 @@ void ParseArgs::initVM(void)
 
             // -i
             case ('i') :
-                chai::init(""); // interpreter active by default
-                ok = true;
+                if (! _noInterpret)
+                {
+                    chai::init(""); // interpreter active by default
+                    ok = true;
+                }
                 break;
         }
     }
 
     if (! ok)
     {
-        cerr << "usage: " << _argv[0] << " [-f configspec] [-i]" << endl;
+        cerr << "usage: " << _argv[0] << " [-f configspec]";
+
+        if (! _noInterpret)
+            cerr << " [-i]";
+
+        cerr << endl;
+
         exit(1);
     }
 }
@@ -160,11 +175,11 @@ bool ParseArgs::getOpt(OCLinit& cinit)
                 }
                 break;
 
-            // -c packing_count
+            // -c batching_count
             case ('c') :
                 {
                 stringstream ss(optarg);
-                ss >> _packing;
+                ss >> _batching;
                 if (!ss) ok = false;
                 }
                 break;
@@ -185,9 +200,9 @@ bool ParseArgs::getOpt(OCLinit& cinit)
                 const string t = optarg;
                 if (3 == t.size())
                 {
-                    if (-1 == (_precA = precisionChar(t[0]))) ok = false;
-                    if (-1 == (_precB = precisionChar(t[1]))) ok = false;
-                    if (-1 == (_precC = precisionChar(t[2]))) ok = false;
+                    if (-1 == (_precA = precChar(t[0]))) ok = false;
+                    if (-1 == (_precB = precChar(t[1]))) ok = false;
+                    if (-1 == (_precC = precChar(t[2]))) ok = false;
                 }
                 else
                     ok = false;
@@ -200,9 +215,9 @@ bool ParseArgs::getOpt(OCLinit& cinit)
                 const string t = optarg;
                 if (3 == t.size())
                 {
-                    setVectorLength(t[0], _vecLenA);
-                    setVectorLength(t[1], _vecLenB);
-                    setVectorLength(t[2], _vecLenC);
+                    setVecLength(t[0], _vecLenA);
+                    setVecLength(t[1], _vecLenB);
+                    setVecLength(t[2], _vecLenC);
                 }
                 else
                     ok = false;
@@ -273,8 +288,8 @@ size_t ParseArgs::getDeviceIndex(void) const
 
 void ParseArgs::setOpt(Evergreen::MatmulMMBase& kernelGen)
 {
-    if (-1 != _packing)
-        kernelGen.setPacking(_packing);
+    if (-1 != _batching)
+        kernelGen.setBatching(_batching);
 
     if (-1 != _general)
         kernelGen.setGeneral(_general);
@@ -299,8 +314,8 @@ void ParseArgs::setOpt(Evergreen::MatmulMMBase& kernelGen)
 
 void ParseArgs::setOpt(Evergreen::MatmulMVBase& kernelGen)
 {
-    if (-1 != _packing)
-        kernelGen.setPacking(_packing);
+    if (-1 != _batching)
+        kernelGen.setBatching(_batching);
 
     if (-1 != _general)
         kernelGen.setGeneral(_general);
@@ -331,9 +346,9 @@ void ParseArgs::setOpt(Evergreen::MatmulBase& kernelGen,
 {
     const bool useImg = OCLhacks::singleton().supportImages(_deviceIdx);
 
-    setVectorLengthLimits(kernelGen.vectorLengthA(), useImg, startA, stopA);
-    setVectorLengthLimits(kernelGen.vectorLengthB(), useImg, startB, stopB);
-    setVectorLengthLimits(kernelGen.vectorLengthC(), useImg, startC, stopC);
+    setVecLengthLimits(kernelGen.vecLengthA(), useImg, startA, stopA);
+    setVecLengthLimits(kernelGen.vecLengthB(), useImg, startB, stopB);
+    setVecLengthLimits(kernelGen.vecLengthC(), useImg, startC, stopC);
 }
 
 void ParseArgs::setOpt(StandardEM& stdEM)

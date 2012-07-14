@@ -31,7 +31,7 @@ class AstOpenCL : public BaseAst
     };
 
     std::map< size_t, ArgumentKind > _argKind;
-    std::map< size_t, size_t >       _argPrecType;
+    std::map< size_t, size_t >       _argPrec;
 
     union ArgumentUnion
     {
@@ -70,12 +70,12 @@ public:
                       const size_t local0,
                       const size_t local1);
 
-    void setArgArray(const size_t i, const size_t precType, const uint32_t v);
-    void setArgLocal(const size_t i, const size_t precType, const size_t n);
-    void setArgScalar(const size_t i, const size_t precType, const uint32_t a);
-    void setArgScalar(const size_t i, const size_t precType, const int32_t a);
-    void setArgScalar(const size_t i, const size_t precType, const float a);
-    void setArgScalar(const size_t i, const size_t precType, const double a);
+    void setArgArray(const size_t i, const size_t PREC, const uint32_t v);
+    void setArgLocal(const size_t i, const size_t PREC, const size_t n);
+    void setArgScalar(const size_t i, const size_t PREC, const uint32_t a);
+    void setArgScalar(const size_t i, const size_t PREC, const int32_t a);
+    void setArgScalar(const size_t i, const size_t PREC, const float a);
+    void setArgScalar(const size_t i, const size_t PREC, const double a);
 
     size_t getNumArgs(void) const;
 
@@ -83,7 +83,7 @@ public:
     bool isArgLocal(const size_t i);
     bool isArgScalar(const size_t i);
 
-    size_t getArgPrecType(const size_t i);
+    size_t getArgPrec(const size_t i);
 
     size_t getArgSizeT(const size_t i);
     uint32_t getArgUInt32(const size_t i);

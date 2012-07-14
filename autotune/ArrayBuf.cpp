@@ -4,8 +4,8 @@
 #include <string.h>
 
 #include "ArrayBuf.hpp"
-#include "ArrayBufUtil.hpp"
 #include "PrecType.hpp"
+#include "UtilFuns.hpp"
 
 using namespace std;
 
@@ -49,26 +49,26 @@ const OCLBufferMode& ArrayBuf::membufMode(const int mode) const
 
 void ArrayBuf::initBuf(OCLdevice& cdev,
                        const int mode,
-                       const size_t packing,
-                       const size_t width,
-                       const size_t height,
-                       const size_t precision,
-                       const size_t vectorLength,
+                       const size_t PREC,
+                       const size_t vecLen,
+                       const size_t W,
+                       const size_t H,
+                       const size_t slots,
                        const bool hostarray)
 {
     const bool pinned = false;
 
-    switch (precision)
+    switch (PREC)
     {
         case (PrecType::UInt32) :
-            switch (vectorLength)
+            switch (vecLen)
             {
                 case (0) :
 
                     _imgbufUInt32 = new OCLimgbuf<uint32_t>(
                                             cdev,
-                                            width,
-                                            packing * height,
+                                            W,
+                                            slots * H,
                                             imgbufMode(mode),
                                             pinned);
 
@@ -83,9 +83,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
                     }
 
                     if (hostarray)
-                        _hostarrayUInt32 = new uint32_t[packing *
-                                                        width *
-                                                        height];
+                        _hostarrayUInt32 = new uint32_t[slots * W * H];
 
                     break;
 
@@ -95,10 +93,10 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
 
                     _membufUInt32 = new OCLmembuf<uint32_t>(
                                             cdev,
-                                            packing * width * height,
+                                            slots * W * H,
                                             membufMode(mode),
                                             pinned,
-                                            vectorLength);
+                                            vecLen);
 
                     if (_membufUInt32 && _membufUInt32->isOk())
                     {
@@ -111,23 +109,21 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
                     }
 
                     if (hostarray)
-                        _hostarrayUInt32 = new uint32_t[packing *
-                                                        width *
-                                                        height];
+                        _hostarrayUInt32 = new uint32_t[slots * W * H];
 
                     break;
             }
             break;
 
         case (PrecType::Int32) :
-            switch (vectorLength)
+            switch (vecLen)
             {
                 case (0) :
 
                     _imgbufInt32 = new OCLimgbuf<int32_t>(
                                            cdev,
-                                           width,
-                                           packing * height,
+                                           W,
+                                           slots * H,
                                            imgbufMode(mode),
                                            pinned);
 
@@ -142,9 +138,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
                     }
 
                     if (hostarray)
-                        _hostarrayInt32 = new int32_t[packing *
-                                                      width *
-                                                      height];
+                        _hostarrayInt32 = new int32_t[slots * W * H];
 
                     break;
 
@@ -154,10 +148,10 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
 
                     _membufInt32 = new OCLmembuf<int32_t>(
                                            cdev,
-                                           packing * width * height,
+                                           slots * W * H,
                                            membufMode(mode),
                                            pinned,
-                                           vectorLength);
+                                           vecLen);
 
                     if (_membufInt32 && _membufInt32->isOk())
                     {
@@ -170,23 +164,21 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
                     }
 
                     if (hostarray)
-                        _hostarrayInt32 = new int32_t[packing *
-                                                      width *
-                                                      height];
+                        _hostarrayInt32 = new int32_t[slots * W * H];
 
                     break;
             }
             break;
 
         case (PrecType::Float) :
-            switch (vectorLength)
+            switch (vecLen)
             {
                 case (0) :
 
                     _imgbufFloat = new OCLimgbuf<float>(
                                            cdev,
-                                           width,
-                                           packing * height,
+                                           W,
+                                           slots * H,
                                            imgbufMode(mode),
                                            pinned);
 
@@ -201,9 +193,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
                     }
 
                     if (hostarray)
-                        _hostarrayFloat = new float[packing *
-                                                    width *
-                                                    height];
+                        _hostarrayFloat = new float[slots * W * H];
 
                     break;
 
@@ -213,10 +203,10 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
 
                     _membufFloat = new OCLmembuf<float>(
                                            cdev,
-                                           packing * width * height,
+                                           slots * W * H,
                                            membufMode(mode),
                                            pinned,
-                                           vectorLength);
+                                           vecLen);
 
                     if (_membufFloat && _membufFloat->isOk())
                     {
@@ -229,23 +219,21 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
                     }
 
                     if (hostarray)
-                        _hostarrayFloat = new float[packing *
-                                                    width *
-                                                    height];
+                        _hostarrayFloat = new float[slots * W * H];
 
                     break;
             }
             break;
 
         case (PrecType::Double) :
-            switch (vectorLength)
+            switch (vecLen)
             {
                 case (0) :
 
                     _imgbufDouble = new OCLimgbuf<double>(
                                             cdev,
-                                            width,
-                                            packing * height,
+                                            W,
+                                            slots * H,
                                             imgbufMode(mode),
                                             pinned);
 
@@ -260,9 +248,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
                     }
 
                     if (hostarray)
-                        _hostarrayDouble = new double[packing *
-                                                      width *
-                                                      height];
+                        _hostarrayDouble = new double[slots * W * H];
 
                     break;
 
@@ -272,10 +258,10 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
 
                     _membufDouble = new OCLmembuf<double>(
                                             cdev,
-                                            packing * width * height,
+                                            slots * W * H,
                                             membufMode(mode),
                                             pinned,
-                                            vectorLength);
+                                            vecLen);
 
                     if (_membufDouble && _membufDouble->isOk())
                     {
@@ -288,9 +274,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
                     }
 
                     if (hostarray)
-                        _hostarrayDouble = new double[packing *
-                                                      width *
-                                                      height];
+                        _hostarrayDouble = new double[slots * W * H];
 
                     break;
             }
@@ -300,14 +284,14 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
 
 void ArrayBuf::initBuf(OCLdevice& cdev,
                        const int mode,
-                       const size_t packing,
-                       const size_t width,
-                       const size_t height,
+                       const size_t vecLen,
+                       const size_t W,
+                       const size_t H,
+                       const size_t slots,
                        float* ptr,
-                       const size_t vectorLength,
                        const bool hostarray)
 {
-    switch (vectorLength)
+    switch (vecLen)
     {
         case (0) :
 
@@ -315,16 +299,16 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             {
                 _imgbufFloat = new OCLimgbuf<float>(
                                        cdev,
-                                       width,
-                                       packing * height,
+                                       W,
+                                       slots * H,
                                        static_cast<const float*>(ptr) );
             }
             else if (WRITE == mode)
             {
                 _imgbufFloat = new OCLimgbuf<float>(
                                        cdev,
-                                       width,
-                                       packing * height,
+                                       W,
+                                       slots * H,
                                        ptr );
             }
 
@@ -339,7 +323,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             }
 
             if (hostarray)
-                _hostarrayFloat = new float[packing * width * height];
+                _hostarrayFloat = new float[slots * W * H];
 
             break;
 
@@ -351,14 +335,14 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             {
                 _membufFloat = new OCLmembuf<float>(
                                        cdev,
-                                       packing * width * height,
+                                       slots * W * H,
                                        static_cast<const float*>(ptr) );
             }
             else
             {
                 _membufFloat = new OCLmembuf<float>(
                                        cdev,
-                                       packing * width * height,
+                                       slots * W * H,
                                        ptr );
             }
 
@@ -373,7 +357,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             }
 
             if (hostarray)
-                _hostarrayFloat = new float[packing * width * height];
+                _hostarrayFloat = new float[slots * W * H];
 
             break;
     }
@@ -381,14 +365,14 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
 
 void ArrayBuf::initBuf(OCLdevice& cdev,
                        const int mode,
-                       const size_t packing,
-                       const size_t width,
-                       const size_t height,
+                       const size_t vecLen,
+                       const size_t W,
+                       const size_t H,
+                       const size_t slots,
                        double* ptr,
-                       const size_t vectorLength,
                        const bool hostarray)
 {
-    switch (vectorLength)
+    switch (vecLen)
     {
         case (0) :
 
@@ -396,16 +380,16 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             {
                 _imgbufDouble = new OCLimgbuf<double>(
                                         cdev,
-                                        width,
-                                        packing * height,
+                                        W,
+                                        slots * H,
                                         static_cast<const double*>(ptr) );
             }
             else if (WRITE == mode)
             {
                 _imgbufDouble = new OCLimgbuf<double>(
                                         cdev,
-                                        width,
-                                        packing * height,
+                                        W,
+                                        slots * H,
                                         ptr );
             }
 
@@ -420,7 +404,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             }
 
             if (hostarray)
-                _hostarrayDouble = new double[packing * width * height];
+                _hostarrayDouble = new double[slots * W * H];
 
             break;
 
@@ -432,14 +416,14 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             {
                 _membufDouble = new OCLmembuf<double>(
                                         cdev,
-                                        packing * width * height,
+                                        slots * W * H,
                                         static_cast<const double*>(ptr) );
             }
             else
             {
                 _membufDouble = new OCLmembuf<double>(
                                         cdev,
-                                        packing * width * height,
+                                        slots * W * H,
                                         ptr );
             }
 
@@ -454,7 +438,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             }
 
             if (hostarray)
-                _hostarrayDouble = new double[packing * width * height];
+                _hostarrayDouble = new double[slots * W * H];
 
             break;
     }
@@ -462,14 +446,14 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
 
 void ArrayBuf::initBuf(OCLdevice& cdev,
                        const int mode,
-                       const size_t packing,
-                       const size_t width,
-                       const size_t height,
+                       const size_t vecLen,
+                       const size_t W,
+                       const size_t H,
+                       const size_t slots,
                        int32_t* ptr,
-                       const size_t vectorLength,
                        const bool hostarray)
 {
-    switch (vectorLength)
+    switch (vecLen)
     {
         case (0) :
 
@@ -477,16 +461,16 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             {
                 _imgbufInt32 = new OCLimgbuf<int32_t>(
                                        cdev,
-                                       width,
-                                       packing * height,
+                                       W,
+                                       slots * H,
                                        static_cast<const int32_t*>(ptr) );
             }
             else if (WRITE == mode)
             {
                 _imgbufInt32 = new OCLimgbuf<int32_t>(
                                        cdev,
-                                       width,
-                                       packing * height,
+                                       W,
+                                       slots * H,
                                        ptr );
             }
 
@@ -501,7 +485,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             }
 
             if (hostarray)
-                _hostarrayInt32 = new int32_t[packing * width * height];
+                _hostarrayInt32 = new int32_t[slots * W * H];
 
             break;
 
@@ -513,14 +497,14 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             {
                 _membufInt32 = new OCLmembuf<int32_t>(
                                        cdev,
-                                       packing * width * height,
+                                       slots * W * H,
                                        static_cast<const int32_t*>(ptr) );
             }
             else
             {
                 _membufInt32 = new OCLmembuf<int32_t>(
                                        cdev,
-                                       packing * width * height,
+                                       slots * W * H,
                                        ptr );
             }
 
@@ -535,7 +519,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             }
 
             if (hostarray)
-                _hostarrayInt32 = new int32_t[packing * width * height];
+                _hostarrayInt32 = new int32_t[slots * W * H];
 
             break;
     }
@@ -543,14 +527,14 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
 
 void ArrayBuf::initBuf(OCLdevice& cdev,
                        const int mode,
-                       const size_t packing,
-                       const size_t width,
-                       const size_t height,
+                       const size_t vecLen,
+                       const size_t W,
+                       const size_t H,
+                       const size_t slots,
                        uint32_t* ptr,
-                       const size_t vectorLength,
                        const bool hostarray)
 {
-    switch (vectorLength)
+    switch (vecLen)
     {
         case (0) :
 
@@ -558,16 +542,16 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             {
                 _imgbufUInt32 = new OCLimgbuf<uint32_t>(
                                         cdev,
-                                        width,
-                                        packing * height,
+                                        W,
+                                        slots * H,
                                         static_cast<const uint32_t*>(ptr) );
             }
             else if (WRITE == mode)
             {
                 _imgbufUInt32 = new OCLimgbuf<uint32_t>(
                                         cdev,
-                                        width,
-                                        packing * height,
+                                        W,
+                                        slots * H,
                                         ptr );
             }
 
@@ -582,7 +566,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             }
 
             if (hostarray)
-                _hostarrayUInt32 = new uint32_t[packing * width * height];
+                _hostarrayUInt32 = new uint32_t[slots * W * H];
 
             break;
 
@@ -594,14 +578,14 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             {
                 _membufUInt32 = new OCLmembuf<uint32_t>(
                                         cdev,
-                                        packing * width * height,
+                                        slots * W * H,
                                         static_cast<const uint32_t*>(ptr) );
             }
             else
             {
                 _membufUInt32 = new OCLmembuf<uint32_t>(
                                         cdev,
-                                        packing * width * height,
+                                        slots * W * H,
                                         ptr );
             }
 
@@ -616,7 +600,7 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
             }
 
             if (hostarray)
-                _hostarrayUInt32 = new uint32_t[packing * width * height];
+                _hostarrayUInt32 = new uint32_t[slots * W * H];
 
             break;
     }
@@ -624,18 +608,18 @@ void ArrayBuf::initBuf(OCLdevice& cdev,
 
 ArrayBuf::ArrayBuf(OCLdevice& cdev,
                    const AccessMode mode,
-                   const size_t packing,
-                   const size_t width,
-                   const size_t height,
-                   const size_t precision,
-                   const size_t vectorLength,
+                   const size_t PREC,
+                   const size_t vecLen,
+                   const size_t W,
+                   const size_t H,
+                   const size_t slots,
                    const bool hostarray)
     : _cdev(cdev),
-      _packing(packing),
-      _width(width),
-      _height(height),
-      _precision(precision),
-      _vectorLength(vectorLength),
+      _prec(PREC),
+      _vecLen(vecLen),
+      _W(W),
+      _H(H),
+      _slots(slots),
       _devbuf(UNSET),
       _membufFloat(NULL),
       _membufDouble(NULL),
@@ -650,30 +634,23 @@ ArrayBuf::ArrayBuf(OCLdevice& cdev,
       _hostarrayInt32(NULL),
       _hostarrayUInt32(NULL)
 {
-    initBuf(cdev,
-            mode,
-            packing,
-            width,
-            height,
-            _precision,
-            vectorLength,
-            hostarray);
+    initBuf(cdev, mode, PREC, vecLen, W, H, slots, hostarray);
 }
 
 ArrayBuf::ArrayBuf(OCLdevice& cdev,
                    const AccessMode mode,
-                   const size_t packing,
-                   const size_t width,
-                   const size_t height,
+                   const size_t vecLen,
+                   const size_t W,
+                   const size_t H,
+                   const size_t slots,
                    float* ptr,
-                   const size_t vectorLength,
                    const bool hostarray)
     : _cdev(cdev),
-      _packing(packing),
-      _width(width),
-      _height(height),
-      _precision(PrecType::Float),
-      _vectorLength(vectorLength),
+      _vecLen(vecLen),
+      _prec(PrecType::Float),
+      _W(W),
+      _H(H),
+      _slots(slots),
       _devbuf(UNSET),
       _membufFloat(NULL),
       _membufDouble(NULL),
@@ -688,30 +665,23 @@ ArrayBuf::ArrayBuf(OCLdevice& cdev,
       _hostarrayInt32(NULL),
       _hostarrayUInt32(NULL)
 {
-    initBuf(cdev,
-            mode,
-            packing,
-            width,
-            height,
-            ptr,
-            vectorLength,
-            hostarray);
+    initBuf(cdev, mode, vecLen, W, H, slots, ptr, hostarray);
 }
 
 ArrayBuf::ArrayBuf(OCLdevice& cdev,
                    const AccessMode mode,
-                   const size_t packing,
-                   const size_t width,
-                   const size_t height,
+                   const size_t vecLen,
+                   const size_t W,
+                   const size_t H,
+                   const size_t slots,
                    double* ptr,
-                   const size_t vectorLength,
                    const bool hostarray)
     : _cdev(cdev),
-      _packing(packing),
-      _width(width),
-      _height(height),
-      _precision(PrecType::Double),
-      _vectorLength(vectorLength),
+      _vecLen(vecLen),
+      _prec(PrecType::Double),
+      _W(W),
+      _H(H),
+      _slots(slots),
       _devbuf(UNSET),
       _membufFloat(NULL),
       _membufDouble(NULL),
@@ -726,30 +696,23 @@ ArrayBuf::ArrayBuf(OCLdevice& cdev,
       _hostarrayInt32(NULL),
       _hostarrayUInt32(NULL)
 {
-    initBuf(cdev,
-            mode,
-            packing,
-            width,
-            height,
-            ptr,
-            vectorLength,
-            hostarray);
+    initBuf(cdev, mode, vecLen, W, H, slots, ptr, hostarray);
 }
 
 ArrayBuf::ArrayBuf(OCLdevice& cdev,
                    const AccessMode mode,
-                   const size_t packing,
-                   const size_t width,
-                   const size_t height,
+                   const size_t vecLen,
+                   const size_t W,
+                   const size_t H,
+                   const size_t slots,
                    int32_t* ptr,
-                   const size_t vectorLength,
                    const bool hostarray)
     : _cdev(cdev),
-      _packing(packing),
-      _width(width),
-      _height(height),
-      _precision(PrecType::Int32),
-      _vectorLength(vectorLength),
+      _vecLen(vecLen),
+      _prec(PrecType::Int32),
+      _W(W),
+      _H(H),
+      _slots(slots),
       _devbuf(UNSET),
       _membufFloat(NULL),
       _membufDouble(NULL),
@@ -764,30 +727,23 @@ ArrayBuf::ArrayBuf(OCLdevice& cdev,
       _hostarrayInt32(NULL),
       _hostarrayUInt32(NULL)
 {
-    initBuf(cdev,
-            mode,
-            packing,
-            width,
-            height,
-            ptr,
-            vectorLength,
-            hostarray);
+    initBuf(cdev, mode, vecLen, W, H, slots, ptr, hostarray);
 }
 
 ArrayBuf::ArrayBuf(OCLdevice& cdev,
                    const AccessMode mode,
-                   const size_t packing,
-                   const size_t width,
-                   const size_t height,
+                   const size_t vecLen,
+                   const size_t W,
+                   const size_t H,
+                   const size_t slots,
                    uint32_t* ptr,
-                   const size_t vectorLength,
                    const bool hostarray)
     : _cdev(cdev),
-      _packing(packing),
-      _width(width),
-      _height(height),
-      _precision(PrecType::UInt32),
-      _vectorLength(vectorLength),
+      _vecLen(vecLen),
+      _prec(PrecType::UInt32),
+      _W(W),
+      _H(H),
+      _slots(slots),
       _devbuf(UNSET),
       _membufFloat(NULL),
       _membufDouble(NULL),
@@ -802,14 +758,7 @@ ArrayBuf::ArrayBuf(OCLdevice& cdev,
       _hostarrayInt32(NULL),
       _hostarrayUInt32(NULL)
 {
-    initBuf(cdev,
-            mode,
-            packing,
-            width,
-            height,
-            ptr,
-            vectorLength,
-            hostarray);
+    initBuf(cdev, mode, vecLen, W, H, slots, ptr, hostarray);
 }
 
 ArrayBuf::~ArrayBuf(void)
@@ -828,29 +777,29 @@ ArrayBuf::~ArrayBuf(void)
     delete[] _hostarrayUInt32;
 }
 
-size_t ArrayBuf::packing(void) const
+size_t ArrayBuf::vecLength(void) const
 {
-    return _packing;
+    return _vecLen;
 }
 
-size_t ArrayBuf::width(void) const
+size_t ArrayBuf::prec(void) const
 {
-    return _width;
+    return _prec;
 }
 
-size_t ArrayBuf::height(void) const
+size_t ArrayBuf::W(void) const
 {
-    return _height;
+    return _W;
 }
 
-const size_t ArrayBuf::precision(void) const
+size_t ArrayBuf::H(void) const
 {
-    return _precision;
+    return _H;
 }
 
-size_t ArrayBuf::vectorLength(void) const
+size_t ArrayBuf::slots(void) const
 {
-    return _vectorLength;
+    return _slots;
 }
 
 bool ArrayBuf::bufOk(void) const
@@ -891,7 +840,7 @@ bool ArrayBuf::isMembuf(void) const
 double ArrayBuf::getArrayElem(const size_t absoluteRow,
                               const size_t col) const
 {
-    const size_t idx = absoluteRow * _width + col;
+    const size_t idx = absoluteRow * _W + col;
 
     switch (_devbuf)
     {
@@ -907,17 +856,17 @@ double ArrayBuf::getArrayElem(const size_t absoluteRow,
     }
 }
 
-double ArrayBuf::getArrayElem(const size_t packing,
+double ArrayBuf::getArrayElem(const size_t slotIndex,
                               const size_t row,
                               const size_t col) const
 {
-    return getArrayElem(row + packing * _height, col);
+    return getArrayElem(row + slotIndex * _H, col);
 }
 
 double ArrayBuf::getHostArrayElem(const size_t absoluteRow,
                                   const size_t col) const
 {
-    const size_t idx = absoluteRow * _width + col;
+    const size_t idx = absoluteRow * _W + col;
 
     switch (_devbuf)
     {
@@ -941,18 +890,18 @@ double ArrayBuf::getHostArrayElem(const size_t absoluteRow,
     return 0;
 }
 
-double ArrayBuf::getHostArrayElem(const size_t packing,
+double ArrayBuf::getHostArrayElem(const size_t slotIndex,
                                   const size_t row,
                                   const size_t col) const
 {
-    return getHostArrayElem(row + packing * _height, col);
+    return getHostArrayElem(row + slotIndex * _H, col);
 }
 
 void ArrayBuf::setArrayElem(const size_t absoluteRow,
                             const size_t col,
                             const double value)
 {
-    const size_t idx = absoluteRow * _width + col;
+    const size_t idx = absoluteRow * _W + col;
 
     switch (_devbuf)
     {
@@ -967,19 +916,19 @@ void ArrayBuf::setArrayElem(const size_t absoluteRow,
     }
 }
 
-void ArrayBuf::setArrayElem(const size_t packing,
+void ArrayBuf::setArrayElem(const size_t slotIndex,
                             const size_t row,
                             const size_t col,
                             const double value)
 {
-    setArrayElem(row + packing * _height, col, value);
+    setArrayElem(row + slotIndex * _H, col, value);
 }
 
 void ArrayBuf::setHostArrayElem(const size_t absoluteRow,
                                 const size_t col,
                                 const double value)
 {
-    const size_t idx = absoluteRow * _width + col;
+    const size_t idx = absoluteRow * _W + col;
 
     switch (_devbuf)
     {
@@ -1005,12 +954,12 @@ void ArrayBuf::setHostArrayElem(const size_t absoluteRow,
     }
 }
 
-void ArrayBuf::setHostArrayElem(const size_t packing,
+void ArrayBuf::setHostArrayElem(const size_t slotIndex,
                                 const size_t row,
                                 const size_t col,
                                 const double value)
 {
-    setHostArrayElem(row + packing *_height, col, value);
+    setHostArrayElem(row + slotIndex *_H, col, value);
 }
 
 map<double, size_t> ArrayBuf::arrayHistogram(void) const

@@ -47,7 +47,8 @@ int main(int argc, char *argv[])
     /////////////////////////////////////
     // boilerplate: start virtual machine
 
-    ParseArgs(argc, argv).initVM(); // start virtual machine, exit on error
+    // start virtual machine, exit on error
+    ParseArgs(argc, argv).noInterpret().initVM();
 
     /////////////////////////////////////
     // computational work

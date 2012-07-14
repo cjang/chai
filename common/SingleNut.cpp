@@ -24,9 +24,7 @@ const vector< FrontMem* >& SingleNut::getNutMem(const uint32_t version)
 void SingleNut::setNutMem(const uint32_t version, const vector< FrontMem* >& s)
 {
     for (vector< FrontMem* >::const_iterator
-         it = s.begin();
-         it != s.end();
-         it++)
+         it = s.begin(); it != s.end(); it++)
     {
         _refs.checkout(*it);
     }
@@ -48,9 +46,7 @@ AstVariable* SingleNut::getNutVar(const uint32_t version)
         // versions behind as leftovers.
 
         for (map< uint32_t, AstVariable* >::const_reverse_iterator
-             it = _versionVar.rbegin();
-             it != _versionVar.rend();
-             it++)
+             it = _versionVar.rbegin(); it != _versionVar.rend(); it++)
         {
             if ( (*it).first < version )
                 return (*it).second;

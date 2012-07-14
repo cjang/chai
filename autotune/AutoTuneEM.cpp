@@ -58,16 +58,12 @@ map< vector< size_t >, size_t > AutoTuneEM::optimizeStep(
     if (_kernelGen.getParams(paramSet))
     {
         for (set< vector< size_t > >::const_iterator
-             it = paramSet.begin();
-             it != paramSet.end();
-             it++)
+             it = paramSet.begin(); it != paramSet.end(); it++)
         {
             if (_os)
             {
                 for (vector< size_t >::const_iterator
-                     jt = (*it).begin();
-                     jt != (*it).end();
-                     jt++)
+                     jt = (*it).begin(); jt != (*it).end(); jt++)
                 {
                     *_os << *jt << " ";
                 }

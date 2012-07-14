@@ -16,9 +16,7 @@ BCStmtCompound::BCStmtCompound(void)
 BCStmtCompound::~BCStmtCompound(void)
 {
     for (vector< BCStmt* >::const_iterator
-         it = _stmts.begin();
-         it != _stmts.end();
-         it++)
+         it = _stmts.begin(); it != _stmts.end(); it++)
     {
         delete *it;
     }
@@ -34,9 +32,7 @@ uint64_t BCStmtCompound::hashCode(void)
         vector< uint64_t > v;
 
         for (vector< BCStmt* >::const_iterator
-             it = _stmts.begin();
-             it != _stmts.end();
-             it++)
+             it = _stmts.begin(); it != _stmts.end(); it++)
         {
             v.push_back( (*it)->hashCode() );
         }
@@ -52,9 +48,7 @@ void BCStmtCompound::debug(ostream& os)
 {
     os << "BEGIN Compound(" << hashCode() << ")" << endl;
     for (vector< BCStmt* >::const_iterator
-         it = _stmts.begin();
-         it != _stmts.end();
-         it++)
+         it = _stmts.begin(); it != _stmts.end(); it++)
     {
         (*it)->debug(os);
     }

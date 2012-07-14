@@ -10,45 +10,30 @@ namespace chai_internal {
 ////////////////////////////////////////////////
 // functions with two arguments
 
-AstFun2::AstFun2(const SimpleFun2& fun,
+AstFun2::AstFun2(const string& fun,
+                 const bool infix,
                  BaseAst* bargLeft,
                  BaseAst* bargRight)
-    : BaseAst(max<size_t>(bargLeft->W(), bargRight->W()),
+    : BaseAst(max<size_t>(bargLeft->prec(), bargRight->prec()),
+              max<size_t>(bargLeft->W(), bargRight->W()),
               max<size_t>(bargLeft->H(), bargRight->H()),
-              max<size_t>(bargLeft->precision(), bargRight->precision())),
+              max<size_t>(bargLeft->slots(), bargRight->slots()),
+              bargLeft->randomness() || bargRight->randomness()),
       _fun(fun),
-      _leftW(bargLeft->W()),
-      _leftH(bargLeft->H()),
-      _rightW(bargRight->W()),
-      _rightH(bargRight->H())
+      _infix(infix)
 {
     pushArg(bargLeft);
     pushArg(bargRight);
 }
 
-const SimpleFun2& AstFun2::fun(void) const
+const string& AstFun2::fun(void) const
 {
     return _fun;
 }
 
-size_t AstFun2::leftW(void) const
+bool AstFun2::infix(void) const
 {
-    return _leftW;
-}
-
-size_t AstFun2::leftH(void) const
-{
-    return _leftH;
-}
-
-size_t AstFun2::rightW(void) const
-{
-    return _rightW;
-}
-
-size_t AstFun2::rightH(void) const
-{
-    return _rightH;
+    return _infix;
 }
 
 void AstFun2::accept(VisitAst& v)

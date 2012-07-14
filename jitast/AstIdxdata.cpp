@@ -9,16 +9,16 @@ namespace chai_internal {
 // index1_f32, index1_f64, index2_f32, index2_f64
 
 AstIdxdata::AstIdxdata(const size_t index,
-                       const size_t W,
-                       const size_t precision)
-    : BaseAst(W, 1, precision),
+                       const size_t PREC,
+                       const size_t W)
+    : BaseAst(PREC, W, 1, 1, false),
       _index(index) { }
 
 AstIdxdata::AstIdxdata(const size_t index,
+                       const size_t PREC,
                        const size_t W,
-                       const size_t H,
-                       const size_t precision)
-    : BaseAst(W, H, precision),
+                       const size_t H)
+    : BaseAst(PREC, W, H, 1, false),
       _index(index) { }
 
 size_t AstIdxdata::index(void) const

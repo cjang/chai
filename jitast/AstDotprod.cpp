@@ -12,34 +12,26 @@ namespace chai_internal {
 
 AstDotprod::AstDotprod(BaseAst* bargLeft,
                        BaseAst* bargRight)
-    : BaseAst(1, 1, max<size_t>(bargLeft->precision(), bargRight->precision())),
-      _leftW(bargLeft->W()),
-      _leftH(bargLeft->H()),
-      _rightW(bargRight->W()),
-      _rightH(bargRight->H())
+    : BaseAst(max<size_t>(bargLeft->prec(), bargRight->prec()),
+              1,
+              1,
+              max<size_t>(bargLeft->slots(), bargRight->slots()),
+              bargLeft->randomness() || bargRight->randomness()),
+      _insideW(max<size_t>(bargLeft->W(), bargRight->W())),
+      _insideH(max<size_t>(bargLeft->H(), bargRight->H()))
 {
     pushArg(bargLeft);
     pushArg(bargRight);
 }
 
-size_t AstDotprod::leftW(void) const
+size_t AstDotprod::insideW(void) const
 {
-    return _leftW;
+    return _insideW;
 }
 
-size_t AstDotprod::leftH(void) const
+size_t AstDotprod::insideH(void) const
 {
-    return _leftH;
-}
-
-size_t AstDotprod::rightW(void) const
-{
-    return _rightW;
-}
-
-size_t AstDotprod::rightH(void) const
-{
-    return _rightH;
+    return _insideH;
 }
 
 void AstDotprod::accept(VisitAst& v)

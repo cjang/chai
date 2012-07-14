@@ -7,23 +7,25 @@ using namespace std;
 namespace chai_internal {
 
 ////////////////////////////////////////
-// PackedCalc (exogenous)
+// Batching (exogenous)
 
-Packing::Packing(void)
-    : _numCalc(1),
+Batching::Batching(void)
+    : _batchNum(1),
       _dataAcrossTraces(DIFFERENT_DATA),
       _changed(false) { }
 
-void Packing::setPacking(const size_t numCalc)
+void Batching::setBatching(const size_t batchNum)
 {
-    if (numCalc != _numCalc) _changed = true;
-    _numCalc = numCalc;
+    if (batchNum != _batchNum)
+        _changed = true;
+
+    _batchNum = batchNum;
 }
 
-void Packing::setDifferentData(void)
+void Batching::setDifferentData(void)
 {
     // data across traces doesn't have meaning if there is only one trace
-    if (1 != packing())
+    if (1 != batching())
     {
         if (DIFFERENT_DATA != _dataAcrossTraces)
             _changed = true;
@@ -32,10 +34,10 @@ void Packing::setDifferentData(void)
     }
 }
 
-void Packing::setSameDataMatrixA(void)
+void Batching::setSameDataMatrixA(void)
 {
     // data across traces doesn't have meaning if there is only one trace
-    if (1 != packing())
+    if (1 != batching())
     {
         if (SAME_DATA_MATRIX_A != _dataAcrossTraces)
             _changed = true;
@@ -44,10 +46,10 @@ void Packing::setSameDataMatrixA(void)
     }
 }
 
-void Packing::setSameDataMatrixB(void)
+void Batching::setSameDataMatrixB(void)
 {
     // data across traces doesn't have meaning if there is only one trace
-    if (1 != packing())
+    if (1 != batching())
     {
         if (SAME_DATA_MATRIX_B != _dataAcrossTraces)
             _changed = true;
@@ -56,27 +58,27 @@ void Packing::setSameDataMatrixB(void)
     }
 }
 
-bool Packing::packingChanged(void) const
+bool Batching::batchingChanged(void) const
 {
     return _changed;
 }
 
-size_t Packing::packing(void) const
+size_t Batching::batching(void) const
 {
-    return _numCalc;
+    return _batchNum;
 }
 
-bool Packing::getDifferentData(void) const
+bool Batching::getDifferentData(void) const
 {
     return DIFFERENT_DATA == _dataAcrossTraces;
 }
 
-bool Packing::getSameDataMatrixA(void) const
+bool Batching::getSameDataMatrixA(void) const
 {
     return SAME_DATA_MATRIX_A == _dataAcrossTraces;
 }
 
-bool Packing::getSameDataMatrixB(void) const
+bool Batching::getSameDataMatrixB(void) const
 {
     return SAME_DATA_MATRIX_B == _dataAcrossTraces;
 }
@@ -108,19 +110,19 @@ bool General::general(void) const
 // Precision (exogenous)
 
 Precision::Precision(void)
-    : _sizeofA(0),
-      _sizeofB(0),
-      _sizeofC(0),
+    : _precA(0),
+      _precB(0),
+      _precC(0),
       _changed(false) { }
 
 void Precision::setPrecision(const size_t A,
                              const size_t B,
                              const size_t C)
 {
-    _changed = (A != _sizeofA) || (B != _sizeofB) || (C != _sizeofC);
-    _sizeofA = A;
-    _sizeofB = B;
-    _sizeofC = C;
+    _changed = (A != _precA) || (B != _precB) || (C != _precC);
+    _precA = A;
+    _precB = B;
+    _precC = C;
 }
 
 bool Precision::precisionChanged(void) const
@@ -128,56 +130,56 @@ bool Precision::precisionChanged(void) const
     return _changed;
 }
 
-size_t Precision::precisionA(void) const
+size_t Precision::precA(void) const
 {
-    return _sizeofA;
+    return _precA;
 }
 
-size_t Precision::precisionB(void) const
+size_t Precision::precB(void) const
 {
-    return _sizeofB;
+    return _precB;
 }
 
-size_t Precision::precisionC(void) const
+size_t Precision::precC(void) const
 {
-    return _sizeofC;
+    return _precC;
 }
 
 ////////////////////////////////////////
 // Dimensions (exogenous)
 
 Dimensions::Dimensions(void)
-    : _dimM(0),
-      _dimN(0),
-      _dimK(0),
+    : _M(0),
+      _N(0),
+      _K(0),
       _changed(false) { }
 
 void Dimensions::setDimensions(const size_t M,
                                const size_t N)
 {
-    _changed = (M != _dimM) || (N != _dimN);
-    _dimM = M;
-    _dimN = N;
+    _changed = (M != _M) || (N != _N);
+    _M = M;
+    _N = N;
 }
 
 void Dimensions::setDimensions(const size_t M,
                                const size_t N,
                                const size_t K)
 {
-    _changed = (M != _dimM) || (N != _dimN) || (K != _dimK);
-    _dimM = M;
-    _dimN = N;
-    _dimK = K;
+    _changed = (M != _M) || (N != _N) || (K != _K);
+    _M = M;
+    _N = N;
+    _K = K;
 }
 
-bool Dimensions::dimensionChanged(void) const
+bool Dimensions::dimensionsChanged(void) const
 {
     return _changed;
 }
 
-size_t Dimensions::dimensionM(void) const { return _dimM; }
-size_t Dimensions::dimensionN(void) const { return _dimN; }
-size_t Dimensions::dimensionK(void) const { return _dimK; }
+size_t Dimensions::M(void) const { return _M; }
+size_t Dimensions::N(void) const { return _N; }
+size_t Dimensions::K(void) const { return _K; }
 
 ////////////////////////////////////////
 // DataLayout (exogenous)
@@ -256,8 +258,8 @@ bool EndogenousBase::isActive(void) const
 // WorkGroup (endogenous)
 
 WorkGroup::WorkGroup(void)
-    : _dimHeight(0),
-      _dimWidth(0),
+    : _H(0),
+      _W(0),
       globalRow(func_string<size_t>("get_global_id", 1)),
       globalCol(func_string<size_t>("get_global_id", 0)),
       groupRow(func_string<size_t>("get_group_id", 1)),
@@ -265,15 +267,16 @@ WorkGroup::WorkGroup(void)
       localRow(func_string<size_t>("get_local_id", 1)),
       localCol(func_string<size_t>("get_local_id", 0)) { }
 
-void WorkGroup::setWorkGroup(const size_t height, const size_t width)
+void WorkGroup::setWorkGroup(const size_t H,
+                             const size_t W)
 {
-    _dimHeight = height;
-    _dimWidth = width;
+    _H = H;
+    _W = W;
 }
 
-void WorkGroup::setWorkGroup(const size_t sz)
+void WorkGroup::setWorkGroup(const size_t SZ)
 {
-    setWorkGroup(sz, sz);
+    setWorkGroup(SZ, SZ);
 }
 
 void WorkGroup::doNotOptimizeWorkGroup(void)
@@ -291,22 +294,22 @@ void WorkGroup::inactiveOptimizeWorkGroup(void)
     inactiveOptimize();
 }
 
-size_t WorkGroup::groupHeight(void) const { return _dimHeight; }
-size_t WorkGroup::groupWidth(void) const { return _dimWidth; }
+size_t WorkGroup::groupH(void) const { return _H; }
+size_t WorkGroup::groupW(void) const { return _W; }
 
 size_t WorkGroup::groupSize(void) const
 {
-    return (_dimWidth == _dimHeight) ? _dimWidth : 0;
+    return (_W == _H) ? _W : 0;
 }
 
-size_t WorkGroup::localHeight(void) const
+size_t WorkGroup::localH(void) const
 {
-    return groupHeight() + LOCALMEM_PAD;
+    return groupH() + LOCALMEM_PAD;
 }
 
-size_t WorkGroup::localWidth(void) const
+size_t WorkGroup::localW(void) const
 {
-    return groupWidth() + LOCALMEM_PAD;
+    return groupW() + LOCALMEM_PAD;
 }
 
 size_t WorkGroup::localSize(void) const
@@ -318,13 +321,14 @@ size_t WorkGroup::localSize(void) const
 // InnerBlocking (endogenous)
 
 InnerBlocking::InnerBlocking(void)
-    : _blockHeight(0),
-      _blockWidth(0) { }
+    : _H(0),
+      _W(0) { }
 
-void InnerBlocking::setInnerBlocking(const size_t height, const size_t width)
+void InnerBlocking::setInnerBlocking(const size_t H,
+                                     const size_t W)
 {
-    _blockHeight = height;
-    _blockWidth = width;
+    _H = H;
+    _W = W;
 }
 
 void InnerBlocking::doNotOptimizeInnerBlocking(void)
@@ -342,16 +346,16 @@ void InnerBlocking::inactiveOptimizeInnerBlocking(void)
     inactiveOptimize();
 }
 
-size_t InnerBlocking::blockHeight(void) const { return _blockHeight; }
-size_t InnerBlocking::blockWidth(void) const { return _blockWidth; }
+size_t InnerBlocking::blockH(void) const { return _H; }
+size_t InnerBlocking::blockW(void) const { return _W; }
 
 ////////////////////////////////////////
 // VectorLength (endogenous)
 
 VectorLength::VectorLength(void)
-    : _vlenA(-1),
-      _vlenB(-1),
-      _vlenC(-1),
+    : _vecLenA(-1),
+      _vecLenB(-1),
+      _vecLenC(-1),
       _changed(false) { }
 
 void VectorLength::setVectorLength(const size_t A,
@@ -359,16 +363,16 @@ void VectorLength::setVectorLength(const size_t A,
                                    const size_t C)
 {
     // flag change only when reallocation of memory is necessary
-    _changed = (0 == _vlenA && 0 != A) || (0 == A && 0 != _vlenA) ||
-               (0 == _vlenB && 0 != B) || (0 == B && 0 != _vlenB) ||
-               (0 == _vlenC && 0 != C) || (0 == C && 0 != _vlenC);
+    _changed = (0 == _vecLenA && 0 != A) || (0 == A && 0 != _vecLenA) ||
+               (0 == _vecLenB && 0 != B) || (0 == B && 0 != _vecLenB) ||
+               (0 == _vecLenC && 0 != C) || (0 == C && 0 != _vecLenC);
 
     // this forces memory reallocation too often
-    //_changed = (A != _vlenA) || (B != _vlenB) || (C != _vlenC);
+    //_changed = (A != _vecLenA) || (B != _vecLenB) || (C != _vecLenC);
 
-    _vlenA = A;
-    _vlenB = B;
-    _vlenC = C;
+    _vecLenA = A;
+    _vecLenB = B;
+    _vecLenC = C;
 }
 
 void VectorLength::doNotOptimizeVectorLength(void)
@@ -391,19 +395,19 @@ bool VectorLength::vectorLengthChanged(void) const
     return _changed;
 }
 
-size_t VectorLength::vectorLengthA(void) const
+size_t VectorLength::vecLengthA(void) const
 {
-    return _vlenA;
+    return _vecLenA;
 }
 
-size_t VectorLength::vectorLengthB(void) const
+size_t VectorLength::vecLengthB(void) const
 {
-    return _vlenB;
+    return _vecLenB;
 }
 
-size_t VectorLength::vectorLengthC(void) const
+size_t VectorLength::vecLengthC(void) const
 {
-    return _vlenC;
+    return _vecLenC;
 }
 
 ////////////////////////////////////////

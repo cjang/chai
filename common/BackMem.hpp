@@ -11,7 +11,7 @@
 
 namespace chai_internal {
 
-class MemManager;
+class MemCallback;
 
 ////////////////////////////////////////
 // reference counted array memory
@@ -20,19 +20,19 @@ class BackMem : public RefObj
 {
     const size_t _W;
     const size_t _H;
-    const size_t _packing;
+    const size_t _slots;
 
     // number of FrontMem objects referencing this backing memory
     const size_t _frontCount;
 
     // precision
-    const size_t _precision;
+    const size_t _prec;
 
     // managed pointer
     void*        _ptrMem;
 
     // data moves between compute devices
-    MemManager*  _memMgr;
+    MemCallback* _memMgr;
 
     // avoid redundant swizzling from front memory
     std::set< size_t > _swizzleSet;
@@ -40,31 +40,31 @@ class BackMem : public RefObj
 public:
     BackMem(const size_t W,
             const size_t H,
-            const size_t packing,
+            const size_t slots,
             const size_t frontCount,
             float* ptr,
-            MemManager* mm);
+            MemCallback* mm);
 
     BackMem(const size_t W,
             const size_t H,
-            const size_t packing,
+            const size_t slots,
             const size_t frontCount,
             double* ptr,
-            MemManager* mm);
+            MemCallback* mm);
 
     BackMem(const size_t W,
             const size_t H,
-            const size_t packing,
+            const size_t slots,
             const size_t frontCount,
             int32_t* ptr,
-            MemManager* mm);
+            MemCallback* mm);
 
     BackMem(const size_t W,
             const size_t H,
-            const size_t packing,
+            const size_t slots,
             const size_t frontCount,
             uint32_t* ptr,
-            MemManager* mm);
+            MemCallback* mm);
 
     ~BackMem(void);
 
@@ -72,11 +72,11 @@ public:
 
     size_t W(void) const;
     size_t H(void) const;
-    size_t packing(void) const;
+    size_t slots(void) const;
 
     size_t frontCount(void) const;
 
-    size_t precision(void) const;
+    size_t prec(void) const;
 
     void* ptrMem(void) const;
 

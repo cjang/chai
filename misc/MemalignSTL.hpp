@@ -9,8 +9,14 @@
 
 namespace chai_internal {
 
+////////////////////////////////////////
+// memory aligned STL vectors
+// (OpenCL requires alignment)
+
+// smallest size that appears to work universally
 static const size_t MEMORY_ALIGNMENT = 8;
 
+// STL allocator using posix_memalign()
 template <typename T>
 struct aligned_allocator : std::allocator<T>
 {
@@ -28,6 +34,7 @@ struct aligned_allocator : std::allocator<T>
     }
 };
 
+// aligned memory STL vector
 template <typename T>
 struct Type
 {

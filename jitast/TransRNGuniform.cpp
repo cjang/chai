@@ -10,27 +10,62 @@ namespace chai_internal {
 ////////////////////////////////////////
 // dispatched operation
 
-BaseAst* TransRNGuniform::sub_eval(void) const
+size_t TransRNGuniform::numberArgs(const size_t PREC)
 {
-    const int variant     = _argScalar[0];
-    const uint64_t seed   = _argScalar[1];
-    const size_t len      = _argScalar[2];
-    const size_t step     = _argScalar[3];
-    const double minlimit = _argScalar[4];
-    const double maxlimit = _argScalar[5];
+    switch (PREC)
+    {
+        case (PrecType::UInt32) :
+        case (PrecType::Int32) :
+            return 5;
 
-    return
-        new AstRNGuniform(variant,
-                          seed,
-                          len,
-                          step,
-                          minlimit,
-                          maxlimit,
-                          _precision);
+        case (PrecType::Float) :
+        case (PrecType::Double) :
+            return 7;
+    }
 }
 
-TransRNGuniform::TransRNGuniform(const size_t precision)
-    : BaseTrans(6, 0),
-      _precision(precision) { }
+BaseAst* TransRNGuniform::sub_eval(void) const
+{
+    const int variant   = _argScalar[0];
+    const uint64_t seed = _argScalar[1];
+    const size_t W      = _argScalar[2];
+    const size_t H      = _argScalar[3];
+    const size_t slots  = _argScalar[4];
+
+    if (_hasLimits)
+    {
+        const double minLimit = _argScalar[5];
+        const double maxLimit = _argScalar[6];
+
+        return
+            new AstRNGuniform(variant,
+                              seed,
+                              _prec,
+                              W,
+                              H,
+                              slots,
+                              minLimit,
+                              maxLimit);
+    }
+    else
+    {
+        return
+            new AstRNGuniform(variant,
+                              seed,
+                              _prec,
+                              W,
+                              H,
+                              slots);
+    }
+}
+
+// rng_uniform_make_u32
+// rng_uniform_make_i32
+// rng_uniform_make_f32
+// rng_uniform_make_f64
+TransRNGuniform::TransRNGuniform(const size_t PREC)
+    : BaseTrans(numberArgs(PREC), 0),
+      _prec(PREC),
+      _hasLimits(7 == numberArgs(PREC)) { }
 
 }; // namespace chai_internal

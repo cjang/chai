@@ -10,33 +10,44 @@
 namespace chai_internal {
 
 ////////////////////////////////////////
-// rng_uniform_make_u32, rng_uniform_make_i32
-// rng_uniform_make_f32, rng_uniform_make_f64
+// rng_uniform_make_u32
+// rng_uniform_make_i32
+// rng_uniform_make_f32
+// rng_uniform_make_f64
 
 class AstRNGuniform : public BaseAst
 {
     const int      _rngVariant;
     const uint64_t _rngSeed;
-    const size_t   _step;
-    const double   _minlimit;
-    const double   _maxlimit;
-    const size_t   _precision;
+    const double   _minLimit;
+    const double   _maxLimit;
+    const size_t   _prec;
+
+    const bool     _hasLimits;
 
 public:
     AstRNGuniform(const int variant,
                   const uint64_t seed,
-                  const size_t len,
-                  const size_t step,
-                  const double minlimit,
-                  const double maxlimit,
-                  const size_t precision);
+                  const size_t PREC,
+                  const size_t W,
+                  const size_t H,
+                  const size_t slots);
+
+    AstRNGuniform(const int variant,
+                  const uint64_t seed,
+                  const size_t PREC,
+                  const size_t W,
+                  const size_t H,
+                  const size_t slots,
+                  const double minLimit,
+                  const double maxLimit);
 
     int rngVariant(void) const;
     uint64_t rngSeed(void) const;
 
-    size_t step(void) const;
-    double minlimit(void) const;
-    double maxlimit(void) const;
+    bool hasLimits(void) const;
+    double minLimit(void) const;
+    double maxLimit(void) const;
 
     void accept(VisitAst&);
 };

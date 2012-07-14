@@ -51,10 +51,10 @@ class Scheduler
     // device threads
     bool                                _deviceLoop;
     std::map< size_t, pthread_t >       _devicePth;
-    static void* deviceLoopThr(void* deviceCode);
-    void deviceLoopFun(const size_t deviceCode);
+    static void* deviceLoopThr(void* deviceNum);
+    void deviceLoopFun(const int deviceNum);
     std::pair< bool, bool > deviceLoopChooseWork(
-                                const size_t deviceCode,
+                                const int deviceNum,
                                 const uint64_t hashCode,
                                 const bool deferOverride);
 
@@ -73,7 +73,7 @@ class Scheduler
     std::map< uint64_t, std::set< pthread_t > >               _workHist;
 
     // work statistics
-    std::map< uint64_t, std::map< size_t, double > >          _workStat;
+    std::map< uint64_t, std::map< int, double > >             _workStat;
 
     // unique swizzling keys to avoid redundant data transfers
     pthread_mutex_t _swizzleMtx;

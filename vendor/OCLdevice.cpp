@@ -1,7 +1,6 @@
 // Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <sstream>
-
 #include <string.h>
 
 #include "Logger.hpp"
@@ -185,9 +184,7 @@ size_t OCLHeapOfMemoryBuffers::scavenge(void)
     size_t totalCount = 0;
 
     for (vector< size_t >::const_iterator
-         it = _refcnt.begin();
-         it != _refcnt.end();
-         it++)
+         it = _refcnt.begin(); it != _refcnt.end(); it++)
     {
         totalCount += *it;
     }
@@ -258,13 +255,13 @@ int OCLHeapOfImages::create(const size_t width,
                             const bool pinned,
                             void* ptr,
                             const bool freePtr,
-                            const size_t precTypeSizeCode)
+                            const size_t PREC)
 {
     cl_image_format format;
 
     format.image_channel_order = CL_RGBA;
 
-    switch (precTypeSizeCode)
+    switch (PREC)
     {
         case (PrecType::UInt32) :
             format.image_channel_data_type = CL_UNSIGNED_INT32;
@@ -323,7 +320,7 @@ int OCLHeapOfImages::create(const size_t width,
                             const OCLImageMode& mode,
                             const bool pinned,
                             const size_t alignment,
-                            const size_t precTypeSizeCode)
+                            const size_t PREC)
 {
     // each texel is 32 bits in a 128 bit RGBA quad
     const size_t size = width * height * 4 * sizeof(uint32_t);
@@ -337,7 +334,7 @@ int OCLHeapOfImages::create(const size_t width,
                                 size))
             return -1;
 
-    return create(width, height, mode, pinned, ptr, true, precTypeSizeCode);
+    return create(width, height, mode, pinned, ptr, true, PREC);
 }
 
 OCLHeapOfImages::OCLHeapOfImages(const cl_context context,
@@ -364,9 +361,7 @@ size_t OCLHeapOfImages::scavenge(void)
     size_t totalCount = 0;
 
     for (vector< size_t >::const_iterator
-         it = _refcnt.begin();
-         it != _refcnt.end();
-         it++)
+         it = _refcnt.begin(); it != _refcnt.end(); it++)
     {
         totalCount += *it;
     }
@@ -633,9 +628,7 @@ size_t OCLHeapOfKernels::scavenge(void)
 
     set< uint64_t > releaseProgramHashCode;
     for (map< uint64_t, size_t >::const_iterator
-         it = _programHashCode.begin();
-         it != _programHashCode.end();
-         it++)
+         it = _programHashCode.begin(); it != _programHashCode.end(); it++)
     {
         const size_t oldProgramIndex = (*it).second;
 
@@ -654,16 +647,12 @@ size_t OCLHeapOfKernels::scavenge(void)
     }
 
     for (map< string, set< size_t > >::const_iterator
-         it = _kernelMap.begin();
-         it != _kernelMap.end();
-         it++)
+         it = _kernelMap.begin(); it != _kernelMap.end(); it++)
     {
         const string kernelName = (*it).first;
 
         for (set< size_t >::const_iterator
-             jt = (*it).second.begin();
-             jt != (*it).second.end();
-             jt++)
+             jt = (*it).second.begin(); jt != (*it).second.end(); jt++)
         {
             newKernelMap[ kernelName ].insert( newKrnlIdx[*jt] );
         }

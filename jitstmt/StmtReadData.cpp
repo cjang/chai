@@ -20,6 +20,11 @@ StmtReadData::StmtReadData(AstVariable* lhs,
     buoyancySink();
 }
 
+bool StmtReadData::randomness(void) const
+{
+    return false;
+}
+
 bool StmtReadData::swappable(const Stmt& other) const
 {
     return Stmt::swappable(other);

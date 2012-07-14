@@ -33,6 +33,11 @@ StmtLiteral::StmtLiteral(AstVariable* lhs,
     buoyancySink();
 }
 
+bool StmtLiteral::randomness(void) const
+{
+    return false;
+}
+
 bool StmtLiteral::swappable(const Stmt& other) const
 {
     return Stmt::swappable(other);

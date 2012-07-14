@@ -14,37 +14,37 @@ namespace chai_internal {
 // type related stuff
 
 void NameOf::memvar(ostream& os,
-                    const size_t precision,
-                    const size_t vectorLength,
+                    const size_t PREC,
+                    const size_t vecLen,
                     const bool writable)
 {
     if (! writable)
         os << "const ";
 
-    os << PrecType::getPrimitiveName(precision);
+    os << PrecType::getName(PREC);
 
-    switch (vectorLength)
+    switch (vecLen)
     {
         case (0) :
-            os << PrecType::vecLength(precision);
+            os << PrecType::vecLength(PREC);
             break;
 
         case (2) :
         case (4) :
-            os << vectorLength;
+            os << vecLen;
             break;
     }
 }
 
 
 // declare kernel global array variable
-string NameOf::globalvar(const size_t precision,
-                         const size_t vectorLength,
+string NameOf::globalvar(const size_t PREC,
+                         const size_t vecLen,
                          const bool writable)
 {
     stringstream ss;
 
-    if (0 == vectorLength) // image
+    if (0 == vecLen) // image
     {
         if (writable)
             ss << "__write_only ";
@@ -57,7 +57,7 @@ string NameOf::globalvar(const size_t precision,
     {
         ss << "__global ";
 
-        memvar(ss, precision, vectorLength, writable);
+        memvar(ss, PREC, vecLen, writable);
 
         ss << "*";
     }
@@ -66,15 +66,15 @@ string NameOf::globalvar(const size_t precision,
 }
 
 // declare kernel local array variable
-string NameOf::localvar(const size_t precision,
-                        const size_t vectorLength,
+string NameOf::localvar(const size_t PREC,
+                        const size_t vecLen,
                         const bool writable)
 {
     stringstream ss;
 
     ss << "__local ";
 
-    memvar(ss, precision, vectorLength, writable);
+    memvar(ss, PREC, vecLen, writable);
 
     ss << "*";
 
@@ -82,24 +82,24 @@ string NameOf::localvar(const size_t precision,
 }
 
 // declare kernel private variable
-string NameOf::privatevar(const size_t precision,
-                          const size_t vectorLength,
+string NameOf::privatevar(const size_t PREC,
+                          const size_t vecLen,
                           const bool writable)
 {
     stringstream ss;
 
-    memvar(ss, precision, vectorLength, writable);
+    memvar(ss, PREC, vecLen, writable);
 
     return ss.str();
 }
 
 // OpenCL pragmas required for specific scalar types
-string pragma_extension(const size_t precision,
+string pragma_extension(const size_t PREC,
                         const size_t deviceIndex)
 {
     stringstream ss;
 
-    switch (precision)
+    switch (PREC)
     {
         case (PrecType::UInt32) :
         case (PrecType::Int32) :

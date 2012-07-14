@@ -6,14 +6,9 @@ using namespace std;
 
 namespace chai_internal {
 
-size_t DeviceBase::getDeviceCode(void) const
+int DeviceBase::getDeviceNum(void) const
 {
-    return _deviceCode;
-}
-
-size_t DeviceBase::getDeviceIndex(void) const
-{
-    return _memManager->getDeviceIndex();
+    return _deviceNum;
 }
 
 bool DeviceBase::deviceIsCPU(void) const
@@ -21,9 +16,14 @@ bool DeviceBase::deviceIsCPU(void) const
     return _deviceIsCPU;
 }
 
-MemManager& DeviceBase::getMemManager(void) const
+MemInterp& DeviceBase::getMemInterp(void) const
 {
-    return *_memManager;
+    return *_memMgrInterp;
+}
+
+MemTrans& DeviceBase::getMemTrans(void) const
+{
+    return *_memMgrTrans;
 }
 
 OCLdevice& DeviceBase::getOclDevice(void) const
@@ -31,15 +31,18 @@ OCLdevice& DeviceBase::getOclDevice(void) const
     return *_oclDevice;
 }
 
-DeviceBase::DeviceBase(const size_t deviceCode)
-    : _deviceCode(deviceCode),
+DeviceBase::DeviceBase(const int deviceNum)
+    : _deviceNum(deviceNum),
       _deviceIsCPU(false),
-      _memManager(NULL),
+      _memMgrInterp(NULL),
+      _memMgrTrans(NULL),
       _oclDevice(NULL) { }
 
 DeviceBase::~DeviceBase(void)
 {
-    delete _memManager;
+    delete _memMgrInterp;
+    delete _memMgrTrans;
+
     delete _oclDevice;
 }
 
@@ -60,40 +63,51 @@ bool DeviceBase::extendLanguage(const uint32_t opCode,
 void DeviceBase::initDevice(void)
 {
     // note this is necessarily **after** the device object is constructed
-    _memManager = new MemManager(_deviceCode);
+    _memMgrInterp = new MemInterp;
 
     // pass the memory manager to the dispatched operation objects
-    sub_initDevice(*_memManager);
+    sub_initDevice(*_memMgrInterp);
 }
 
-void DeviceBase::initDevice(OCLinit& oclInit,
-                            const size_t deviceIndex)
+void DeviceBase::initDevice(OCLinit& oclInit)
 {
     // OpenCL device object
-    _oclDevice = new OCLdevice(oclInit, deviceIndex);
+    _oclDevice = new OCLdevice(oclInit, _deviceNum);
 
     // not currently used
-    _deviceIsCPU = oclInit.devices().isCPU(deviceIndex);
+    _deviceIsCPU = oclInit.devices().isCPU(_deviceNum);
 
     // note this is necessarily **after** the device object is constructed
-    _memManager = new MemManager(_deviceCode,
-                                 deviceIndex,
-                                 oclInit,
-                                 *_oclDevice);
+    _memMgrTrans = new MemTrans(_deviceNum, oclInit, *_oclDevice);
 
     // pass the memory manager to the dispatched operation objects
-    sub_initDevice(*_memManager);
+    sub_initDevice(*_memMgrTrans);
 }
 
 bool DeviceBase::evaluate(VectorTrace& vt)
 {
     // allocates parent memory
-    const bool isOk = _memManager->memalloc(vt) && sub_evaluate(vt);
+    const bool isOk = _memMgrTrans
+                          ? _memMgrTrans->memalloc(vt) && sub_evaluate(vt)
+                          : _memMgrInterp->memalloc(vt) && sub_evaluate(vt);
 
     // releases parent memory on failure
-    _memManager->memfree(vt, ! isOk);
+    if (_memMgrTrans)
+        _memMgrTrans->memfree(vt, ! isOk);
+    else
+        _memMgrInterp->memfree(vt, ! isOk);
 
     return isOk;
+}
+
+void DeviceBase::sub_initDevice(MemInterp&)
+{
+    // do nothing, derived device will overload if it accepts this type
+}
+
+void DeviceBase::sub_initDevice(MemTrans&)
+{
+    // do nothing, derived device will overload if it accepts this type
 }
 
 }; // namespace chai_internal

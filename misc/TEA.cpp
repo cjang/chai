@@ -1,4 +1,4 @@
-// Copyright 2011 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
+// Copyright 2012 Chris Jang (fastkor@gmail.com) under The Artistic License 2.0
 
 #include <sstream>
 
@@ -88,6 +88,7 @@ uint64_t TEA::hash(const uint64_t * const data,
     return *reinterpret_cast< const uint64_t* >(w);
 }
 
+// hash a string
 uint64_t TEA::hash(const string& data)
 {
     vector< uint64_t > v;
@@ -124,6 +125,7 @@ uint64_t TEA::hash(const string& data)
     return TEA::hash(&v[0], v.size());
 }
 
+// hash a vector of strings
 uint64_t TEA::hash(const vector< string >& data)
 {
     vector< uint64_t > v;

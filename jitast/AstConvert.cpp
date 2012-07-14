@@ -10,9 +10,13 @@ namespace chai_internal {
 // convert_f32, convert_f64
 
 AstConvert::AstConvert(BaseAst* barg,
-                       const size_t precision)
-    : BaseAst(barg->W(), barg->H(), precision),
-      _isNOP(barg->precision() == precision)
+                       const size_t PREC)
+    : BaseAst(PREC,
+              barg->W(),
+              barg->H(),
+              barg->slots(),
+              barg->randomness()),
+      _isNOP(barg->prec() == PREC)
 {
     pushArg(barg);
 }

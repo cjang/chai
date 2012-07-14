@@ -16,34 +16,29 @@ void InterpReadout::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
     swizzle(0);
 
-    switch (precision(0))
+    const size_t LEN   = frontSize(0);
+    const size_t SLOTS = slots(0);
+
+    switch (prec(0))
     {
         case (PrecType::UInt32) :
-            for (size_t i = 0; i < numTraces(); i++)
-                memcpy(_argMem[0][i]->uintPtr(),
-                       uintPtr(0, i),
-                       frontSize(0));
+            for (size_t i = 0; i < SLOTS; i++)
+                memcpy(_argMem[0][i]->uintPtr(), uintPtr(0, i), LEN);
             break;
 
         case (PrecType::Int32) :
-            for (size_t i = 0; i < numTraces(); i++)
-                memcpy(_argMem[0][i]->intPtr(),
-                       intPtr(0, i),
-                       frontSize(0));
+            for (size_t i = 0; i < SLOTS; i++)
+                memcpy(_argMem[0][i]->intPtr(), intPtr(0, i), LEN);
             break;
 
         case (PrecType::Float) :
-            for (size_t i = 0; i < numTraces(); i++)
-                memcpy(_argMem[0][i]->floatPtr(),
-                       floatPtr(0, i),
-                       frontSize(0));
+            for (size_t i = 0; i < SLOTS; i++)
+                memcpy(_argMem[0][i]->floatPtr(), floatPtr(0, i), LEN);
             break;
 
         case (PrecType::Double) :
-            for (size_t i = 0; i < numTraces(); i++)
-                memcpy(_argMem[0][i]->doublePtr(),
-                       doublePtr(0, i),
-                       frontSize(0));
+            for (size_t i = 0; i < SLOTS; i++)
+                memcpy(_argMem[0][i]->doublePtr(), doublePtr(0, i), LEN);
             break;
     }
 }

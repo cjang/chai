@@ -21,17 +21,17 @@ class Gathering
 
     class VariableDesc
     {
-        size_t _vectorLength;
+        size_t _vecLen;
         size_t _W;
         size_t _H;
 
     public:
         VariableDesc(void);
-        VariableDesc(const size_t vectorLength,
-                     const size_t width,
-                     const size_t height);
+        VariableDesc(const size_t vecLen,
+                     const size_t W,
+                     const size_t H);
 
-        size_t vectorLength(void) const;
+        size_t vecLength(void) const;
         size_t W(void) const;
         size_t H(void) const;
     };
@@ -49,7 +49,7 @@ class Gathering
     std::map< size_t, uint32_t >           _traceCounterToVar;
     std::map< size_t, const AstVariable* > _splitCounterToVar;
 
-    size_t vectorLength(const size_t variableNumber);
+    size_t vecLength(const size_t variableNumber);
 
     ////////////////////////////////////////
     // application subscript
@@ -127,15 +127,15 @@ public:
 
     // returns variable counter number
     size_t gatherVariable(const uint32_t varNum,
-                          const size_t vectorLength,
-                          const size_t width,
-                          const size_t height);
+                          const size_t vecLen,
+                          const size_t W,
+                          const size_t H);
 
     // returns variable counter number
     size_t gatherVariable(const AstVariable* varPtr,
-                          const size_t vectorLength,
-                          const size_t width,
-                          const size_t height);
+                          const size_t vecLen,
+                          const size_t W,
+                          const size_t H);
 
     // returns array subscript number
     size_t gatherSubscript(const size_t variableNumber,

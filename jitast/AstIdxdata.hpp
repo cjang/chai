@@ -17,13 +17,13 @@ class AstIdxdata : public BaseAst
 
 public:
     AstIdxdata(const size_t index,
-               const size_t W,
-               const size_t precision);
+               const size_t PREC,
+               const size_t W);
 
     AstIdxdata(const size_t index,
+               const size_t PREC,
                const size_t W,
-               const size_t H,
-               const size_t precision);
+               const size_t H);
 
     size_t index(void) const;
 

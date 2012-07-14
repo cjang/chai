@@ -9,10 +9,11 @@ namespace chai_internal {
 ////////////////////////////////////////////////
 // language extension AST object
 
-AstExtension::AstExtension(const size_t W,
+AstExtension::AstExtension(const size_t PREC,
+                           const size_t W,
                            const size_t H,
-                           const size_t precision)
-    : BaseAst(W, H, precision) { }
+                           const size_t slots)
+    : BaseAst(PREC, W, H, slots, false) { }
 
 AstExtension::~AstExtension(void) { }
 

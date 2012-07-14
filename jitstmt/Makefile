@@ -4,6 +4,7 @@ include ../Makefile.common
 USE_CFLAGS=$(SHARED_CFLAGS)
 
 LIBRARY_OBJECT_CODE = \
+	MakeStmt.o \
 	Stmt.o \
 	StmtBarrier.o \
 	StmtCompound.o \

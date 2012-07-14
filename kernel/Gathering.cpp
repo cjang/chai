@@ -16,20 +16,20 @@ namespace chai_internal {
 // variable description
 
 Gathering::VariableDesc::VariableDesc(void)
-    : _vectorLength(-1),
+    : _vecLen(-1),
       _W(-1),
       _H(-1) { }
 
-Gathering::VariableDesc::VariableDesc(const size_t vectorLength,
-                                      const size_t width,
-                                      const size_t height)
-    : _vectorLength(vectorLength),
-      _W(width),
-      _H(height) { }
+Gathering::VariableDesc::VariableDesc(const size_t vecLen,
+                                      const size_t W,
+                                      const size_t H)
+    : _vecLen(vecLen),
+      _W(W),
+      _H(H) { }
 
-size_t Gathering::VariableDesc::vectorLength(void) const
+size_t Gathering::VariableDesc::vecLength(void) const
 {
-    return _vectorLength;
+    return _vecLen;
 }
 
 size_t Gathering::VariableDesc::W(void) const
@@ -42,9 +42,9 @@ size_t Gathering::VariableDesc::H(void) const
     return _H;
 }
 
-size_t Gathering::vectorLength(const size_t variableNumber)
+size_t Gathering::vecLength(const size_t variableNumber)
 {
-    return _counterToDesc[ variableNumber ].vectorLength();
+    return _counterToDesc[ variableNumber ].vecLength();
 }
 
 ////////////////////////////////////////
@@ -183,18 +183,16 @@ Gathering::Gathering(void)
 Gathering::~Gathering(void) { }
 
 size_t Gathering::gatherVariable(const uint32_t varNum,
-                                 const size_t vectorLength,
-                                 const size_t width,
-                                 const size_t height)
+                                 const size_t vecLen,
+                                 const size_t W,
+                                 const size_t H)
 {
     if ( _traceVarToCounter.count(varNum) )
     {
         return _traceVarToCounter[varNum];
     }
 
-    _counterToDesc[ _variableCounter ] = VariableDesc( vectorLength,
-                                                       width,
-                                                       height );
+    _counterToDesc[ _variableCounter ] = VariableDesc( vecLen, W, H );
 
     _traceVarToCounter[ varNum ] = _variableCounter;
     _traceCounterToVar[ _variableCounter ] = varNum;
@@ -203,18 +201,16 @@ size_t Gathering::gatherVariable(const uint32_t varNum,
 }
 
 size_t Gathering::gatherVariable(const AstVariable* varPtr,
-                                 const size_t vectorLength,
-                                 const size_t width,
-                                 const size_t height)
+                                 const size_t vecLen,
+                                 const size_t W,
+                                 const size_t H)
 {
     if ( _splitVarToCounter.count(varPtr) )
     {
         return _splitVarToCounter[varPtr];
     }
 
-    _counterToDesc[ _variableCounter ] = VariableDesc( vectorLength,
-                                                       width,
-                                                       height );
+    _counterToDesc[ _variableCounter ] = VariableDesc( vecLen, W, H );
 
     _splitVarToCounter[ varPtr ] = _variableCounter;
     _splitCounterToVar[ _variableCounter ] = varPtr;
@@ -236,7 +232,7 @@ size_t Gathering::gatherSubscript(const size_t variableNumber,
         return _appSubscript[ variableNumber ][ appSub ];
     }
 
-    const size_t effVecLen = vectorLength(variableNumber);
+    const size_t effVecLen = vecLength(variableNumber);
 
     const ArraySubscript arrSub(variableNumber,
                                 N,

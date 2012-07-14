@@ -15,79 +15,77 @@ namespace chai_internal {
 
 void InterpIdxdata::sub_eval(stack< vector< FrontMem* > >& outStack)
 {
+    const size_t INDEX  = _argScalar[0];
+    const size_t WIDTH  = _argScalar[1];
+    const size_t HEIGHT = (2 == _N ? _argScalar[2] : 1);
+
     // first allocate backing memory
-    const size_t index = _argScalar[0];
-    const size_t W     = _argScalar[1];
-    const size_t H     = (2 == _N ? _argScalar[2] : 1);
-    BackMem* backMem = allocBackMem(W, H, _precision);
+    BackMem* backMem = allocBackMem(_prec, WIDTH, HEIGHT, 1);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
     // calculate and create fronts
-    for (size_t i = 0; i < numTraces(); i++)
+    FrontMem* m = allocFrontMem(_prec, WIDTH, HEIGHT, backMem, 0);
+
+    frontMem.push_back(m);
+
+    if (0 == INDEX)
     {
-        FrontMem* m = allocFrontMem(W, H, _precision, backMem, i);
-
-        frontMem.push_back(m);
-
-        if (0 == index)
+        switch (_prec)
         {
-            switch (_precision)
-            {
-                case (PrecType::UInt32) :
-                    for (size_t x = 0; x < W; x++)
-                    for (size_t y = 0; y < H; y++)
-                        m->uintPtr()[ x + y * H ] = x;
-                    break;
+            case (PrecType::UInt32) :
+                for (size_t x = 0; x < WIDTH; x++)
+                for (size_t y = 0; y < HEIGHT; y++)
+                    m->uintPtr()[ x + y * WIDTH ] = x;
+                break;
 
-                case (PrecType::Int32) :
-                    for (size_t x = 0; x < W; x++)
-                    for (size_t y = 0; y < H; y++)
-                        m->intPtr()[ x + y * H ] = x;
-                    break;
+            case (PrecType::Int32) :
+                for (size_t x = 0; x < WIDTH; x++)
+                for (size_t y = 0; y < HEIGHT; y++)
+                    m->intPtr()[ x + y * WIDTH ] = x;
+                break;
 
-                case (PrecType::Float) :
-                    for (size_t x = 0; x < W; x++)
-                    for (size_t y = 0; y < H; y++)
-                        m->floatPtr()[ x + y * H ] = x;
-                    break;
+            case (PrecType::Float) :
+                for (size_t x = 0; x < WIDTH; x++)
+                for (size_t y = 0; y < HEIGHT; y++)
+                    m->floatPtr()[ x + y * WIDTH ] = x;
+                break;
 
-                case (PrecType::Double) :
-                    for (size_t x = 0; x < W; x++)
-                    for (size_t y = 0; y < H; y++)
-                        m->doublePtr()[ x + y * H ] = x;
-                    break;
-            }
+            case (PrecType::Double) :
+                for (size_t x = 0; x < WIDTH; x++)
+                for (size_t y = 0; y < HEIGHT; y++)
+                    m->doublePtr()[ x + y * WIDTH ] = x;
+                break;
         }
-        else
+    }
+    else
+    {
+        switch (_prec)
         {
-            switch (_precision)
-            {
-                case (PrecType::UInt32) :
-                    for (size_t x = 0; x < W; x++)
-                    for (size_t y = 0; y < H; y++)
-                        m->uintPtr()[ x + y * H ] = y;
-                    break;
+            case (PrecType::UInt32) :
+                for (size_t x = 0; x < WIDTH; x++)
+                for (size_t y = 0; y < HEIGHT; y++)
+                    m->uintPtr()[ x + y * WIDTH ] = y;
+                break;
 
-                case (PrecType::Int32) :
-                    for (size_t x = 0; x < W; x++)
-                    for (size_t y = 0; y < H; y++)
-                        m->intPtr()[ x + y * H ] = y;
-                    break;
+            case (PrecType::Int32) :
+                for (size_t x = 0; x < WIDTH; x++)
+                for (size_t y = 0; y < HEIGHT; y++)
+                    m->intPtr()[ x + y * WIDTH ] = y;
+                break;
 
-                case (PrecType::Float) :
-                    for (size_t x = 0; x < W; x++)
-                    for (size_t y = 0; y < H; y++)
-                        m->floatPtr()[ x + y * H ] = y;
-                    break;
+            case (PrecType::Float) :
+                for (size_t x = 0; x < WIDTH; x++)
+                for (size_t y = 0; y < HEIGHT; y++)
+                    m->floatPtr()[ x + y * WIDTH ] = y;
+                break;
 
-                case (PrecType::Double) :
-                    for (size_t x = 0; x < W; x++)
-                    for (size_t y = 0; y < H; y++)
-                        m->doublePtr()[ x + y * H ] = y;
-                    break;
-            }
+            case (PrecType::Double) :
+                for (size_t x = 0; x < WIDTH; x++)
+                for (size_t y = 0; y < HEIGHT; y++)
+                    m->doublePtr()[ x + y * WIDTH ] = y;
+                break;
         }
     }
 
@@ -95,9 +93,9 @@ void InterpIdxdata::sub_eval(stack< vector< FrontMem* > >& outStack)
     outStack.push(frontMem);
 }
 
-InterpIdxdata::InterpIdxdata(const size_t precision, const size_t N)
+InterpIdxdata::InterpIdxdata(const size_t N, const size_t PREC)
     : BaseInterp(N + 1, 0),
-      _precision(precision),
-      _N(N) { }
+      _N(N),
+      _prec(PREC) { }
 
 }; // namespace chai_internal

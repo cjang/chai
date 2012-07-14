@@ -33,9 +33,7 @@ void StandardEM::setJournalFile(const string& journalFile)
 void StandardEM::setJournalFile(const set< string >& journalFileSet)
 {
     for (set< string >::const_iterator
-         it = journalFileSet.begin();
-         it != journalFileSet.end();
-         it++)
+         it = journalFileSet.begin(); it != journalFileSet.end(); it++)
     {
         setJournalFile(*it);
     }
@@ -108,9 +106,7 @@ bool StandardEM::searchLoop(KernelBase& kernelGen)
         *_os << "FINAL";
 
         for (vector< size_t >::const_iterator
-             it = currentBest.begin();
-             it != currentBest.end();
-             it++)
+             it = currentBest.begin(); it != currentBest.end(); it++)
         {
             *_os << " " << *it;
         }

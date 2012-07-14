@@ -14,7 +14,7 @@
 #include "chai/BC.hpp"
 #include "chai/Stak.hpp"
 #include "chai/Visit.hpp"
-#include "MemManager.hpp"
+#include "MemTrans.hpp"
 
 namespace chai_internal {
 
@@ -50,7 +50,7 @@ public:
 
     void setContext(std::stack< BaseAst* >& outStack);
     void setContext(VectorTrace& vt);
-    void setContext(MemManager& mm);
+    void setContext(MemTrans& mm);
 
     void visit(const uint32_t variable, const uint32_t version);
     void visit(const uint32_t opCode);

@@ -10,8 +10,8 @@
 namespace chai_internal {
 
 ////////////////////////////////////////
-// rng_normal_make_u32, rng_normal_make_i32
-// rng_normal_make_f32, rng_normal_make_f64
+// rng_normal_make_f32
+// rng_normal_make_f64
 
 class AstRNGnormal : public BaseAst
 {
@@ -21,8 +21,10 @@ class AstRNGnormal : public BaseAst
 public:
     AstRNGnormal(const int variant,
                  const uint64_t seed,
-                 const size_t len,
-                 const size_t precision);
+                 const size_t PREC,
+                 const size_t W,
+                 const size_t H,
+                 const size_t slots);
 
     int rngVariant(void) const;
     uint64_t rngSeed(void) const;

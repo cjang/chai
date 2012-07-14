@@ -4,7 +4,7 @@
 #define _CHAI_INTERP_GATHER_HPP_
 
 #include "BaseInterp.hpp"
-#include "SimpleFuns.hpp"
+#include "SimpleFun1.hpp"
 
 namespace chai_internal {
 
@@ -13,7 +13,7 @@ namespace chai_internal {
 
 class InterpGather : public BaseInterp
 {
-    const size_t _N;
+    const size_t  _N;
     const _FLOOR_ _fun;
 
     template <typename D0, typename D1>

@@ -12,19 +12,15 @@ namespace chai_internal {
 
 class AstDotprod : public BaseAst
 {
-    const size_t _leftW;
-    const size_t _leftH;
-    const size_t _rightW;
-    const size_t _rightH;
+    const size_t _insideW;
+    const size_t _insideH;
 
 public:
     AstDotprod(BaseAst* bargLeft,
                BaseAst* bargRight);
 
-    size_t leftW(void) const;
-    size_t leftH(void) const;
-    size_t rightW(void) const;
-    size_t rightH(void) const;
+    size_t insideW(void) const;
+    size_t insideH(void) const;
 
     void accept(VisitAst&);
 };

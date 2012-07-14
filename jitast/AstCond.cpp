@@ -13,9 +13,13 @@ namespace chai_internal {
 AstCond::AstCond(BaseAst* bargPredicate,
                  BaseAst* bargTrue,
                  BaseAst* bargFalse)
-    : BaseAst(max<size_t>(bargTrue->W(), bargFalse->W()),
+    : BaseAst(max<size_t>(bargTrue->prec(), bargFalse->prec()),
+              max<size_t>(bargTrue->W(), bargFalse->W()),
               max<size_t>(bargTrue->H(), bargFalse->H()),
-              max<size_t>(bargTrue->precision(), bargFalse->precision())),
+              max<size_t>(bargTrue->slots(), bargFalse->slots()),
+              bargPredicate->randomness() ||
+              bargTrue->randomness() ||
+              bargFalse->randomness()),
       _predicateW(bargPredicate->W()),
       _predicateH(bargPredicate->H()),
       _trueW(bargTrue->W()),

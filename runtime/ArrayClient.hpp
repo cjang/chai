@@ -41,14 +41,14 @@ public:
                          const uint32_t version);
 
     FrontMem* memalloc(const uint32_t variable,
+                       const size_t PREC,
                        const size_t W,
-                       const size_t H,
-                       const size_t precision);
+                       const size_t H);
 
     FrontMem* memalloc(const uint32_t variable,
+                       const size_t PREC,
                        const size_t W,
                        const size_t H,
-                       const size_t precision,
                        const size_t slots);
 
     FrontMem* memalloc(const uint32_t variable,
@@ -97,10 +97,8 @@ public:
 
     void schedule(void);
 
-    void forceVectorLength(const uint32_t variable,
-                           const int constraint);
-
-    void readScalar(const uint32_t variable);
+    void forceVecLength(const uint32_t variable,
+                        const int constraint);
 };
 
 }; // namespace chai_internal

@@ -16,26 +16,31 @@ void InterpGather::sub_eval(stack< vector< FrontMem* > >& outStack)
     swizzle(1);
     if (2 == _N) swizzle(2);
 
-    const size_t prec0 = precision(0);
-    const size_t prec1 = precision(1);
-    const size_t prec2 = (2 == _N) ? precision(2) : -1;
+    const size_t prec0  = prec(0);
+    const size_t prec1  = prec(1);
+    const size_t prec2  = (2 == _N) ? prec(2) : -1;
+    const size_t PREC   = prec0;
+
+    const size_t WIDTH  = W(0);
+    const size_t HEIGHT = H(0);
+    const size_t SLOTS  = slots(0);
 
     // first allocate backing memory
-    BackMem* backMem = allocBackMem(W(0), H(0), prec0);
+    BackMem* backMem = allocBackMem(PREC, WIDTH, HEIGHT, SLOTS);
 
     // array memory boxes
     vector< FrontMem* > frontMem;
 
     // calculate and create fronts
-    for (size_t i = 0; i < numTraces(); i++)
+    for (size_t i = 0; i < SLOTS; i++)
     {
-        FrontMem* m = allocFrontMem(W(0), H(0), prec0, backMem, i);
+        FrontMem* m = allocFrontMem(PREC, WIDTH, HEIGHT, backMem, i);
 
         frontMem.push_back(m);
 
         if (1 == _N)
         {
-            switch (prec0)
+            switch (PREC)
             {
             case (PrecType::UInt32) :
                 switch (prec1)
@@ -126,7 +131,7 @@ void InterpGather::sub_eval(stack< vector< FrontMem* > >& outStack)
 
         if (2 == _N)
         {
-            switch (prec0)
+            switch (PREC)
             {
             case (PrecType::UInt32) :
                 switch (prec1)

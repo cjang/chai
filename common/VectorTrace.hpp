@@ -15,7 +15,6 @@
 #include "chai/BC.hpp"
 #include "chai/Stak.hpp"
 #include "FrontMem.hpp"
-#include "SingleNut.hpp"
 #include "SingleTrace.hpp"
 #include "VectorNut.hpp"
 
@@ -60,23 +59,17 @@ class VectorTrace
                          std::vector< size_t >
                        > >                       _memallocFrontIndex;
 
-    // same data across traces for intermediate array variables
-    std::set< uint32_t >                         _unifySameData;
-
     // writeback to variable nuts
-    std::map< uint32_t, VectorNut* >             _vectorNuts;
+    std::map< uint32_t, VectorNut* > _vectorNuts;
 
     // need all hash codes when repeatedly scheduling traces without finalizing
-    std::vector< uint64_t >                      _hashCodeHistory;
+    std::vector< uint64_t > _hashCodeHistory;
 
     // restuck from one compute device to another
-    bool                                         _stickyMovement;
+    bool _stickyMovement;
 
     // constrain vector length choice by JIT
-    std::map< uint32_t, int >                    _forceVectorLength;
-
-    // really a scalar
-    std::set< uint32_t >                         _readScalar;
+    std::map< uint32_t, int > _forceVecLength;
 
 public:
     VectorTrace(const std::map< pthread_t, SingleTrace* >& traceSet);
@@ -114,10 +107,6 @@ public:
     size_t memallocFrontSize(const uint32_t variable) const;
     std::vector< size_t > memallocFrontIndex(const uint32_t variable) const;
 
-    // same data across traces for intermediate array variables
-    bool getUnifySameData(const uint32_t variable) const;
-    void setUnifySameData(const uint32_t variable);
-
     // for storing stream values with variables
     std::map< uint32_t, VectorNut* >& vectorNuts(void);
     const std::map< uint32_t, VectorNut* >& vectorNuts(void) const;
@@ -126,10 +115,7 @@ public:
     const std::set< uint32_t >& liveVariables(void) const;
 
     // constrain vector length choice by JIT
-    const std::map< uint32_t, int >& forceVectorLength(void) const;
-
-    // really a scalar
-    const std::set< uint32_t >& readScalar(void) const;
+    const std::map< uint32_t, int >& forceVecLength(void) const;
 };
 
 }; // namespace chai_internal

@@ -55,13 +55,10 @@ class ClientTrace
     std::vector< uint64_t >          _hashCodeHistory;
 
     // history of sticky continuation
-    std::vector< size_t >            _stickyDeviceCode;
+    std::vector< int >               _stickyDeviceNum;
 
     // constrain vector length choice by JIT
-    std::map< uint32_t, int >        _forceVectorLength;
-
-    // really a scalar
-    std::set< uint32_t >             _readScalar;
+    std::map< uint32_t, int >        _forceVecLength;
 
 public:
     ClientTrace(void);
@@ -72,8 +69,7 @@ public:
     void pushHashCode(const uint64_t);
     const std::vector< uint64_t >& hashCodeHistory(void) const;
 
-    size_t stickyDevice(void) const;
-    bool stickyDevice(const size_t deviceCode);
+    bool stickyDevice(const int deviceNum);
     void unstickyDevice(void);
     bool stickyMovement(void) const;
 
@@ -90,14 +86,14 @@ public:
                          const uint32_t version);
 
     FrontMem* memalloc(const uint32_t variable,
+                       const size_t PREC,
                        const size_t W,
-                       const size_t H,
-                       const size_t precision);
+                       const size_t H);
 
     FrontMem* memalloc(const uint32_t variable,
+                       const size_t PREC,
                        const size_t W,
                        const size_t H,
-                       const size_t precision,
                        const size_t slots);
 
     FrontMem* memalloc(const uint32_t variable,
@@ -144,10 +140,8 @@ public:
     size_t frontMem(const uint32_t variable,
                     AstOpenCL* astObj);
 
-    void forceVectorLength(const uint32_t variable,
-                           const int constraint);
-
-    void readScalar(const uint32_t variable);
+    void forceVecLength(const uint32_t variable,
+                        const int constraint);
 };
 
 }; // namespace chai_internal

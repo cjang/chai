@@ -14,13 +14,20 @@ namespace chai_internal {
 
 class TransRNGuniform : public BaseTrans
 {
-    const size_t _precision;
+    const size_t _prec;
+    const bool   _hasLimits;
+
+    static size_t numberArgs(const size_t PREC);
 
 protected:
     BaseAst* sub_eval(void) const;
 
 public:
-    TransRNGuniform(const size_t precision);
+    // rng_uniform_make_u32
+    // rng_uniform_make_i32
+    // rng_uniform_make_f32
+    // rng_uniform_make_f64
+    TransRNGuniform(const size_t PREC);
 };
 
 }; // namespace chai_internal

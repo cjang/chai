@@ -28,23 +28,28 @@ float MonteCarloAntithetic(float price,
     float muDeltat      = (rate - div - 0.5 * vol * vol) * deltat;
     float volSqrtDeltat = vol * sqrt(deltat);
     float meanCPU       = 0.0f;
+
+    float buf[M];
+    for (int i = 0; i < M; i++) buf[i] = 0;
+
     Arrayf32 meanSP; // result
-
-    RNGf32 rng_hndl(RNG_DEFAULT, 0);
-    Arrayf32 U = zeros_f32(M);
-    for (int i = 0; i < N; i++)
-        U += rng_normal_make(rng_hndl, M);
-
-    Arrayf32 values;
     {
-        Arrayf32 lnS1 = log(price) + N * muDeltat + volSqrtDeltat * U;
-        Arrayf32 lnS2 = log(price) + N * muDeltat + volSqrtDeltat * (-U);
-        Arrayf32 S1 = exp(lnS1);
-        Arrayf32 S2 = exp(lnS2);
-        values = (0.5 * (max(0, S1 - strike) + max(0, S2 - strike))
-                      * exp(-rate * T));
+        RNGf32 rng_hndl(RNG_DEFAULT, 0);
+        Arrayf32 U = zeros_f32(M);
+        for (int i = 0; i < N; i++)
+            U += rng_normal_make(rng_hndl, M);
+
+        Arrayf32 values;
+        {
+            Arrayf32 lnS1 = log(price) + N * muDeltat + volSqrtDeltat * U;
+            Arrayf32 lnS2 = log(price) + N * muDeltat + volSqrtDeltat * (-U);
+            Arrayf32 S1 = exp(lnS1);
+            Arrayf32 S2 = exp(lnS2);
+            values = (0.5 * (max(0, S1 - strike) + max(0, S2 - strike))
+                          * exp(-rate * T));
+        }
+        meanSP = mean(values);
     }
-    meanSP = mean(values);
     meanCPU = meanSP.read_scalar();
 
     return meanCPU; 

@@ -16,6 +16,11 @@ StmtGatherAuto::StmtGatherAuto(AstVariable* dataVariable)
     buoyancySurface();
 }
 
+bool StmtGatherAuto::randomness(void) const
+{
+    return false;
+}
+
 bool StmtGatherAuto::swappable(const Stmt& other) const
 {
     return Stmt::swappable(other);

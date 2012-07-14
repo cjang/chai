@@ -13,13 +13,13 @@ namespace chai_internal {
 
 class InterpScalar : public BaseInterp
 {
-    const size_t _precision;
+    const size_t _prec;
 
 protected:
     void sub_eval(std::stack< std::vector< FrontMem* > >&);
 
 public:
-    InterpScalar(const size_t precision);
+    InterpScalar(const size_t PREC);
 };
 
 }; // namespace chai_internal

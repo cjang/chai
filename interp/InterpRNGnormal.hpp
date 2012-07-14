@@ -9,21 +9,19 @@
 namespace chai_internal {
 
 ////////////////////////////////////////
-// rng_normal_make_u32
-// rng_normal_make_i32
 // rng_normal_make_f32
 // rng_normal_make_f64
 
 class InterpRNGnormal : public BaseInterp
 {
-    const size_t _precision;
+    const size_t _prec;
     InterpRNG&   _gen;
 
 protected:
     void sub_eval(std::stack< std::vector< FrontMem* > >&);
 
 public:
-    InterpRNGnormal(const size_t precision, InterpRNG& gen);
+    InterpRNGnormal(const size_t PREC, InterpRNG& gen);
 };
 
 }; // namespace chai_internal

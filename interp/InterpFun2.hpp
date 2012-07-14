@@ -4,7 +4,7 @@
 #define _CHAI_INTERP_FUN2_HPP_
 
 #include "BaseInterp.hpp"
-#include "SimpleFuns.hpp"
+#include "SimpleFun2.hpp"
 
 namespace chai_internal {
 

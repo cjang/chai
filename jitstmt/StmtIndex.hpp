@@ -20,6 +20,8 @@ class StmtIndex : public Stmt
 public:
     StmtIndex(AstVariable* lhs, AstIdxdata* rhs);
 
+    bool randomness(void) const;
+
     bool swappable(const Stmt&) const;
 
     void accept(VisitStmt&);

@@ -32,8 +32,7 @@ SingleTrace::SingleTrace(ClientTrace& origin)
       _liveVariables(origin._liveVariables),
       _variableNuts(origin._variableNuts),
       _origin(origin),
-      _forceVectorLength(origin._forceVectorLength),
-      _readScalar(origin._readScalar)
+      _forceVecLength(origin._forceVecLength)
 {
     // copy trace statements from last checkpoint
     for (size_t i = origin.getScheduleCheckpoint();
@@ -47,9 +46,7 @@ SingleTrace::SingleTrace(ClientTrace& origin)
 
     // limit boxed array memory to statements from last checkpoint
     for (map< size_t, FrontMem* >::const_iterator
-         it = origin._frontMem.begin();
-         it != origin._frontMem.end();
-         it++)
+         it = origin._frontMem.begin(); it != origin._frontMem.end(); it++)
     {
         const size_t stmtIndex = (*it).first;
         if ( stmtIndex >= origin.getScheduleCheckpoint() &&
@@ -78,11 +75,6 @@ uint64_t SingleTrace::hashCode(void) const
 const vector< uint64_t >& SingleTrace::hashCodeHistory(void) const
 {
     return _origin.hashCodeHistory();
-}
-
-size_t SingleTrace::stickyDevice(void) const
-{
-    return _origin.stickyDevice();
 }
 
 bool SingleTrace::stickyDevice(const size_t deviceCode)

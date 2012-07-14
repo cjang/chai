@@ -74,9 +74,10 @@ RefObj* RefObj::release(const bool owned)
 void RefSet::deleteBag(void)
 {
     for (set< RefObj* >::const_iterator
-         it = _bag.begin();
-         it != _bag.end();
-         it++) { delete (*it)->release(true); }
+         it = _bag.begin(); it != _bag.end(); it++)
+    {
+        delete (*it)->release(true);
+    }
 }
 
 RefSet::RefSet(void) { }
@@ -108,9 +109,10 @@ void RefSet::checkout(RefObj* obj)
 void RefSet::checkout(const RefSet& other)
 {
     for (set< RefObj* >::const_iterator
-         it = other._bag.begin();
-         it != other._bag.end();
-         it++) { checkout(*it); }
+         it = other._bag.begin(); it != other._bag.end(); it++)
+    {
+        checkout(*it);
+    }
 }
 
 void RefSet::release(RefObj* obj)
@@ -122,9 +124,10 @@ void RefSet::release(RefObj* obj)
 void RefSet::release(const RefSet& other)
 {
     for (set< RefObj* >::const_iterator
-         it = other._bag.begin();
-         it != other._bag.end();
-         it++) { release(*it); }
+         it = other._bag.begin(); it != other._bag.end(); it++)
+    {
+        release(*it);
+    }
 }
 
 }; // namespace chai_internal

@@ -24,9 +24,7 @@ vector< FrontMem* > VectorNut::getNutMem(const uint32_t version)
 
     // retrieve from underlying array variable nuts
     for (vector< SingleNut* >::const_iterator
-         it = _nutVector.begin();
-         it != _nutVector.end();
-         it++)
+         it = _nutVector.begin(); it != _nutVector.end(); it++)
     {
         for (vector< FrontMem* >::const_iterator
              jt = (*it)->getNutMem(version).begin();
@@ -74,9 +72,7 @@ void VectorNut::setNutVar(const uint32_t version, AstVariable* v)
 
     // write-through to single nuts
     for (vector< SingleNut* >::const_iterator
-         it = _nutVector.begin();
-         it != _nutVector.end();
-         it++)
+         it = _nutVector.begin(); it != _nutVector.end(); it++)
     {
         (*it)->setNutVar(version, v);
     }

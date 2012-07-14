@@ -15,14 +15,14 @@ namespace chai_internal {
 class TransIdxdata : public BaseTrans
 {
     const size_t _N;
-    const size_t _precision;
+    const size_t _prec;
 
 protected:
     BaseAst* sub_eval(void) const;
 
 public:
     TransIdxdata(const size_t N,
-                 const size_t precision);
+                 const size_t PREC);
 };
 
 }; // namespace chai_internal

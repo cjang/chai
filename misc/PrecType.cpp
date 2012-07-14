@@ -11,9 +11,9 @@ namespace chai_internal {
 ////////////////////////////////////////
 // Basic array data types
 
-bool PrecType::validSizeCode(const size_t precision)
+bool PrecType::validCode(const size_t PREC)
 {
-    switch (precision)
+    switch (PREC)
     {
         case (PrecType::UInt32) :
         case (PrecType::Int32) :
@@ -26,10 +26,10 @@ bool PrecType::validSizeCode(const size_t precision)
     }
 }
 
-size_t PrecType::vecLength(const size_t precision)
+size_t PrecType::vecLength(const size_t PREC)
 {
     // assuming 128 bits
-    switch (precision)
+    switch (PREC)
     {
         // 4-way
         case (PrecType::UInt32) :
@@ -47,9 +47,9 @@ size_t PrecType::vecLength(const size_t precision)
     }
 }
 
-size_t PrecType::sizeOf(const size_t precision)
+size_t PrecType::sizeOf(const size_t PREC)
 {
-    switch (precision)
+    switch (PREC)
     {
         case (PrecType::UInt32) :
         case (PrecType::Int32) :
@@ -65,9 +65,9 @@ size_t PrecType::sizeOf(const size_t precision)
     }
 }
 
-bool PrecType::isTypeFP(const size_t precision)
+bool PrecType::isTypeFP(const size_t PREC)
 {
-    switch (precision)
+    switch (PREC)
     {
         case (PrecType::UInt32) :
         case (PrecType::Int32) :
@@ -83,29 +83,29 @@ bool PrecType::isTypeFP(const size_t precision)
     }
 }
 
-template <> size_t PrecType::getSizeCode<uint32_t>(void)
+template <> size_t PrecType::getCode<uint32_t>(void)
 {
     return PrecType::UInt32;
 }
 
-template <> size_t PrecType::getSizeCode<int32_t>(void)
+template <> size_t PrecType::getCode<int32_t>(void)
 {
     return PrecType::Int32;
 }
 
-template <> size_t PrecType::getSizeCode<float>(void)
+template <> size_t PrecType::getCode<float>(void)
 {
     return PrecType::Float;
 }
 
-template <> size_t PrecType::getSizeCode<double>(void)
+template <> size_t PrecType::getCode<double>(void)
 {
     return PrecType::Double;
 }
 
-string PrecType::getPrimitiveName(const size_t precision)
+string PrecType::getName(const size_t PREC)
 {
-    switch (precision)
+    switch (PREC)
     {
         case (PrecType::UInt32) : return "uint";
         case (PrecType::Int32) : return "int";
@@ -117,9 +117,9 @@ string PrecType::getPrimitiveName(const size_t precision)
     }
 }
 
-size_t PrecType::padWidth(const size_t precision, const size_t W)
+size_t PrecType::padWidth(const size_t PREC, const size_t W)
 {
-    const size_t stdVecLen = PrecType::vecLength(precision);
+    const size_t stdVecLen = PrecType::vecLength(PREC);
 
     // if not even multiple of standard vector length
     const bool padNeeded = 0 != (W % stdVecLen);
